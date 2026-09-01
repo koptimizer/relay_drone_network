@@ -81,6 +81,16 @@ DRONE
 ## 7. 주의 사항
 - 베이스라인 알고리즘을 과소 평가하거나, 내 알고리즘을 올려치기 하지 말 것
 
-## 8. 응답 규칙
+## 8. 버전 관리 (GitHub)
+* 원격 저장소: https://github.com/koptimizer/relay_drone_network
+* **각 버전의 연구 사이클이 완료되면 자동으로 커밋·태그·푸시할 것.** 실행 명령:
+  `proposed_src/pipeline/release_cycle.sh <버전태그> "<10단어 이하 설명>"`
+  (예: `release_cycle.sh v3_26_08_31_19 "hierarchical MARL matches greedy with lower variance"`)
+* 사이클 완료 시점의 기준: 학습이 조기 종료로 끝나고, 홀드아웃 평가와 docs/VERSIONS.md 갱신까지 마친 때
+* 저장소 용량 관리: 체크포인트는 각 실행의 `best_*.pth`만 추적한다. 에피소드별 체크포인트,
+  TensorBoard 이벤트 파일, 중단된 실행의 중간 가중치는 `.gitignore`로 제외한다.
+  스크립트가 50MB 초과 파일을 발견하면 푸시를 중단한다.
+
+## 9. 응답 규칙
 - 모든 답변 첫 줄에 응답 시각을 `YY-MM-DD HH:MM:SS` 형식으로 표기할 것 (예: `26-09-01 15:23:18`)
 - 시각은 추정하지 말고 `date "+%y-%m-%d %H:%M:%S"`로 실제 확인한 값을 쓸 것
