@@ -1,0 +1,361 @@
+% Hierarchical MARL for relay-drone delivery in disaster response (English version)
+% Target version: v3 (26_08_31_19)
+% Compile: pdflatex
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+\doublespacing
+\pagestyle{empty}
+
+\title{Hierarchical Multi-Agent Reinforcement Learning for\\
+Relay-Drone Network Delivery in Disaster Response}
+\author{Kwangjong Ko \and Hyunseok Choi \and Taesu Cheong\thanks{Corresponding author.}\\
+Department of Industrial and Management Engineering, Korea University}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+In disaster zones where communication infrastructure has been destroyed, the direct communication
+range of a drone bounds the region it can serve. A relay drone network, in which each drone
+forwards its peers' traffic, relaxes that bound but introduces an operational tension: a drone
+holding a relay position cannot deliver. This study addresses the setting in which a homogeneous
+fleet delivers relief supplies while simultaneously forming a multi-hop relay chain so that every
+aircraft remains connected to the control center at all times. The objective is to minimize the
+makespan of serving all demand points.
+
+Treating connectivity as a reward penalty was found to inject unavoidable penalties into the
+learning signal: a drone stationary for unloading can be stranded by teammates departing, and no
+action available to it prevents the resulting penalty. Connectivity is therefore enforced as a
+hard environmental constraint through a minimal-perturbation projection that shrinks each commanded
+displacement to the largest value preserving connectivity. Separately, single-level continuous
+control was observed not to acquire the reload cycle---returning to the depot once capacity is
+exhausted---so a hierarchy is proposed in which a manager selects a destination, a return, or a
+relay hold as a discrete action, and a worker produces two-dimensional thrust.
+
+Over 30 held-out instances evaluated three times each at communication range 300 with 50
+destinations and 4 drones, the proposed method served 23.97 demand points (standard error 0.67)
+against 23.04 (standard error 1.01) for a greedy heuristic; the difference is not statistically
+distinguishable. The gains lie elsewhere: dispersion across instances fell from 9.62 to 6.34,
+maximum reach from the control center rose from 644 to 778, and movements cancelled by the
+connectivity constraint fell by 59\%, from 3,338 to 1,373. No connectivity loss occurred during
+any training episode or evaluation rollout.
+\end{abstract}
+
+\section{Introduction}
+
+Ground transport is frequently unusable in disaster response because road infrastructure is
+damaged, and drone delivery has accordingly been studied as an alternative. What the logistics
+literature has largely left aside is that communication infrastructure is damaged as well.
+Relief cargo carries a high completion priority, so its delivery status must be tracked, and
+loading and unloading demand fine control supported by real-time video. Continuous connectivity
+during the mission is therefore a requirement rather than a convenience.
+
+A relay drone network, in which each aircraft forwards the traffic of others, extends the fleet's
+operating radius beyond the direct communication range. This structure creates an operational
+trade-off. A drone that holds a relay position performs no deliveries, so the number of aircraft
+assigned to relaying is exchanged directly against delivery throughput. A preliminary sweep
+reported in Section~5.1 shows a regime in which the optimal point of this exchange differs across
+instances; that regime is where fixed rules cannot be optimal and adaptive assignment has room to
+contribute.
+
+Three contributions are offered. First, sweeping problem difficulty along the communication range
+identifies both where rule-based policies begin to fail and where no fixed role split can be
+optimal. Second, enforcing connectivity by minimal-perturbation projection rather than by reward
+removes connectivity loss structurally. Third, a hierarchical multi-agent reinforcement learning
+framework separating destination selection from low-level maneuvering is proposed; it matches a
+greedy heuristic in delivery volume while reducing dispersion by 34\% and extending reach by 21\%.
+
+\section{Related Work}
+
+\subsection{Drone delivery routing}
+
+Murray and Chu (2015) formulated the flying sidekick traveling salesman problem, in which one truck
+and one drone cooperate, and proposed a mixed-integer program together with heuristics that
+minimize makespan. Murray and Raj (2020) extended the formulation to a heterogeneous fleet of
+drones with explicit launch and retrieval queueing. Agatz et al. (2018) permitted launch and
+retrieval at the same node and contributed an exact dynamic-programming procedure. Dorling et al.
+(2017) defined a drone-only multi-trip vehicle routing problem with an energy model linear in
+payload and battery weight. This line of work assumes that communication is free and unmodeled.
+
+\subsection{UAV relay networks}
+
+Zeng et al. (2016) proposed mobile relaying, in which a UAV serves as a moving relay node, and
+optimized power allocation and trajectory alternately, although a single relay UAV was assumed.
+Yanmaz (2022) decoupled mission UAVs from relay UAVs and computed relay placements from Steiner
+points so that a minimal number of relays maintains team connectivity. Ding et al. (2022) jointly
+determined trajectory, spectrum allocation, and next-hop selection in a multi-hop UAV relay network
+using QMIX-based multi-agent reinforcement learning. Objectives in this line are throughput and
+coverage; payload capacity and reload trips are not represented.
+
+\subsection{The gap}
+
+Role switching between task execution and communication relaying is itself established in the
+multi-robot exploration literature. Cesare et al. (2015) defined explore, meet, sacrifice, and
+relay states, with relay robots landing and remaining stationary to sustain data flow. Role
+switching therefore cannot be claimed as novel here. What was not located within the scope of this
+survey is the transplantation of that mechanism into a \emph{capacitated, multi-trip,
+makespan-minimizing} delivery setting, where the relay obligation competes directly with payload
+throughput and the fleet must repeatedly return to a depot to reload.
+
+\subsection{Learning methodology}
+
+Huang and Ontañón (2022) compared suppressing infeasible actions by reward penalty against blocking
+them by masking under controlled conditions, and showed that episodic return under the penalty
+treatment collapses as problem size grows. Dalal et al. (2018) introduced a safety layer that
+analytically computes the smallest action correction satisfying the constraints. Ng et al. (1999)
+proved that potential-based shaping is the necessary and sufficient form preserving the optimal
+policy, and gave cases in which a positive per-timestep reward not of that form induces cycling
+rather than task completion. Zhou et al. (2019) showed that representing rotation by a scalar angle
+is discontinuous and that the continuous representation of SO(2) is $[\cos\theta, \sin\theta]$.
+The present design follows these results.
+
+\section{Problem Statement}
+
+One control center and $|C|$ demand points are placed on a $1000 \times 1000$ plane. A homogeneous
+fleet of $|K|$ drones departs the control center carrying $Q$ units. When drone $i$ enters the
+interaction radius $r$ of demand point $j$, a delivery occurs, capacity decreases by one, and $S$
+steps of unloading time elapse. A drone with zero capacity that returns to the control center is
+restored to $Q$ over the same $S$ steps.
+
+The communication graph $G_t = (V, E_t)$ is defined by drone positions at time $t$; two nodes are
+adjacent when separated by no more than the communication range $R$, and the control center is a
+node. The constraint is
+\begin{equation}
+\forall t, \ \forall i \in K: \ i \text{ is connected to the control center in } G_t .
+\end{equation}
+The objective is to minimize $T^*$, the time at which all demand points have been served.
+
+A remark on mathematical programming is warranted. In a node-based routing formulation a drone in
+transit has no coordinates, so connectivity cannot be evaluated at every instant. Closing that gap
+requires either discretizing space or pre-specifying candidate hovering points, and the latter is
+itself a placement problem. Because the same drones both deliver and relay, placement cannot be
+separated into a subproblem as in Yanmaz (2022), and the result is a coupled placement-and-routing
+problem.
+
+\section{Method}
+
+\subsection{Connectivity as a hard constraint}
+
+In the preceding implementation, connectivity was handled by assigning a large penalty on
+disconnection and terminating the episode. A defect of this treatment was identified. When a drone
+stationary for unloading is stranded by departing teammates, it receives a penalty that no action
+available to it could have prevented. Unavoidable penalties corrupt the learning signal.
+
+Connectivity is instead enforced as a hard environmental constraint. Given commanded displacements
+$\Delta$, a scale vector $s \in [0,1]^{|K|}$ is selected so that the resulting configuration
+$x + \Delta \odot s$ leaves every drone connected. Starting from $s = \mathbf{1}$, while the
+configuration is disconnected the drone whose restriction yields the largest number of connected
+drones is selected, and its scale is reduced by bisection to the largest safe value. Ties are
+broken at random; breaking them deterministically was observed to concentrate the restriction
+repeatedly on the drone anchoring the relay chain. Because reverting all scales to zero recovers
+the previous configuration, which is connected by induction, the procedure always terminates in a
+connected configuration.
+
+\subsection{Hierarchy}
+
+Single-level continuous control did not acquire the cycle of exhausting capacity, returning, and
+reloading (Section~5.3). That cycle spans hundreds of steps. Decision making is therefore split
+across two levels.
+
+\textbf{Manager.} Every $H$ steps, and immediately whenever the current subgoal is invalidated,
+one of $K+2$ options is chosen per drone: one of the $K$ nearest unserved destinations, a return to
+the control center, or holding the current position. Admitting all destinations as actions would
+tie the action space to instance size, so the candidate set is fixed at the $K$ nearest. Including
+hold as an explicit action is central to the design: the relay role consists precisely of not
+moving, and only an explicit option lets the manager allocate roles directly. The manager receives
+only the team objective---deliveries, reloads, and a time penalty.
+
+\textbf{Worker.} At every step a two-dimensional thrust $(v_x, v_y) \in [-1,1]^2$ is emitted,
+normalized when its norm exceeds one, giving displacement $v \cdot v_{\max}$. A scalar-angle
+representation is a discontinuous representation of SO(2), placing physically adjacent headings at
+opposite ends of the action range, and reaching maximum speed requires tanh saturation, which the
+maximum-entropy objective suppresses; the measured mean commanded speed of an angle-parameterized
+policy was 0.511 of maximum. The worker reward comprises progress toward its subgoal, an arrival
+bonus, and a penalty proportional to displacement removed by the connectivity correction. It
+receives no team reward.
+
+Both levels are trained with soft actor-critic under centralized training with decentralized
+execution. The manager uses discrete SAC over a categorical policy; the worker uses continuous SAC
+with a tanh-Gaussian policy.
+
+\section{Experiments}
+
+\subsection{Problem difficulty}
+
+Greedy performance was measured while sweeping the communication range (Table~\ref{tab:sweep}).
+The final column reports the gap between the best \emph{fixed} number of relay drones and an
+oracle that selects the best number per instance.
+
+\begin{table}[h]
+\centering
+\caption{Greedy performance by communication range (12 instances, deliveries out of 50)}
+\label{tab:sweep}
+\begin{tabular}{rrrrrrrr}
+\toprule
+Range & 0 relays & 1 & 2 & 3 & Best fixed & Per-instance oracle & Gap \\
+\midrule
+500 & 49.3 & 50.0 & 50.0 & 36.4 & 50.0 & 50.0 & $+0.0$ \\
+400 & 40.6 & 48.4 & 43.9 & 17.9 & 48.4 & 49.4 & $+1.0$ \\
+\textbf{300} & 21.0 & 22.7 & 18.5 & 9.3 & 22.7 & \textbf{28.2} & $\mathbf{+5.6}$ \\
+250 & 14.4 & 15.2 & 12.6 & 7.8 & 15.2 & 19.1 & $+3.8$ \\
+200 & 10.8 & 9.7 & 8.2 & 5.9 & 10.8 & 11.8 & $+1.0$ \\
+150 & 7.0 & 5.8 & 4.6 & 4.2 & 7.0 & 7.2 & $+0.2$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Through range 400 the greedy policy essentially solves the problem, leaving no room for a learning
+approach to contribute. At range 300 performance falls by more than half while the gap reaches its
+maximum, indicating that no fixed relay count suffices and that the required allocation differs
+across instances. Below range 200 the gap narrows again because no allocation performs well.
+Subsequent experiments use range 300.
+
+\subsection{Main results}
+
+Thirty held-out instances were each evaluated three times, for 90 rollouts per method
+(Table~\ref{tab:main}). Repetition averages over the randomness in the connectivity projection's
+tie-breaking.
+
+\begin{table}[h]
+\centering
+\caption{Main results (30 held-out instances $\times$ 3 repetitions, range 300)}
+\label{tab:main}
+\begin{tabular}{lrrrrrr}
+\toprule
+Method & Delivered & SD & SE & Reloads & Max reach & Moves cancelled \\
+\midrule
+Random policy & 3.7 & 2.5 & 0.26 & 0.0 & 372 & 17 \\
+Greedy & 23.04 & 9.62 & 1.01 & 2.12 & 644 & 3{,}338 \\
+Greedy + 1 fixed relay & 14.24 & 5.29 & 0.56 & 0.96 & 524 & 2{,}652 \\
+Rule manager + learned worker & 23.09 & 9.25 & 0.97 & 2.50 & 695 & 1{,}303 \\
+\textbf{Proposed (hierarchical, $H=20$)} & \textbf{23.97} & \textbf{6.34} & \textbf{0.67} & 2.34 &
+\textbf{778} & \textbf{1{,}373} \\
+Proposed (hierarchical, $H=10$) & 22.52 & 5.75 & 0.61 & 2.11 & 788 & 1{,}322 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The proposed method served 23.97 demand points against 23.04 for greedy, but with standard errors
+of 0.67 and 1.01 the difference of $0.93$ is not statistically significant. \textbf{In terms of
+delivery throughput the proposed method should be reported as matching the greedy heuristic, not
+as exceeding it.}
+
+The significant differences appear elsewhere. Dispersion across instances fell from 9.62 to 6.34,
+a 34\% reduction, indicating more consistent performance. Maximum reach from the control center
+rose from 644 to 778; with a communication range of 300, this means the relay chain extended to
+2.6 times the direct range. Movements cancelled by the connectivity constraint fell by 59\%, from
+3,338 to 1,373. The proposed method therefore travels farther while colliding less with the
+constraint.
+
+No connectivity loss occurred in any training episode or evaluation rollout, confirming that the
+hard constraint behaves as designed.
+
+\subsection{Contribution of the hierarchy}
+
+The bottleneck the hierarchy targeted was the reload cycle. Policies learned under a single-level
+architecture performed between 0.0 and 0.4 reloads per episode. With 4 drones of capacity 5,
+20 deliveries is a structural ceiling without reloading, and observed delivery volumes sat below
+it. Under the hierarchy, reloads recovered to 2.34 per episode, comparable to greedy at 2.12.
+
+Sensitivity to the manager decision period $H$ was examined; $H=20$ dominated $H=10$ (23.97 versus
+22.52). Frequent re-decision replaces subgoals before the worker reaches them.
+
+\subsection{Ablations}
+
+Several design elements were tested individually. Potential-based shaping on relay spacing,
+weighted redistribution of team reward toward drones necessary for relaying, a floor on the entropy
+coefficient, and expanding observations to all peers each failed to improve delivery performance.
+Removing the clustering penalty was preferable, and it was excluded from the final design.
+
+Changing the action representation did not alter delivery performance but affected training
+stability markedly. Held-out performance of the angle-parameterized policy declined 40\% after its
+peak, whereas the vector-parameterized policy declined 8\%, and its peak occurred four times later
+in training.
+
+\section{Conclusion}
+
+This study approached relay-drone delivery under disaster conditions with hierarchical multi-agent
+reinforcement learning. Enforcing connectivity by minimal-perturbation projection removed
+connectivity loss structurally, and separating destination selection from low-level maneuvering
+recovered the reload cycle that single-level control had failed to acquire.
+
+The results are qualified. In delivery throughput the proposed method is not statistically
+distinguishable from a greedy heuristic, consistent with reports in the neural combinatorial
+optimization literature that learned methods do not surpass well-tuned heuristics on solution
+quality. The advantages observed are a 34\% reduction in performance dispersion and greater use of
+the relay network---21\% more reach with 59\% fewer cancelled movements---which carry weight in a
+disaster-response context independently of mean throughput.
+
+Three limitations are noted. Training used a single fixed map, leaving room for instance
+memorization; evaluation was conducted on instances not used in training, but randomizing instances
+during training remains future work. No method completed all 50 deliveries, so the makespan
+objective was undefined and delivery count served as a surrogate. Communication was simplified to a
+range-based disk model without terrain occlusion.
+
+Future work includes joint fine-tuning of both levels, instance randomization during training, and
+measurement of per-step inference latency to quantify the real-time re-decision capability.
+
+\section*{References}
+
+\noindent Agatz, N., Bouman, P., \& Schmidt, M. (2018). Optimization approaches for the traveling
+salesman problem with drone. \textit{Transportation Science, 52}(4), 965--981.
+
+\noindent Cesare, K., Skeele, R., Yoo, S.-H., Zhang, Y., \& Hollinger, G. (2015). Multi-UAV
+exploration with limited communication and battery. In \textit{Proceedings of the IEEE
+International Conference on Robotics and Automation} (pp. 2230--2235).
+
+\noindent Dalal, G., Dvijotham, K., Vecerik, M., Hester, T., Paduraru, C., \& Tassa, Y. (2018).
+Safe exploration in continuous action spaces. \textit{arXiv preprint arXiv:1801.08757}.
+
+\noindent Ding, R., Chen, J., Wu, W., Liu, J., Gao, F., \& Shen, X. (2022). Packet routing in
+dynamic multi-hop UAV relay network: A multi-agent learning approach. \textit{IEEE Transactions on
+Vehicular Technology, 71}(9), 10059--10072.
+
+\noindent Dorling, K., Heinrichs, J., Messier, G. G., \& Magierowski, S. (2017). Vehicle routing
+problems for drone delivery. \textit{IEEE Transactions on Systems, Man, and Cybernetics: Systems,
+47}(1), 70--85.
+
+\noindent Haarnoja, T., Zhou, A., Abbeel, P., \& Levine, S. (2018). Soft actor-critic: Off-policy
+maximum entropy deep reinforcement learning with a stochastic actor. In \textit{Proceedings of the
+35th International Conference on Machine Learning} (pp. 1861--1870).
+
+\noindent Huang, S., \& Ontañón, S. (2022). A closer look at invalid action masking in policy
+gradient algorithms. \textit{Proceedings of the International FLAIRS Conference, 35}.
+
+\noindent Lowe, R., Wu, Y., Tamar, A., Harb, J., Abbeel, P., \& Mordatch, I. (2017). Multi-agent
+actor-critic for mixed cooperative-competitive environments. In \textit{Advances in Neural
+Information Processing Systems 30} (pp. 6379--6390).
+
+\noindent Murray, C. C., \& Chu, A. G. (2015). The flying sidekick traveling salesman problem:
+Optimization of drone-assisted parcel delivery. \textit{Transportation Research Part C: Emerging
+Technologies, 54}, 86--109.
+
+\noindent Murray, C. C., \& Raj, R. (2020). The multiple flying sidekicks traveling salesman
+problem: Parcel delivery with multiple drones. \textit{Transportation Research Part C: Emerging
+Technologies, 110}, 368--398.
+
+\noindent Ng, A. Y., Harada, D., \& Russell, S. (1999). Policy invariance under reward
+transformations: Theory and application to reward shaping. In \textit{Proceedings of the 16th
+International Conference on Machine Learning} (pp. 278--287).
+
+\noindent Park, J., Kwon, C., \& Park, J. (2023). Learn to solve the min-max multiple traveling
+salesmen problem with reinforcement learning. In \textit{Proceedings of the 22nd International
+Conference on Autonomous Agents and Multiagent Systems} (pp. 878--886).
+
+\noindent Yanmaz, E. (2022). Positioning aerial relays to maintain connectivity during drone team
+missions. \textit{Ad Hoc Networks, 128}, 102800.
+
+\noindent Zeng, Y., Zhang, R., \& Lim, T. J. (2016). Throughput maximization for UAV-enabled mobile
+relaying systems. \textit{IEEE Transactions on Communications, 64}(12), 4983--4996.
+
+\noindent Zhou, Y., Barnes, C., Lu, J., Yang, J., \& Li, H. (2019). On the continuity of rotation
+representations in neural networks. In \textit{Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition} (pp. 5745--5753).
+
+\end{document}

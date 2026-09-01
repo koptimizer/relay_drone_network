@@ -1,0 +1,325 @@
+% 재난 릴레이 드론 배송을 위한 계층형 다중 에이전트 강화학습 (한글본)
+% 대상 버전: v3 (26_08_31_19)
+% 컴파일: xelatex 또는 lualatex (kotex 사용)
+\documentclass[12pt]{article}
+\usepackage{kotex}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+\doublespacing
+\pagestyle{empty}
+
+\title{재난 상황의 릴레이 드론 네트워크 기반 물자 배송을 위한\\계층형 다중 에이전트 강화학습}
+\author{고광종 \and 최현석 \and 정태수\thanks{교신저자}\\
+고려대학교 산업경영공학과}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+재난으로 통신 인프라가 파괴된 지역에서는 드론의 직접 통신 반경이 배송 가능 영역을 제한한다.
+각 드론이 서로의 통신을 중계하는 릴레이 드론 네트워크는 이 제한을 완화하지만, 중계 의무와
+배송 처리량이 서로 경쟁하는 새로운 운영 문제를 만든다. 본 연구는 동질적 드론 편대가 물자를
+배송하면서 동시에 다중 홉 중계 사슬을 형성하여 모든 기체가 제어 센터와 항시 연결되도록 하는
+문제를 다룬다. 목적함수는 전 목적지 배송 완료 시간(makespan)의 최소화다.
+
+연결성을 보상 페널티로 다루는 기존 방식은 회피 불가능한 페널티를 학습 신호에 주입한다는 것이
+관찰되어, 본 연구에서는 연결을 유지하는 최대 변위까지 이동을 축소하는 최소 섭동 투영으로
+연결성을 환경의 하드 제약으로 강제하였다. 또한 스텝 단위 연속 제어만으로는 적재량 소진 후
+거점으로 복귀하여 재적재하는 왕복 사이클이 학습되지 않는 현상이 확인되어, 상위가 배송지 선택과
+복귀 및 중계 대기를 이산적으로 결정하고 하위가 2차원 추력을 담당하는 계층 구조를 제안한다.
+
+통신 반경 300, 목적지 50곳, 드론 4대 설정의 홀드아웃 30개 인스턴스 $\times$ 3회 반복 실험에서
+제안 방법은 배송 23.97건(표준오차 0.67)으로 탐욕 휴리스틱 23.04건(표준오차 1.01)과 통계적으로
+구분되지 않았다. 반면 인스턴스 간 표준편차는 9.62에서 6.34로 감소하였고, 제어 센터로부터의
+최대 도달 거리는 644에서 778로 증가하였으며, 연결 제약에 의한 이동 취소는 3,338회에서 1,373회로
+59\% 감소하였다. 즉 제안 방법의 이점은 평균 처리량이 아니라 성능의 일관성과 중계 네트워크
+활용도에 있다. 통신 단절은 학습 및 평가 전 구간에서 한 건도 발생하지 않았다.
+\end{abstract}
+
+\section{서론}
+
+재난 상황에서 긴급 물자를 수송할 때 지상 운송 수단은 인프라 파괴로 사용이 어렵다. 드론 배송이
+대안으로 검토되어 왔으나, 재난 지역에서는 통신 인프라 역시 파괴되어 있다는 점이 물류 문헌에서
+충분히 다루어지지 않았다. 긴급 물자는 배송 완료 중요도가 높아 배송 상황 추적이 필요하고,
+상하역 시 세밀한 제어를 위해 영상 데이터의 실시간 전송이 요구된다. 따라서 임무 수행 중 통신
+연결이 상시 유지되어야 한다.
+
+각 드론이 다른 드론의 통신을 중계하는 릴레이 드론 네트워크는 편대의 임무 반경을 직접 통신
+반경 너머로 확장한다. 그러나 이 구조는 운영상의 상충을 만든다. 중계 위치를 지키는 드론은
+배송을 수행하지 못하므로, 중계에 몇 대를 배정할지가 곧 배송 처리량과의 교환이 된다. 본 연구의
+사전 실험에서 이 교환의 최적점이 인스턴스마다 달라지는 구간이 존재함이 확인되었으며(제5.1절),
+이 구간이 고정 규칙으로는 대응할 수 없고 학습된 적응적 배분이 기여할 수 있는 영역이다.
+
+본 연구의 기여는 세 가지다. 첫째, 통신 반경을 축으로 문제 난이도를 훑어 규칙 기반 정책이
+실패하기 시작하는 구간과 고정 역할 배분이 원리적으로 최적일 수 없는 구간을 특정하였다.
+둘째, 연결성을 보상이 아니라 최소 섭동 투영으로 강제하여 통신 단절을 구조적으로 제거하였다.
+셋째, 배송지 선택과 저수준 기동을 분리한 계층형 다중 에이전트 강화학습 프레임워크를 제안하고,
+탐욕 휴리스틱 대비 배송량은 동등하나 성능 분산이 34\% 낮고 도달 범위가 21\% 넓음을 보였다.
+
+\section{선행연구}
+
+\subsection{드론 배송 라우팅}
+
+Murray와 Chu(2015)는 트럭 1대와 드론 1대가 협업하는 flying sidekick TSP를 정식화하고 makespan
+최소화를 목적으로 하는 혼합정수계획 모형과 휴리스틱을 제안하였다. Murray와 Raj(2020)는 이를
+이종 드론 편대로 확장하였고, Agatz 등(2018)은 동일 노드에서의 발사와 회수를 허용하는 정식화와
+정확 동적계획 알고리즘을 제시하였다. Dorling 등(2017)은 드론 전용 다중 왕복 차량경로문제를
+정의하고 적재 중량과 배터리 중량에 선형인 에너지 모형을 도입하였다. 이 계열의 연구는 통신을
+비용 없이 항상 가능한 것으로 가정한다.
+
+\subsection{UAV 중계 네트워크}
+
+Zeng 등(2016)은 UAV를 이동 중계 노드로 활용하는 mobile relaying을 제안하고 전력 할당과 궤적을
+교번 최적화하였으나 단일 중계 UAV를 가정하였다. Yanmaz(2022)는 임무 UAV와 중계 UAV의 역할을
+분리하고 Steiner 점 기반으로 최소 수의 중계 UAV 배치를 계산하는 2단계 알고리즘을 제안하였다.
+Ding 등(2022)은 다중 홉 UAV 중계망에서 궤적, 주파수 할당, 다음 홉 선택을 QMIX 기반 다중 에이전트
+강화학습으로 동시에 결정하였다. 이 계열의 목적함수는 처리량과 커버리지이며, 적재량 제약이나
+재적재 왕복과 같은 물류 요소는 다루지 않는다.
+
+\subsection{연구 공백}
+
+임무 수행과 통신 중계 사이의 역할 전환 자체는 다중 로봇 탐사 문헌에서 확립된 개념이다.
+Cesare 등(2015)은 explore, meet, sacrifice, relay의 네 상태를 정의하고 relay 역할 로봇이 정지하여
+중계 노드로 기능하게 하였다. 따라서 역할 전환을 본 연구의 신규성으로 주장할 수 없다.
+저자들이 조사한 범위에서 확인되지 않은 것은, 이 역할 전환을 \emph{용량 제약이 있고 재적재를 위한
+반복 왕복이 필요하며 makespan을 최소화하는} 배송 문제로 옮긴 사례다. 이 설정에서는 중계 의무가
+적재 처리량과 직접 경쟁하며, 편대가 보급을 위해 거점으로 반복 복귀해야 한다.
+
+\subsection{학습 방법론}
+
+Huang과 Ontañón(2022)은 실행 불가능한 행동을 보상 페널티로 억제하는 방식과 마스킹으로 차단하는
+방식을 통제 비교하여, 문제 규모가 커질수록 전자의 에피소드 리턴이 붕괴함을 보였다. Dalal 등
+(2018)은 연속 행동에서 제약을 만족하는 최소 섭동을 해석적으로 구하는 안전 계층을 제안하였다.
+Ng 등(1999)은 포텐셜 기반 보상 쉐이핑이 최적 정책을 보존하는 필요충분 형태임을 증명하였고,
+그렇지 않은 스텝당 양의 보상이 목표 완수 대신 순환 행동을 유발하는 사례를 제시하였다.
+Zhou 등(2019)은 회전을 각도 스칼라로 표현하면 신경망 학습에 불리한 불연속이 발생하며 SO(2)의
+연속 표현이 $[\cos\theta, \sin\theta]$임을 보였다. 본 연구의 설계는 이들 결과를 반영한다.
+
+\section{문제 정의}
+
+제어 센터 1곳과 목적지 $|C|$곳이 $1000 \times 1000$ 평면에 주어진다. 동질적 드론 $|K|$대는
+제어 센터에서 적재량 $Q$만큼 물자를 싣고 출발한다. 드론 $i$가 목적지 $j$의 상호작용 반경
+$r$ 이내에 진입하면 배송이 이루어지고 적재량이 1 감소하며 $S$스텝의 하역 시간이 소요된다.
+적재량이 0인 드론이 제어 센터에 복귀하면 적재량이 $Q$로 회복되고 동일하게 $S$스텝이 소요된다.
+
+통신 그래프 $G_t = (V, E_t)$는 매 시점 $t$의 드론 위치로 정의된다. 두 노드는 거리가 통신 반경
+$R$ 이내일 때 연결되며, 제어 센터도 노드에 포함된다. 제약은 다음과 같다.
+\begin{equation}
+\forall t, \ \forall i \in K: \ i \text{는 } G_t \text{에서 제어 센터와 연결되어야 한다.}
+\end{equation}
+목적함수는 모든 목적지의 배송이 완료되는 시점 $T^*$의 최소화다.
+
+수리계획 정식화의 어려움을 밝혀 둔다. 노드 기반 라우팅 정식화에서 이동 중인 드론은 좌표를
+갖지 않으므로 매 시점 연결성을 판정할 수 없다. 이를 메우려면 공간을 격자화하거나 호버링 후보
+지점을 사전 지정해야 하며, 후자는 그 자체가 배치(placement) 문제다. 동일 드론이 배송과 중계를
+겸하므로 Yanmaz(2022)처럼 배치를 하위 문제로 분리할 수도 없어 배치와 경로가 결합된 문제가 된다.
+
+\section{방법론}
+
+\subsection{연결성의 하드 제약화}
+
+선행 구현에서 연결성은 단절 시 대량의 페널티를 부여하고 에피소드를 강제 종료하는 방식으로
+다루어졌다. 이 방식의 결함이 본 연구에서 확인되었다. 하역 중이어서 이동 의사가 없던 드론이
+동료의 이탈로 고립되는 경우, 해당 드론은 어떤 행동으로도 회피할 수 없는 페널티를 받는다.
+회피 불가능한 페널티는 학습 신호를 오염시킨다.
+
+본 연구는 연결성을 환경의 하드 제약으로 전환하였다. 제안된 변위 $\Delta$에 대해 배율
+$s \in [0,1]^{|K|}$를 정하여 최종 위치를 $x + \Delta \odot s$로 두되, 결과 그래프에서 전원이
+연결되도록 한다. 초기값은 $s = \mathbf{1}$이며, 연결이 성립하지 않는 동안 제한 시 연결 드론 수가
+가장 많아지는 드론을 선택하여 그 배율을 이분 탐색으로 얻은 최대 안전값까지 축소한다. 동점은
+무작위로 깬다. 결정론적으로 깰 경우 중계 사슬을 고정하는 드론이 반복 선택되어 불이익이
+집중되는 현상이 관찰되었기 때문이다. 모든 배율을 0으로 되돌리면 직전 위치가 되고 이는 연결
+상태이므로, 절차는 항상 연결된 구성에서 종료한다.
+
+\subsection{계층 구조}
+
+스텝 단위 연속 제어만으로는 적재량 소진 후 복귀하여 재적재하는 왕복 사이클이 학습되지 않았다
+(제5.3절). 이 사이클은 수백 스텝에 걸친 시간 지평을 갖는다. 본 연구는 의사결정을 두 층으로
+분리한다.
+
+\textbf{상위 정책.} $H$스텝마다 또는 현재 하위 목표가 무효화될 때 각 드론에 대해 $K+2$개 중
+하나를 선택한다. 선택지는 자기 기준 최근접 미배송지 $K$개, 제어 센터 복귀, 현 위치 유지다.
+목적지 전체를 행동으로 두면 행동 공간이 인스턴스 크기에 종속되므로 최근접 $K$개로 고정한다.
+현 위치 유지를 명시적 행동으로 두는 것이 설계의 핵심이다. 중계 역할은 본질적으로 이동하지
+않는 것이며, 이를 명시적 선택지로 두어야 상위가 역할 분담을 직접 결정할 수 있다.
+보상은 팀 목적함수(배송, 재적재, 시간 페널티)만 받는다.
+
+\textbf{하위 정책.} 매 스텝 2차원 추력 $(v_x, v_y) \in [-1,1]^2$를 출력한다. 노름이 1을 넘으면
+정규화하며 변위는 $v \cdot v_{\max}$다. 각도 스칼라 표현은 SO(2)의 불연속 표현이어서 물리적으로
+동일한 두 헤딩이 행동 공간의 양 끝에 놓이고, 최대 속도에 도달하려면 tanh 포화가 필요하여
+최대 엔트로피 목적함수가 이를 억제한다. 본 연구의 계측에서 각도 표현 정책의 평균 명령 속도는
+최대치의 0.511에 그쳤다. 보상은 하위 목표까지의 거리 감소분, 도달 보너스, 연결 보정으로
+잘려나간 변위에 비례하는 페널티로 구성되며 팀 보상은 받지 않는다.
+
+두 층 모두 중앙집중 학습과 분산 실행(CTDE) 구조의 soft actor-critic으로 학습된다. 상위는
+범주형 정책의 이산 SAC, 하위는 tanh 가우시안 정책의 연속 SAC를 사용한다.
+
+\section{실험}
+
+\subsection{문제 난이도 축}
+
+통신 반경을 축으로 탐욕 정책의 성능을 측정하였다(표~\ref{tab:sweep}). 마지막 열은 최선의
+\emph{고정} 중계 대수와, 인스턴스마다 최적 대수를 선택할 수 있다고 가정했을 때의 격차다.
+
+\begin{table}[h]
+\centering
+\caption{통신 반경별 탐욕 정책 성능 (인스턴스 12개, 배송 건수/50)}
+\label{tab:sweep}
+\begin{tabular}{rrrrrrrr}
+\toprule
+반경 & 중계 0대 & 1대 & 2대 & 3대 & 최선 고정 & 인스턴스별 최적 & 격차 \\
+\midrule
+500 & 49.3 & 50.0 & 50.0 & 36.4 & 50.0 & 50.0 & $+0.0$ \\
+400 & 40.6 & 48.4 & 43.9 & 17.9 & 48.4 & 49.4 & $+1.0$ \\
+\textbf{300} & 21.0 & 22.7 & 18.5 & 9.3 & 22.7 & \textbf{28.2} & $\mathbf{+5.6}$ \\
+250 & 14.4 & 15.2 & 12.6 & 7.8 & 15.2 & 19.1 & $+3.8$ \\
+200 & 10.8 & 9.7 & 8.2 & 5.9 & 10.8 & 11.8 & $+1.0$ \\
+150 & 7.0 & 5.8 & 4.6 & 4.2 & 7.0 & 7.2 & $+0.2$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+반경 400까지는 탐욕이 문제를 사실상 해결하므로 학습 기반 방법이 기여할 여지가 없다. 반경
+300에서 성능이 절반 이하로 떨어지는 동시에 격차가 최대가 된다. 이는 고정 중계 대수로는 대응할
+수 없고 인스턴스마다 다른 배분이 필요함을 의미한다. 반경 200 이하에서는 격차가 다시 줄어드는데,
+어떤 배분으로도 성능을 내기 어려운 영역이기 때문이다. 이후 실험은 반경 300에서 수행하였다.
+
+\subsection{주 결과}
+
+홀드아웃 인스턴스 30개를 3회씩 굴려 총 90개 롤아웃으로 평가하였다(표~\ref{tab:main}).
+반복은 연결성 투영의 무작위 동점 처리에서 오는 분산을 평균하기 위한 것이다.
+
+\begin{table}[h]
+\centering
+\caption{주 결과 (홀드아웃 30 인스턴스 $\times$ 3회, 통신 반경 300)}
+\label{tab:main}
+\begin{tabular}{lrrrrrr}
+\toprule
+방법 & 배송 & 표준편차 & 표준오차 & 재적재 & 최대 도달 & 이동 취소 \\
+\midrule
+무작위 정책 & 3.7 & 2.5 & 0.26 & 0.0 & 372 & 17 \\
+탐욕 & 23.04 & 9.62 & 1.01 & 2.12 & 644 & 3{,}338 \\
+탐욕 + 중계 1대 고정 & 14.24 & 5.29 & 0.56 & 0.96 & 524 & 2{,}652 \\
+규칙 상위 + 학습 하위 & 23.09 & 9.25 & 0.97 & 2.50 & 695 & 1{,}303 \\
+\textbf{제안 (계층, $H=20$)} & \textbf{23.97} & \textbf{6.34} & \textbf{0.67} & 2.34 & \textbf{778} & \textbf{1{,}373} \\
+제안 (계층, $H=10$) & 22.52 & 5.75 & 0.61 & 2.11 & 788 & 1{,}322 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+배송 건수에서 제안 방법은 23.97건으로 탐욕의 23.04건을 앞서지만, 두 값의 표준오차가 각각
+0.67과 1.01이므로 차이 $0.93$은 통계적으로 유의하지 않다. \textbf{배송 처리량 관점에서 제안
+방법은 탐욕 휴리스틱과 동등하다고 보고하는 것이 정확하다.}
+
+유의한 차이는 다른 지표에서 나타난다. 인스턴스 간 표준편차가 9.62에서 6.34로 34\% 감소하여
+성능의 일관성이 개선되었다. 제어 센터로부터의 최대 도달 거리는 644에서 778로 증가하였는데,
+통신 반경이 300임을 고려하면 직접 통신 반경의 2.6배까지 중계 사슬이 뻗었음을 뜻한다. 연결
+제약에 의한 이동 취소는 3,338회에서 1,373회로 59\% 감소하였다. 즉 제안 방법은 더 멀리 나아가면서
+제약과는 덜 충돌한다.
+
+통신 단절은 학습 전 구간과 평가 전 구간에서 한 건도 발생하지 않았다. 이는 제안한 하드 제약이
+설계대로 작동함을 확인한다.
+
+\subsection{계층 분해의 기여}
+
+계층 분해가 겨냥한 병목은 재적재 왕복이었다. 단일 계층 구조에서 학습된 정책의 재적재 횟수는
+에피소드당 0.0에서 0.4회에 머물렀다. 드론 4대에 적재량 5이므로 재적재 없이는 20건이 구조적
+상한이며, 관측된 배송량은 그 아래에 갇혀 있었다. 계층 구조에서는 재적재가 2.34회로 탐욕의
+2.12회와 대등한 수준으로 회복되었다.
+
+상위 결정 주기 $H$에 대한 감도를 확인한 결과 $H=20$이 $H=10$보다 우세하였다(23.97 대 22.52).
+재결정이 잦으면 하위 목표가 자주 바뀌어 하위 정책이 목표에 도달하기 전에 목표가 교체된다.
+
+\subsection{절제 실험}
+
+여러 설계 요소를 개별적으로 검증하였다. 중계 간격에 대한 포텐셜 기반 쉐이핑, 중계 필수 드론에
+대한 팀 보상 가중 재분배, 엔트로피 계수 하한, 동료 전원 관측으로의 확장은 모두 배송 성능을
+개선하지 못하였다. 뭉침 페널티는 제거하는 편이 우세하여 최종 설계에서 제외하였다.
+
+행동 표현의 교체는 배송 성능을 바꾸지 않았으나 학습 안정성에 뚜렷한 효과가 있었다. 각도 표현
+정책은 정점 이후 홀드아웃 성능이 40\% 하락한 반면 벡터 표현 정책은 8\% 하락에 그쳤고, 정점 도달
+시점도 4배 늦어졌다.
+
+\section{결론}
+
+본 연구는 재난 상황의 릴레이 드론 배송을 계층형 다중 에이전트 강화학습으로 접근하였다.
+연결성을 최소 섭동 투영으로 하드 제약화하여 통신 단절을 구조적으로 제거하였고, 배송지 선택과
+저수준 기동을 분리하여 단일 계층 구조에서 학습되지 않던 재적재 왕복 사이클을 회복하였다.
+
+결과는 제한적이다. 배송 처리량에서 제안 방법은 탐욕 휴리스틱과 통계적으로 구분되지 않는다.
+학습 기반 방법이 잘 조정된 휴리스틱을 해의 품질로 능가하지 못하는 것은 신경 조합최적화 문헌에서
+보고되어 온 바와 일치한다. 제안 방법의 이점은 성능 분산의 감소(34\%)와 중계 네트워크 활용도의
+증가(도달 거리 21\% 증가, 이동 취소 59\% 감소)에 있으며, 이는 재난 대응이라는 응용 맥락에서
+평균 처리량과 별개로 의미를 갖는다.
+
+한계는 세 가지다. 첫째, 학습이 고정된 지도 하나에서 이루어져 인스턴스 암기의 여지가 있다.
+평가는 학습에 사용하지 않은 인스턴스에서 수행하였으나, 에피소드마다 인스턴스를 무작위화하는
+학습은 향후 과제로 남는다. 둘째, 어떤 방법도 50개 목적지 전량 배송을 달성하지 못하여 목적함수인
+makespan이 정의되지 않았고, 배송 건수를 대리 지표로 사용하였다. 셋째, 통신을 반경 기반 원판
+모형으로 단순화하였으며 지형에 의한 차폐를 고려하지 않았다.
+
+향후 연구로는 두 계층의 동시 미세조정, 학습 시 인스턴스 무작위화, 그리고 실시간 재결정 능력을
+정량화하기 위한 스텝당 추론 지연의 측정을 계획한다.
+
+\section*{References}
+\noindent Agatz, N., Bouman, P., \& Schmidt, M. (2018). Optimization approaches for the traveling
+salesman problem with drone. \textit{Transportation Science, 52}(4), 965--981.
+
+\noindent Cesare, K., Skeele, R., Yoo, S.-H., Zhang, Y., \& Hollinger, G. (2015). Multi-UAV
+exploration with limited communication and battery. In \textit{Proceedings of the IEEE
+International Conference on Robotics and Automation} (pp. 2230--2235).
+
+\noindent Dalal, G., Dvijotham, K., Vecerik, M., Hester, T., Paduraru, C., \& Tassa, Y. (2018).
+Safe exploration in continuous action spaces. \textit{arXiv preprint arXiv:1801.08757}.
+
+\noindent Ding, R., Chen, J., Wu, W., Liu, J., Gao, F., \& Shen, X. (2022). Packet routing in
+dynamic multi-hop UAV relay network: A multi-agent learning approach. \textit{IEEE Transactions
+on Vehicular Technology, 71}(9), 10059--10072.
+
+\noindent Dorling, K., Heinrichs, J., Messier, G. G., \& Magierowski, S. (2017). Vehicle routing
+problems for drone delivery. \textit{IEEE Transactions on Systems, Man, and Cybernetics: Systems,
+47}(1), 70--85.
+
+\noindent Haarnoja, T., Zhou, A., Abbeel, P., \& Levine, S. (2018). Soft actor-critic: Off-policy
+maximum entropy deep reinforcement learning with a stochastic actor. In \textit{Proceedings of the
+35th International Conference on Machine Learning} (pp. 1861--1870).
+
+\noindent Huang, S., \& Ontañón, S. (2022). A closer look at invalid action masking in policy
+gradient algorithms. \textit{Proceedings of the International FLAIRS Conference, 35}.
+
+\noindent Lowe, R., Wu, Y., Tamar, A., Harb, J., Abbeel, P., \& Mordatch, I. (2017). Multi-agent
+actor-critic for mixed cooperative-competitive environments. In \textit{Advances in Neural
+Information Processing Systems 30} (pp. 6379--6390).
+
+\noindent Murray, C. C., \& Chu, A. G. (2015). The flying sidekick traveling salesman problem:
+Optimization of drone-assisted parcel delivery. \textit{Transportation Research Part C: Emerging
+Technologies, 54}, 86--109.
+
+\noindent Murray, C. C., \& Raj, R. (2020). The multiple flying sidekicks traveling salesman
+problem: Parcel delivery with multiple drones. \textit{Transportation Research Part C: Emerging
+Technologies, 110}, 368--398.
+
+\noindent Ng, A. Y., Harada, D., \& Russell, S. (1999). Policy invariance under reward
+transformations: Theory and application to reward shaping. In \textit{Proceedings of the 16th
+International Conference on Machine Learning} (pp. 278--287).
+
+\noindent Park, J., Kwon, C., \& Park, J. (2023). Learn to solve the min-max multiple traveling
+salesmen problem with reinforcement learning. In \textit{Proceedings of the 22nd International
+Conference on Autonomous Agents and Multiagent Systems} (pp. 878--886).
+
+\noindent Yanmaz, E. (2022). Positioning aerial relays to maintain connectivity during drone team
+missions. \textit{Ad Hoc Networks, 128}, 102800.
+
+\noindent Zeng, Y., Zhang, R., \& Lim, T. J. (2016). Throughput maximization for UAV-enabled
+mobile relaying systems. \textit{IEEE Transactions on Communications, 64}(12), 4983--4996.
+
+\noindent Zhou, Y., Barnes, C., Lu, J., Yang, J., \& Li, H. (2019). On the continuity of rotation
+representations in neural networks. In \textit{Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition} (pp. 5745--5753).
+
+\end{document}

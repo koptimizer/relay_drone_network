@@ -1,0 +1,30 @@
+# --- 학습 가중치 ---
+# 체크포인트 3,300여 개(약 1GB)는 추적하지 않는다.
+# 각 실행의 최적 정책(best_*.pth)과 논문에 인용된 v1 체크포인트만 남긴다.
+*.pth
+!weights/**/best_*.pth
+# 논문 표에 등장하는 두 정책 (pre-v1 최종, v1 최고)
+!weights/v1_26_06_16_13/sac_actor_ep5000.pth
+!weights/v1_26_08_24_22/sac_actor_ep600.pth
+# 중단된 실행의 중간 가중치는 제외 (부분 결과라 재현 가치가 낮다)
+legacy/aborted_runs/**
+
+# --- TensorBoard 이벤트 파일 ---
+# 187MB. 동일 지표가 runs/<tag>/metrics_<tag>.csv 에 남아 있다.
+runs/**/events.out.tfevents.*
+
+# --- 파이썬 ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- 최적화 솔버 산출물 ---
+*.ilp
+gurobi.log
+
+# --- 임시 파일 ---
+*.tmp
+*.swp
+.DS_Store
+nohup.out

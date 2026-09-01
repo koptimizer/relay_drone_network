@@ -1,0 +1,5 @@
+method,delivered,delivered_sd,completion_rate,idle_drones,reloads,hop2plus,max_reach,blocked,comm_loss,full_completion
+random,3.57,2.5,0.0713,2.33,0.0,0.053,367.0,9.0,0,0
+greedy,22.43,9.9,0.4487,0.0,1.83,0.636,651.0,3365.0,0,0
+greedy + 1 relay,23.9,8.3,0.478,0.57,2.87,0.606,657.0,2368.0,0,0
+greedy + 2 relay,19.77,9.73,0.3953,0.77,2.47,0.593,619.0,1514.0,0,1
