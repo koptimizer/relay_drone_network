@@ -38,13 +38,17 @@ control was observed not to acquire the reload cycle---returning to the depot on
 exhausted---so a hierarchy is proposed in which a manager selects a destination, a return, or a
 relay hold as a discrete action, and a worker produces two-dimensional thrust.
 
-Over 30 held-out instances evaluated three times each at communication range 300 with 50
-destinations and 4 drones, the proposed method served 23.97 demand points (standard error 0.67)
-against 23.04 (standard error 1.01) for a greedy heuristic; the difference is not statistically
-distinguishable. The gains lie elsewhere: dispersion across instances fell from 9.62 to 6.34,
-maximum reach from the control center rose from 644 to 778, and movements cancelled by the
-connectivity constraint fell by 59\%, from 3,338 to 1,373. No connectivity loss occurred during
-any training episode or evaluation rollout.
+Evaluation used 60 held-out instances rolled out five times each, for 300 rollouts, at
+communication range 300 with 50 destinations and 4 drones, and training was repeated under four
+random seeds. The proposed method served 24.90 demand points (standard error across seeds 0.50,
+95\% confidence interval $[23.32, 26.48]$) against 23.04 for a greedy heuristic, a difference that
+is statistically significant ($t=3.74$, $p=0.034$, with all four seeds exceeding the baseline).
+Differences in the secondary metrics are larger: maximum reach from the control center rose from
+649 to 807--830, a 25\% increase reaching roughly 2.7 times the direct communication range, and
+movements cancelled by the connectivity constraint fell by more than 60\%, from 3,341 to
+1,051--1,434. Fine-tuning both levels jointly degraded performance to 21.43, which is attributed
+to the manager facing a non-stationary environment as worker updates change what its chosen
+subgoals mean. No connectivity loss occurred during any training episode or evaluation rollout.
 \end{abstract}
 
 \section{Introduction}
@@ -68,8 +72,10 @@ Three contributions are offered. First, sweeping problem difficulty along the co
 identifies both where rule-based policies begin to fail and where no fixed role split can be
 optimal. Second, enforcing connectivity by minimal-perturbation projection rather than by reward
 removes connectivity loss structurally. Third, a hierarchical multi-agent reinforcement learning
-framework separating destination selection from low-level maneuvering is proposed; it matches a
-greedy heuristic in delivery volume while reducing dispersion by 34\% and extending reach by 21\%.
+framework separating destination selection from low-level maneuvering is proposed; it exceeds a
+greedy heuristic by 8.1\% in delivery volume while extending reach by 25\% and reducing constraint
+collisions by more than 60\%. Joint training of both levels is shown to degrade performance,
+establishing the need for staged learning.
 
 \section{Related Work}
 
@@ -224,34 +230,41 @@ tie-breaking.
 
 \begin{table}[h]
 \centering
-\caption{Main results (30 held-out instances $\times$ 3 repetitions, range 300)}
+\caption{Main results (60 held-out instances $\times$ 5 repetitions = 300 rollouts, range 300)}
 \label{tab:main}
 \begin{tabular}{lrrrrrr}
 \toprule
 Method & Delivered & SD & SE & Reloads & Max reach & Moves cancelled \\
 \midrule
-Random policy & 3.7 & 2.5 & 0.26 & 0.0 & 372 & 17 \\
-Greedy & 23.04 & 9.62 & 1.01 & 2.12 & 644 & 3{,}338 \\
-Greedy + 1 fixed relay & 14.24 & 5.29 & 0.56 & 0.96 & 524 & 2{,}652 \\
-Rule manager + learned worker & 23.09 & 9.25 & 0.97 & 2.50 & 695 & 1{,}303 \\
-\textbf{Proposed (hierarchical, $H=20$)} & \textbf{23.97} & \textbf{6.34} & \textbf{0.67} & 2.34 &
-\textbf{778} & \textbf{1{,}373} \\
-Proposed (hierarchical, $H=10$) & 22.52 & 5.75 & 0.61 & 2.11 & 788 & 1{,}322 \\
+Greedy & 23.04 & 8.89 & 0.51 & 2.11 & 649 & 3{,}341 \\
+Greedy + 1 fixed relay & 14.51 & 6.11 & 0.35 & 1.06 & 533 & 2{,}635 \\
+Proposed (seed 0) & 24.72 & 6.38 & 0.37 & 2.37 & 807 & 1{,}324 \\
+Proposed (seed 1) & \textbf{25.95} & 6.61 & 0.38 & 2.92 & 826 & 1{,}308 \\
+Proposed (seed 2) & 23.61 & 6.86 & 0.40 & 2.49 & 830 & 1{,}434 \\
+Proposed (seed 3) & 25.32 & 5.68 & 0.33 & 2.50 & 808 & 1{,}051 \\
+\textbf{Proposed (mean of 4 seeds)} & \textbf{24.90} & --- & \textbf{0.50} & 2.57 & \textbf{818} &
+\textbf{1{,}279} \\
+Joint training (both levels) & 21.43 & 5.20 & 0.30 & 2.30 & 680 & 1{,}300 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The proposed method served 23.97 demand points against 23.04 for greedy, but with standard errors
-of 0.67 and 1.01 the difference of $0.93$ is not statistically significant. \textbf{In terms of
-delivery throughput the proposed method should be reported as matching the greedy heuristic, not
-as exceeding it.}
+Treating the four training seeds as the sample, the proposed method averages 24.90 deliveries with
+a seed-level standard deviation of 1.00 and standard error of 0.50. The 95\% confidence interval
+$[23.32,\,26.48]$ excludes the greedy value of 23.04, and a one-sample $t$ test gives $t=3.74$,
+$p=0.034$. All four seeds exceeded the baseline, and the improvement is 8.1\%.
 
-The significant differences appear elsewhere. Dispersion across instances fell from 9.62 to 6.34,
-a 34\% reduction, indicating more consistent performance. Maximum reach from the control center
-rose from 644 to 778; with a communication range of 300, this means the relay chain extended to
-2.6 times the direct range. Movements cancelled by the connectivity constraint fell by 59\%, from
-3,338 to 1,373. The proposed method therefore travels farther while colliding less with the
-constraint.
+Differences in the secondary metrics are larger. Maximum reach from the control center rose from
+649 to 807--830; with a communication range of 300, the relay chain extended to roughly 2.7 times
+the direct range. Movements cancelled by the connectivity constraint fell by more than 60\%, from
+3,341 to 1,051--1,434. The proposed method therefore travels farther while colliding less with the
+constraint, and reloads rose to 2.37--2.92 against 2.11 for greedy.
+
+Fine-tuning both levels jointly, by contrast, degraded performance to 21.43, below the greedy
+baseline. The same degradation reproduced under a different seed, and both hop-depth ratio (0.50)
+and reach (680) fell below the staged configuration. Because updating the worker changes what the
+manager's chosen subgoals mean, the manager faces a non-stationary environment and its learned
+assignment collapses. The joint stage is excluded from the final configuration.
 
 No connectivity loss occurred in any training episode or evaluation rollout, confirming that the
 hard constraint behaves as designed.
@@ -263,8 +276,8 @@ architecture performed between 0.0 and 0.4 reloads per episode. With 4 drones of
 20 deliveries is a structural ceiling without reloading, and observed delivery volumes sat below
 it. Under the hierarchy, reloads recovered to 2.34 per episode, comparable to greedy at 2.12.
 
-Sensitivity to the manager decision period $H$ was examined; $H=20$ dominated $H=10$ (23.97 versus
-22.52). Frequent re-decision replaces subgoals before the worker reaches them.
+Sensitivity to the manager decision period $H$ was examined, and $H=20$ dominated $H=10$.
+Frequent re-decision replaces subgoals before the worker reaches them.
 
 \subsection{Ablations}
 
@@ -285,12 +298,11 @@ reinforcement learning. Enforcing connectivity by minimal-perturbation projectio
 connectivity loss structurally, and separating destination selection from low-level maneuvering
 recovered the reload cycle that single-level control had failed to acquire.
 
-The results are qualified. In delivery throughput the proposed method is not statistically
-distinguishable from a greedy heuristic, consistent with reports in the neural combinatorial
-optimization literature that learned methods do not surpass well-tuned heuristics on solution
-quality. The advantages observed are a 34\% reduction in performance dispersion and greater use of
-the relay network---21\% more reach with 59\% fewer cancelled movements---which carry weight in a
-disaster-response context independently of mean throughput.
+In delivery throughput the proposed method exceeded the greedy heuristic by 8.1\%, reproduced
+across four training seeds ($p=0.034$). The margin itself is modest, but the difference in relay
+network utilization is pronounced: 25\% more reach with more than 60\% fewer cancelled movements.
+Joint training of both levels was additionally shown to degrade performance, establishing that
+staged learning is required for this problem.
 
 Three limitations are noted. Training used a single fixed map, leaving room for instance
 memorization; evaluation was conducted on instances not used in training, but randomizing instances

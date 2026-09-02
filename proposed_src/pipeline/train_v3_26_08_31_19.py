@@ -34,6 +34,7 @@ P.add_argument("--stage", choices=["worker", "manager", "joint"], default="worke
 P.add_argument("--comm-range", type=float, default=300.0)
 P.add_argument("--hl-every", type=int, default=20, help="상위 결정 주기 (스텝)")
 P.add_argument("--worker-ckpt", default="", help="manager/joint 단계에서 불러올 하위 가중치")
+P.add_argument("--manager-ckpt", default="", help="joint 단계에서 이어받을 상위 가중치")
 P.add_argument("--max-episodes", type=int, default=100000)
 P.add_argument("--eval-every", type=int, default=50)
 P.add_argument("--eval-n", type=int, default=6)
@@ -41,6 +42,7 @@ P.add_argument("--eval-seed0", type=int, default=201)
 P.add_argument("--patience", type=int, default=15)
 P.add_argument("--no-cluster-penalty", action="store_true")
 P.add_argument("--resume", action="store_true")
+P.add_argument("--seed", type=int, default=0, help="학습 시드 (초기화·탐색 재현용)")
 A = P.parse_args()
 
 LOG_DIR = os.path.join(ROOT, "runs", A.tag)
@@ -159,6 +161,9 @@ def holdout(env, worker, manager, device, n, seed0, hl_every):
 
 def main():
 	"""단계에 맞춰 학습 루프를 돌린다."""
+	# 학습 시드. 같은 설정을 여러 시드로 돌려 결과가 재현되는지 확인하기 위함이다.
+	torch.manual_seed(A.seed)
+	np.random.seed(A.seed)
 	dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	kw = dict(comm_range=A.comm_range, cluster_penalty=not A.no_cluster_penalty)
 	env, eval_env = DisasterRelayDroneEnv(**kw), DisasterRelayDroneEnv(**kw)
@@ -169,7 +174,7 @@ def main():
 	K = env.n_cand + 2
 	N = env.num_drones
 
-	print(f"단계={A.stage} 장치={dev} 반경={A.comm_range} 상위주기={A.hl_every}", flush=True)
+	print(f"단계={A.stage} 장치={dev} 반경={A.comm_range} 상위주기={A.hl_every} 시드={A.seed}", flush=True)
 	print(f"worker_obs={wo_dim} manager_obs={mo_dim} state={s_dim} 상위행동={K}", flush=True)
 
 	worker = WorkerActor(wo_dim).to(dev)
@@ -193,6 +198,9 @@ def main():
 	if A.worker_ckpt:
 		worker.load_state_dict(torch.load(os.path.join(ROOT, A.worker_ckpt), map_location=dev))
 		print(f"하위 가중치 로드: {A.worker_ckpt}", flush=True)
+	if A.manager_ckpt:
+		manager.load_state_dict(torch.load(os.path.join(ROOT, A.manager_ckpt), map_location=dev))
+		print(f"상위 가중치 로드: {A.manager_ckpt}", flush=True)
 
 	train_w = A.stage in ("worker", "joint")
 	train_m = A.stage in ("manager", "joint")
