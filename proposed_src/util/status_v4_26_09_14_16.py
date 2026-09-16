@@ -6,7 +6,8 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TAGS = ["r_sw", "r_swc", "r_norel", "r_s2"]
+PREFIX = os.environ.get("STATUS_PREFIX", "v4_26_09_14_03_r_")
+TAGS = os.environ.get("STATUS_TAGS", "sw,swc,norel,s2").split(",")
 
 
 def read_csv(path):
@@ -20,7 +21,7 @@ def read_csv(path):
 
 def summarize(tag):
 	"""한 실행의 에피소드 수, 최고 홀드아웃, 최근 홀드아웃을 뽑는다."""
-	full = f"v4_26_09_14_03_{tag}"
+	full = f"{PREFIX}{tag}"
 	d = os.path.join(ROOT, "runs", full)
 	met = read_csv(os.path.join(d, f"metrics_{full}.csv"))
 	ev = read_csv(os.path.join(d, f"evals_{full}.csv"))
@@ -37,12 +38,13 @@ def summarize(tag):
 
 def main():
 	"""전체 상태를 출력한다."""
-	n = subprocess.run("pgrep -fc 'tag v4_26_09_14_03_[r]_'", shell=True,
+	pat = PREFIX[:-1] + "[" + PREFIX[-1] + "]"
+	n = subprocess.run(f"pgrep -fc 'tag {pat}'", shell=True,
 	                   capture_output=True, text=True).stdout.strip()
 	out = [f"[v4 상태] 학습 프로세스 {n or 0}개"]
 	for t in TAGS:
 		out.append("  " + summarize(t))
-	done = glob.glob(os.path.join(ROOT, "figures", "eval_v4_final_*.csv"))
+	done = glob.glob(os.path.join(ROOT, "figures", f"eval_{PREFIX.split('_')[0]}*_26_09_15_22.csv"))
 	if done:
 		out.append("  최종 평가 CSV 생성됨")
 	print(" | ".join(out) if len(sys.argv) > 1 else "\n".join(out))
