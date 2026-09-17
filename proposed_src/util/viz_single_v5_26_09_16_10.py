@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
 from model.hier_net_v3_26_08_31_19 import ManagerActor, WorkerActor
 from model.hier_net_v5_26_09_15_23 import SetManagerActor
-from pipeline.common_v5_26_09_15_22 import action_mask, chain_manager, straight_worker
+from pipeline.common_v5_26_09_15_22 import action_mask, chain_manager, hybrid_manager, straight_worker
 from util.instance_generator_v5_26_09_15_22 import sample_instance
 from util.viz_v4_26_09_14_03 import HUD, S, panel
 
@@ -65,7 +65,7 @@ def learned(args, env, dev):
 def main():
 	"""지정한 정책으로 에피소드를 이어 붙여 GIF를 만든다."""
 	p = argparse.ArgumentParser()
-	p.add_argument("--policy", choices=["rule", "learned"], default="rule")
+	p.add_argument("--policy", choices=["rule", "learned", "hybrid"], default="rule")
 	p.add_argument("--arch", choices=["mlp", "set"], default="set")
 	p.add_argument("--num-drones", type=int, default=4)
 	p.add_argument("--num-dests", type=int, default=50)
@@ -97,10 +97,13 @@ def main():
 	dev = torch.device("cpu")
 	if args.policy == "rule":
 		wf, mf = straight_worker, chain_manager
+	elif args.policy == "hybrid":
+		_wf, lf = learned(args, env, dev)
+		wf, mf = straight_worker, hybrid_manager(lf, 60, 100, 0, 300)
 	else:
 		wf, mf = learned(args, env, dev)
-	title = args.title or ("Geometric relay rule (no learning)" if args.policy == "rule"
-	                       else "Learned hierarchical policy")
+	title = args.title or {"rule": "Geometric relay rule (no learning)", "learned": "Learned hierarchical policy",
+	                       "hybrid": "Hybrid: rule + learned deadlock escape"}[args.policy]
 
 	surf = pygame.Surface((S, S + HUD))
 	frames, cum, comp = [], 0, 0

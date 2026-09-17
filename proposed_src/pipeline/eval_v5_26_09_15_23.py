@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
 from model.hier_net_v3_26_08_31_19 import ManagerActor, WorkerActor
 from model.hier_net_v5_26_09_15_23 import SetManagerActor
-from pipeline.common_v5_26_09_15_22 import (action_mask, chain_manager,
-	hold_relay_manager, rule_manager, straight_worker)
+from pipeline.common_v5_26_09_15_22 import (action_mask, chain_manager, hold_relay_manager,
+	hybrid_manager, rule_manager, straight_worker)
 from util.instance_generator_v5_26_09_15_22 import sample_instance
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -104,6 +104,9 @@ def main():
 	               help="배송 증가 없이 견딜 스텝 — makespan 측정 시 크게 줄 것")
 	p.add_argument("--deadlock-limit", type=int, default=10**9)
 	p.add_argument("--arch", choices=["mlp", "set"], default="set", help="상위 정책 구조")
+	p.add_argument("--hybrid", type=int, nargs=4, action="append", default=[],
+	               metavar=("K", "HOLD", "MAXESC", "NPLIM"),
+	               help="혼합 상위 추가: 교착 K스텝→학습 HOLD스텝, 탈출 MAXESC회 초과 또는 무배송 NPLIM스텝이면 학습에 영구 이관 (0=비활성)")
 	p.add_argument("--num-drones", type=int, default=4)
 	p.add_argument("--num-dests", type=int, default=50)
 	p.add_argument("--random-cc", action="store_true", help="제어 센터 위치를 시드마다 무작위로")
@@ -151,6 +154,11 @@ def main():
 			methods.append((f"학습상위 + {low} ({name})", wf, mf))
 		else:
 			methods.append((f"규칙상위 + 학습하위 ({name})", wf, rule_manager))
+
+	for k, hold, mx, npl in args.hybrid:
+		lf = set_manager(os.path.join(ROOT, args.manager[0]), dev, args.stochastic)
+		tag = f"K={k} hold={hold}" + (f" 이관탈출>{mx}" if mx else "") + (f" 이관무배송>{npl}" if npl else "")
+		methods.append((f"혼합 ({tag})", straight_worker, hybrid_manager(lf, k, hold, mx, npl)))
 
 	rows = []
 	for name, wf, mf in methods:

@@ -58,6 +58,11 @@ P.add_argument("--commit", action="store_true",
 P.add_argument("--no-relay", action="store_true")
 P.add_argument("--relay-hold", type=float, default=0.02)
 P.add_argument("--resume", action="store_true")
+P.add_argument("--complete-bonus", type=float, default=0.0,
+               help="전량 완주 시 (1 - 스텝/상한)에 곱해 주는 팀 보상. makespan 신호 강화용")
+P.add_argument("--init-from", default="", help="다른 실행의 latest.pth에서 actor·critic·alpha를 이어받아 시작 (에피소드·최고 기록은 초기화)")
+P.add_argument("--select", choices=["delivered", "makespan"], default="delivered",
+               help="최고 체크포인트 판정 기준. makespan이면 배송 + 5*(1 - 평균스텝/상한)")
 A = P.parse_args()
 GAMMA = A.gamma
 K = 7
@@ -70,7 +75,8 @@ def make_env(n, m):
 	                             max_steps=A.max_steps, deadlock_limit=10 ** 9,
 	                             no_progress_limit=A.no_progress_limit, arrive_once=False,
 	                             relay_hold=A.relay_hold, num_drones=n, num_dests=m,
-	                             n_far=A.n_far, commit_max=A.commit_max)
+	                             n_far=A.n_far, commit_max=A.commit_max,
+	                             complete_bonus=A.complete_bonus)
 
 
 def pad_obs(o, n):
@@ -161,9 +167,13 @@ def holdout(actor, dev):
 	env = make_env(4, 50)
 	st = [rollout(env, actor, dev, A.eval_seed0 + i) for i in range(A.eval_n)]
 	g = lambda k: float(np.mean([s[k] for s in st]))
-	return {"delivered": g("delivered"), "delivered_sd": float(np.std([s["delivered"] for s in st])),
-	        "reloads": g("reloads"), "hop2plus": g("hop2plus"), "max_reach": g("max_reach"),
-	        "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st]))}
+	steps = g("steps")
+	out = {"delivered": g("delivered"), "delivered_sd": float(np.std([s["delivered"] for s in st])),
+	       "reloads": g("reloads"), "hop2plus": g("hop2plus"), "max_reach": g("max_reach"),
+	       "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st])), "steps": steps}
+	# 선택 점수: 배송을 우선하되 같은 배송이면 빨리 끝낸 쪽을 고른다
+	out["score"] = out["delivered"] + (5.0 * (1.0 - steps / A.max_steps) if A.select == "makespan" else 0.0)
+	return out
 
 
 def main():
@@ -186,7 +196,7 @@ def main():
 	CSV, EVL = os.path.join(LOG_DIR, f"metrics_{A.tag}.csv"), os.path.join(LOG_DIR, f"evals_{A.tag}.csv")
 	cols = ["episode", "n_drones", "n_dests", "steps", "team_reward", "delivered", "makespan", "reloads",
 	        "hop2plus", "max_reach", "stall_ratio", "max_stall_run", "term_reason", "relay_frac", "wall_sec"]
-	ecols = ["episode", "delivered", "delivered_sd", "reloads", "hop2plus", "max_reach", "full", "is_best", "wall_sec"]
+	ecols = ["episode", "delivered", "delivered_sd", "reloads", "hop2plus", "max_reach", "full", "steps", "score", "is_best", "wall_sec"]
 
 	start_ep, best, best_ep, stale = 1, -1.0, 0, 0
 	latest = os.path.join(W_DIR, "latest.pth")
@@ -196,6 +206,11 @@ def main():
 		log_alpha.data.fill_(ck["log_alpha"])
 		start_ep, best, best_ep, stale = ck["episode"] + 1, ck["best"], ck["best_ep"], ck["stale"]
 		print(f"재개: ep{start_ep}, 최고 {best:.1f}@ep{best_ep} 정체 {stale}", flush=True)
+	if A.init_from and not A.resume:
+		ck = torch.load(os.path.join(ROOT, A.init_from), map_location=dev, weights_only=False)
+		actor.load_state_dict(ck["actor"]); mq.load_state_dict(ck["critic"]); mq_t.load_state_dict(ck["critic_t"])
+		log_alpha.data.fill_(ck["log_alpha"])
+		print(f"이어받기: {A.init_from} (ep{ck['episode']}) — 에피소드·최고 기록은 초기화", flush=True)
 	mode = "a" if start_ep > 1 else "w"
 	cf, ef = open(CSV, mode, newline="", encoding="utf-8"), open(EVL, mode, newline="", encoding="utf-8")
 	cw, ew = csv.DictWriter(cf, fieldnames=cols), csv.DictWriter(ef, fieldnames=ecols)
@@ -204,7 +219,8 @@ def main():
 
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
-	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'}", flush=True)
+	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
+	      f"완주보상={A.complete_bonus} 선택={A.select}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -294,9 +310,9 @@ def main():
 
 		if ep % A.eval_every == 0 and len(buf) > WARMUP:
 			ev = holdout(actor, dev)
-			is_best = ev["delivered"] > best
+			is_best = ev["score"] > best
 			if is_best:
-				best, best_ep, stale = ev["delivered"], ep, 0
+				best, best_ep, stale = ev["score"], ep, 0
 				torch.save(actor.state_dict(), os.path.join(W_DIR, "best_manager.pth"))
 			else:
 				stale += 1
@@ -304,7 +320,7 @@ def main():
 			             "wall_sec": round(time.time() - t0, 1)}); ef.flush()
 			for k, v in ev.items():
 				writer.add_scalar(f"holdout/{k}", v, ep)
-			print(f"  [홀드아웃] 배송 {ev['delivered']:.1f}±{ev['delivered_sd']:.1f} 완주 {ev['full']:.2f} "
+			print(f"  [홀드아웃] 배송 {ev['delivered']:.1f}±{ev['delivered_sd']:.1f} 완주 {ev['full']:.2f} 스텝 {ev['steps']:.0f} 점수 {ev['score']:.1f} "
 			      f"재적재 {ev['reloads']:.1f} 2홉+ {ev['hop2plus']:.2f} | 최고 {best:.1f}@ep{best_ep} 정체 {stale}/{A.patience}"
 			      f"{'  ← 갱신' if is_best else ''}", flush=True)
 			if stale >= A.patience:

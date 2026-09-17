@@ -47,8 +47,8 @@ def _commit_mask(env, i, base, cand):
 	return keep
 
 
-def action_mask(env, device, no_relay=False, commit=True):
-	"""선택 불가능한 상위 행동을 가린다 — 모든 열을 명시적으로 켠다."""
+def action_mask(env, device, no_relay=False, commit=False):
+	"""선택 불가능한 상위 행동을 가린다 — 모든 열을 명시적으로 켠다. commit 기본값은 off (켜면 -6.5)."""
 	n = env.num_drones
 	m = np.zeros((n, env.n_cand + 2), dtype=bool)
 	for i in range(n):
@@ -106,6 +106,34 @@ def hold_relay_manager(env, n_relay):
 	for i in range(min(n_relay, env.num_drones)):
 		acts[i] = env.n_cand + 1
 	return acts
+
+
+def hybrid_manager(learned_fn, k_stall=60, hold=100, max_escapes=0, np_limit=0):
+	"""혼합 상위: 평소엔 기하 규칙, 부분 교착이 k_stall스텝 이어지면 hold스텝 동안 학습 정책에 맡긴다.
+
+	규칙은 빠르지만 결정론적이라 교착에서 같은 배정을 반복하고, 학습 정책은 완주하지만 느리다.
+	탈출이 max_escapes회를 넘거나 무배송이 np_limit스텝을 넘으면 학습 정책에 영구 이관한다 —
+	120 롤아웃에서 단순 혼합은 97.5%에 그쳤고(3건 실패), 완주 보장은 학습 정책 쪽에 있다.
+	"""
+	st = {"esc": 0, "n": 0, "perm": False}
+
+	def fn(env):
+		if env.current_step <= 1:
+			st["esc"], st["n"], st["perm"] = 0, 0, False
+		if st["perm"] or (np_limit and env.no_progress >= np_limit):
+			st["perm"] = True
+			return learned_fn(env)
+		if env.deadlock_run >= k_stall and st["esc"] == 0:
+			st["n"] += 1
+			if max_escapes and st["n"] > max_escapes:
+				st["perm"] = True
+				return learned_fn(env)
+			st["esc"] = hold
+		if st["esc"] > 0:
+			st["esc"] -= 1
+			return learned_fn(env)
+		return chain_manager(env)
+	return fn
 
 
 rule_manager = plain_manager   # v3 이름 호환

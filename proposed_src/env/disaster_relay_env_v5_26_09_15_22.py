@@ -38,7 +38,8 @@ class DisasterRelayDroneEnv:
 	             n_cand=5, cluster_penalty=True, stuck_obs=True,
 	             max_steps=1000, deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
-	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150):
+	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
+	             complete_bonus=0.0):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
 		# 후보 n_cand개 중 n_far개는 제어 센터에서 가장 먼 미배송지로 채운다
@@ -58,6 +59,10 @@ class DisasterRelayDroneEnv:
 		# 종료 시 남은 목적지당 감점. 시간 페널티가 커진 탓에 '일부러 멈추는 것'이
 		# 이득이 되는 구간이 생기는데, 이를 상쇄한다. 0이면 비활성.
 		self.incomplete_penalty = incomplete_penalty
+		# 전량 완주 시 남은 시간 비율에 비례해 주는 팀 보상. 배송 보상(건당 10, 50곳이면 500)에
+		# 비해 시간 페널티(스텝당 0.04)가 약해 makespan 신호가 정책에 거의 닿지 않았다.
+		# 200이면 상한 절반에 끝냈을 때 +100으로, 전체 수익의 약 20%가 시간에 걸린다.
+		self.complete_bonus = complete_bonus
 		# False면 26_09_04_15 이전처럼 목표 반경 안에 있는 매 스텝 도달 보너스를 준다.
 		# 회귀 원인 절제용 — 기본값은 목표당 1회(현행)다.
 		self.arrive_once = arrive_once
@@ -468,6 +473,8 @@ class DisasterRelayDroneEnv:
 			done, self.term_reason = True, "step_limit"
 		if done and self.incomplete_penalty > 0.0:
 			team -= self.incomplete_penalty * float(self.dests_active.sum())
+		if done and self.term_reason == "complete" and self.complete_bonus > 0.0:
+			team += self.complete_bonus * max(0.0, 1.0 - self.current_step / self.max_steps)
 		if self.render_mode == "human":
 			self.render()
 		return self.worker_obs(), w_rew, team, done
