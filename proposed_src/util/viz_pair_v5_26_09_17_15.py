@@ -96,6 +96,7 @@ def main():
 	p.add_argument("--max-steps", type=int, default=6000)
 	p.add_argument("--every", type=int, default=30)
 	p.add_argument("--hybrid", type=int, nargs=4, default=[60, 100, 1, 200])
+	p.add_argument("--right", choices=["hybrid", "learned"], default="learned", help="우측 패널 정책")
 	p.add_argument("--out", default="v5_pair.gif")
 	a = p.parse_args()
 
@@ -118,14 +119,15 @@ def main():
 	                                   max_steps=a.max_steps, deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
 	                                   num_drones=a.num_drones, num_dests=a.num_dests)
 	envs = [mk(), mk()]
-	titles = ["Geometric relay rule (no learning)", "Proposed: hybrid (rule + learned escape)"]
+	titles = ["Geometric relay rule (no learning)",
+	          "Proposed: learned policy (set-based MARL)" if a.right == "learned" else "Hybrid (rule + learned escape)"]
 	surfs = [pygame.Surface((S, S + HUD)) for _ in envs]
 	W, H = S * 2 + 8, S + HUD
 	frames, cum, comp = [], [0, 0], [0, 0]
 	for ep in range(1, a.episodes + 1):
 		cc, d = sample_instance(a.num_dests, seed=a.seed0 + ep - 1, num_drones=a.num_drones,
 		                        comm_range=a.comm_range, cc_pos="random" if a.random_cc else None)
-		pols = [chain_manager, hybrid_manager(learned, *a.hybrid)]
+		pols = [chain_manager, learned if a.right == "learned" else hybrid_manager(learned, *a.hybrid)]
 		for e, mf in zip(envs, pols):
 			e.cc_pos, e.dests_pos = cc.copy(), d.copy()
 			e.reset()
@@ -158,7 +160,7 @@ def main():
 	out = os.path.join(ROOT, "figures", a.out)
 	frames[0].save(out, save_all=True, append_images=frames[1:], duration=60, loop=0, optimize=True)
 	print(f"\n프레임 {len(frames)}개 · {os.path.getsize(out) / 1e6:.1f} MB -> {out}")
-	print(f"완주 규칙 {comp[0]}/{a.episodes}  혼합 {comp[1]}/{a.episodes} | 누적 배송 규칙 {cum[0]} 혼합 {cum[1]}")
+	print(f"완주 규칙 {comp[0]}/{a.episodes}  제안 {comp[1]}/{a.episodes} | 누적 배송 규칙 {cum[0]} 제안 {cum[1]}")
 	pygame.quit()
 
 
