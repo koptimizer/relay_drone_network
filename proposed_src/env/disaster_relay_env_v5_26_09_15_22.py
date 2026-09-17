@@ -39,7 +39,7 @@ class DisasterRelayDroneEnv:
 	             max_steps=1000, deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
-	             complete_bonus=0.0):
+	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
 		# 후보 n_cand개 중 n_far개는 제어 센터에서 가장 먼 미배송지로 채운다
@@ -63,6 +63,11 @@ class DisasterRelayDroneEnv:
 		# 비해 시간 페널티(스텝당 0.04)가 약해 makespan 신호가 정책에 거의 닿지 않았다.
 		# 200이면 상한 절반에 끝냈을 때 +100으로, 전체 수익의 약 20%가 시간에 걸린다.
 		self.complete_bonus = complete_bonus
+		# 매 스텝 팀 보상에서 residual_penalty x 드론수 x (미배송 비율)을 뺀다. 모든 배송 시각의 합을
+		# 최소화하는 makespan 대리 목적으로, 완주 보상과 달리 어느 구성에서든 매 스텝 발화한다.
+		self.residual_penalty = residual_penalty
+		# True면 집합 관측에 기하 규칙이 지금 제안하는 행동(원핫 7)을 'advice'로 넣는다
+		self.rule_obs = rule_obs
 		# False면 26_09_04_15 이전처럼 목표 반경 안에 있는 매 스텝 도달 보너스를 준다.
 		# 회귀 원인 절제용 — 기본값은 목표당 1회(현행)다.
 		self.arrive_once = arrive_once
@@ -452,6 +457,8 @@ class DisasterRelayDroneEnv:
 						w_rew[j] -= 0.05
 
 		team -= self.time_penalty * self.num_drones
+		if self.residual_penalty > 0.0:
+			team -= self.residual_penalty * self.num_drones * (self.dests_active.sum() / self.num_dests)
 
 		h = self._hop_depth()
 		self.hop2plus += int(np.sum(h >= 2))
@@ -632,7 +639,13 @@ class DisasterRelayDroneEnv:
 				v = pt - self.drones_pos[i]
 				d = float(np.linalg.norm(v))
 				relay[i] = [d / R, *(v / d if d > 1e-6 else np.zeros(2)), n_slot / N_MAX]
-		return dict(self=selfv, cand=cand, cand_mask=cmask, peer=peer, peer_mask=pmask, relay=relay)
+		out = dict(self=selfv, cand=cand, cand_mask=cmask, peer=peer, peer_mask=pmask, relay=relay)
+		if self.rule_obs:
+			from pipeline.common_v5_26_09_15_22 import chain_manager
+			adv = np.zeros((N, self.n_cand + 2), dtype=np.float32)
+			adv[np.arange(N), chain_manager(self)] = 1.0
+			out["advice"] = adv
+		return out
 
 	def global_state(self):
 		"""중앙 critic 입력: 전 드론 위치·적재량·연결, 목적지 활성 상태."""

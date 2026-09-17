@@ -61,6 +61,12 @@ P.add_argument("--resume", action="store_true")
 P.add_argument("--complete-bonus", type=float, default=0.0,
                help="전량 완주 시 (1 - 스텝/상한)에 곱해 주는 팀 보상. makespan 신호 강화용")
 P.add_argument("--init-from", default="", help="다른 실행의 latest.pth에서 actor·critic·alpha를 이어받아 시작 (에피소드·최고 기록은 초기화)")
+P.add_argument("--residual-penalty", type=float, default=0.0,
+               help="매 스텝 팀 보상 -= 값 x 드론수 x 미배송비율 (makespan 대리 목적)")
+P.add_argument("--rule-obs", action="store_true", help="기하 규칙의 제안 행동(원핫)을 상위 관측에 넣는다")
+P.add_argument("--rule-reg", type=float, default=0.0,
+               help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
+P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
 P.add_argument("--select", choices=["delivered", "makespan"], default="delivered",
                help="최고 체크포인트 판정 기준. makespan이면 배송 + 5*(1 - 평균스텝/상한)")
 A = P.parse_args()
@@ -76,7 +82,8 @@ def make_env(n, m):
 	                             no_progress_limit=A.no_progress_limit, arrive_once=False,
 	                             relay_hold=A.relay_hold, num_drones=n, num_dests=m,
 	                             n_far=A.n_far, commit_max=A.commit_max,
-	                             complete_bonus=A.complete_bonus)
+	                             complete_bonus=A.complete_bonus, residual_penalty=A.residual_penalty,
+	                             rule_obs=A.rule_obs)
 
 
 def pad_obs(o, n):
@@ -86,6 +93,9 @@ def pad_obs(o, n):
 	           cand_mask=np.zeros((N_MAX, C), bool), peer=np.zeros((N_MAX, N_MAX, 9), np.float32),
 	           peer_mask=np.zeros((N_MAX, N_MAX), bool), relay=np.zeros((N_MAX, 4), np.float32),
 	           drone_mask=np.zeros(N_MAX, bool))
+	if "advice" in o:
+		out["advice"] = np.zeros((N_MAX, K), np.float32)
+		out["advice"][:n] = o["advice"]
 	out["self"][:n], out["cand"][:n], out["cand_mask"][:n] = o["self"], o["cand"], o["cand_mask"]
 	out["peer"][:n, :n], out["peer_mask"][:n, :n], out["relay"][:n] = o["peer"], o["peer_mask"], o["relay"]
 	out["drone_mask"][:n] = True
@@ -108,16 +118,21 @@ class OptionBuffer:
 		self.o = dict(self=z(cap, N_MAX, 10), cand=z(cap, N_MAX, C, 6), cand_mask=b(cap, N_MAX, C),
 		              peer=z(cap, N_MAX, N_MAX, 9), peer_mask=b(cap, N_MAX, N_MAX),
 		              relay=z(cap, N_MAX, 4), drone_mask=b(cap, N_MAX))
+		if A.rule_obs:
+			self.o["advice"] = z(cap, N_MAX, K)
 		self.o2 = {k: np.zeros_like(v) for k, v in self.o.items()}
 		self.ma = np.zeros((cap, N_MAX), np.int64)
+		self.ra = np.zeros((cap, N_MAX), np.int64)     # 옵션 시작 시 규칙이 제안한 행동
 		self.mask, self.mask2 = b(cap, N_MAX, K), b(cap, N_MAX, K)
 		self.r, self.disc, self.d = z(cap, 1), z(cap, 1), z(cap, 1)
 
-	def push(self, o, ma, mask, r, o2, mask2, disc, d):
+	def push(self, o, ma, mask, r, o2, mask2, disc, d, ra=None):
 		i = self.ptr
 		for k in self.o:
 			self.o[k][i], self.o2[k][i] = o[k], o2[k]
 		self.ma[i, :len(ma)] = ma
+		if ra is not None:
+			self.ra[i, :len(ra)] = ra
 		self.mask[i], self.mask2[i] = mask, mask2
 		self.r[i], self.disc[i], self.d[i] = r, disc, d
 		self.ptr = (self.ptr + 1) % self.cap
@@ -127,7 +142,7 @@ class OptionBuffer:
 		idx = np.random.randint(0, self.size, bs)
 		t = lambda x: torch.as_tensor(x[idx], device=dev)
 		return dict(o={k: t(v) for k, v in self.o.items()}, o2={k: t(v) for k, v in self.o2.items()},
-		            ma=t(self.ma), mask=t(self.mask), mask2=t(self.mask2), r=t(self.r), disc=t(self.disc), d=t(self.d))
+		            ma=t(self.ma), ra=t(self.ra), mask=t(self.mask), mask2=t(self.mask2), r=t(self.r), disc=t(self.disc), d=t(self.d))
 
 	def __len__(self):
 		return self.size
@@ -145,6 +160,12 @@ def act(env, actor, dev):
 	return a[0, :env.num_drones].cpu().numpy(), o, mp.cpu().numpy()
 
 
+def act_rule(env):
+	"""규칙 행동 (정규화용). 마스크에 걸리면 정규화 표적에서 제외되도록 -1."""
+	ra = chain_manager(env).astype(np.int64)
+	return ra
+
+
 def rollout(env, actor, dev, seed, cc_mode=None):
 	"""홀드아웃 인스턴스 하나를 굴린다 (확률 샘플링)."""
 	env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=seed, num_drones=env.num_drones,
@@ -153,7 +174,7 @@ def rollout(env, actor, dev, seed, cc_mode=None):
 	a, _o, _m = act(env, actor, dev)
 	env.set_goals(a)
 	done, t = False, 0
-	while not done and t < A.max_steps:
+	while not done and t < env.max_steps:
 		_o, _wr, _tr, done = env.step(straight_worker(env))
 		t += 1
 		if t % A.hl_every == 0 or env.goal_invalid().any():
@@ -163,8 +184,9 @@ def rollout(env, actor, dev, seed, cc_mode=None):
 
 
 def holdout(actor, dev):
-	"""표준 구성(드론 4·목적지 50·CC 고정)에서 샘플링 평가."""
+	"""표준 구성(드론 4·목적지 50·CC 고정)에서 샘플링 평가. 상한은 --holdout-steps."""
 	env = make_env(4, 50)
+	env.max_steps = A.holdout_steps
 	st = [rollout(env, actor, dev, A.eval_seed0 + i) for i in range(A.eval_n)]
 	g = lambda k: float(np.mean([s[k] for s in st]))
 	steps = g("steps")
@@ -172,7 +194,9 @@ def holdout(actor, dev):
 	       "reloads": g("reloads"), "hop2plus": g("hop2plus"), "max_reach": g("max_reach"),
 	       "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st])), "steps": steps}
 	# 선택 점수: 배송을 우선하되 같은 배송이면 빨리 끝낸 쪽을 고른다
-	out["score"] = out["delivered"] + (5.0 * (1.0 - steps / A.max_steps) if A.select == "makespan" else 0.0)
+	# makespan 선택: 완주율을 최우선으로, 같으면 평균 소요 스텝이 짧은 쪽 (상한 3000이면 완주 시각과 같다)
+	out["score"] = (100.0 * out["full"] + (A.holdout_steps - steps) / A.holdout_steps * 10.0
+	                if A.select == "makespan" else out["delivered"])
 	return out
 
 
@@ -182,8 +206,8 @@ def main():
 	np.random.seed(A.seed)
 	dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	inst_rng = np.random.default_rng(A.seed + 1000)
-	actor = SetManagerActor().to(dev)
-	mq, mq_t = SetManagerTwinQ(K).to(dev), SetManagerTwinQ(K).to(dev)
+	actor = SetManagerActor(advice=A.rule_obs).to(dev)
+	mq, mq_t = SetManagerTwinQ(K, advice=A.rule_obs).to(dev), SetManagerTwinQ(K, advice=A.rule_obs).to(dev)
 	mq_t.load_state_dict(mq.state_dict())
 	a_opt, q_opt = optim.Adam(actor.parameters(), lr=3e-4), optim.Adam(mq.parameters(), lr=3e-4)
 	log_alpha = torch.tensor(np.log(0.1), requires_grad=True, device=dev)
@@ -220,7 +244,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 선택={A.select}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 홀드아웃상한={A.holdout_steps} 선택={A.select}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -235,6 +259,7 @@ def main():
 			                                            num_drones=env.num_drones, comm_range=env.comm_range)
 		env.reset()
 		a, o0, m0 = act(env, actor, dev)
+		r0 = act_rule(env)
 		env.set_goals(a)
 		done, t, ep_tr, opt_r, opt_k, relay_n, dec_n = False, 0, 0.0, 0.0, 0, 0, 0
 		while not done and t < A.max_steps:
@@ -246,11 +271,12 @@ def main():
 			hl_now = (t % A.hl_every == 0) or bool(env.goal_invalid().any())
 			if hl_now or done:
 				a2, o2, m2 = act(env, actor, dev)
-				buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done))
+				r2 = act_rule(env)
+				buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0)
 				relay_n += int((a == 6).sum()); dec_n += len(a)
 				if not done:
 					env.set_goals(a2)
-					a, o0, m0, opt_r, opt_k = a2, o2, m2, 0.0, 0
+					a, o0, m0, r0, opt_r, opt_k = a2, o2, m2, r2, 0.0, 0
 
 			if len(buf) > WARMUP and t % A.update_every == 0:
 				b = buf.sample(BATCH, dev)
@@ -273,6 +299,11 @@ def main():
 					q1d, q2d = mq(b["o"], b["o"]["drone_mask"])
 					qmin = torch.min(q1d, q2d)
 				la = ((p * (alpha * lp - qmin)).sum(-1) * dm).sum() / dm.sum()
+				if A.rule_reg > 0.0:
+					# 규칙 행동이 마스크 안에 있는 드론만 정규화한다
+					ok = dm * b["mask"].gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1).float()
+					nll = -lp.gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1)
+					la = la + A.rule_reg * (nll * ok).sum() / ok.sum().clamp_min(1.0)
 				a_opt.zero_grad(); la.backward(); nn.utils.clip_grad_norm_(actor.parameters(), 1.0); a_opt.step()
 				ent = (-(p * lp).sum(-1) * dm).sum() / dm.sum()
 				# 목표 엔트로피는 유효 행동 수에 비례한다. 고정값을 쓰면 마스크로 선택지가 줄 때

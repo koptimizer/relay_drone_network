@@ -28,16 +28,18 @@ class EntityEncoder(nn.Module):
 	동료·후보의 수가 얼마든 출력 차원이 같다.
 	"""
 
-	def __init__(self, d=128, heads=4):
+	def __init__(self, d=128, heads=4, advice=False):
 		super().__init__()
-		self.d = d
+		self.d, self.advice = d, advice
+		# 규칙 조언(원핫 7)을 엔티티로 받으면 정책은 '규칙을 따를지 벗어날지'만 배우면 된다
+		self.enc_adv = mlp(7, d, d) if advice else None
 		self.enc_self = mlp(F_SELF, d, d)
 		self.enc_cand = mlp(F_CAND, d, d)
 		self.enc_peer = mlp(F_PEER, d, d)
 		self.enc_relay = mlp(F_RELAY, d, d)
 		self.att_peer = nn.MultiheadAttention(d, heads, batch_first=True)
 		self.att_cand = nn.MultiheadAttention(d, heads, batch_first=True)
-		self.fuse = mlp(4 * d, d, d)
+		self.fuse = mlp((5 if advice else 4) * d, d, d)
 
 	def forward(self, o):
 		"""o: dict of (B, N, ...) 텐서. 반환 h (B, N, d), cand_emb (B, N, C, d)."""
@@ -56,17 +58,19 @@ class EntityEncoder(nn.Module):
 		                          key_padding_mask=pm)
 		c_cand, _ = self.att_cand(q, e_cand.reshape(B * N, -1, self.d), e_cand.reshape(B * N, -1, self.d),
 		                          key_padding_mask=cm)
-		h = self.fuse(torch.cat([e_self, c_peer.reshape(B, N, self.d),
-		                         c_cand.reshape(B, N, self.d), e_rel], dim=-1))
+		parts = [e_self, c_peer.reshape(B, N, self.d), c_cand.reshape(B, N, self.d), e_rel]
+		if self.advice:
+			parts.append(self.enc_adv(o["advice"]))
+		h = self.fuse(torch.cat(parts, dim=-1))
 		return h, e_cand
 
 
 class SetManagerActor(nn.Module):
 	"""집합 관측에서 드론별 이산 행동 분포를 낸다. 후보는 포인터, 복귀·중계는 고정 헤드."""
 
-	def __init__(self, d=128):
+	def __init__(self, d=128, advice=False):
 		super().__init__()
-		self.enc = EntityEncoder(d)
+		self.enc = EntityEncoder(d, advice=advice)
 		self.point = mlp(2 * d, 1, d)
 		self.fixed = mlp(d, 2, d)
 
@@ -89,10 +93,10 @@ class SetManagerActor(nn.Module):
 class SetManagerTwinQ(nn.Module):
 	"""집합 관측용 중앙 critic. 드론 임베딩 사이 어텐션으로 팀 상태를 보고 드론별 Q를 낸다."""
 
-	def __init__(self, n_actions, d=128, heads=4):
+	def __init__(self, n_actions, d=128, heads=4, advice=False):
 		super().__init__()
 		self.k = n_actions
-		self.enc1, self.enc2 = EntityEncoder(d), EntityEncoder(d)
+		self.enc1, self.enc2 = EntityEncoder(d, advice=advice), EntityEncoder(d, advice=advice)
 		self.team1 = nn.MultiheadAttention(d, heads, batch_first=True)
 		self.team2 = nn.MultiheadAttention(d, heads, batch_first=True)
 		self.head1, self.head2 = mlp(2 * d, n_actions, d), mlp(2 * d, n_actions, d)

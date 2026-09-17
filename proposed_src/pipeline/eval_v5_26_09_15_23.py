@@ -58,9 +58,9 @@ def learned_worker(ckpt, obs_dim, dev, stoch=False):
 	return fn
 
 
-def set_manager(ckpt, dev, stoch=False):
+def set_manager(ckpt, dev, stoch=False, advice=False):
 	"""집합 기반 상위 정책(드론 수 무관)을 할당 함수로 감싼다."""
-	m = SetManagerActor().to(dev)
+	m = SetManagerActor(advice=advice).to(dev)
 	m.load_state_dict(torch.load(ckpt, map_location=dev))
 	m.eval()
 
@@ -104,6 +104,7 @@ def main():
 	               help="배송 증가 없이 견딜 스텝 — makespan 측정 시 크게 줄 것")
 	p.add_argument("--deadlock-limit", type=int, default=10**9)
 	p.add_argument("--arch", choices=["mlp", "set"], default="set", help="상위 정책 구조")
+	p.add_argument("--advice", action="store_true", help="규칙 조언 관측으로 학습한 집합 상위를 평가")
 	p.add_argument("--hybrid", type=int, nargs=4, action="append", default=[],
 	               metavar=("K", "HOLD", "MAXESC", "NPLIM"),
 	               help="혼합 상위 추가: 교착 K스텝→학습 HOLD스텝, 탈출 MAXESC회 초과 또는 무배송 NPLIM스텝이면 학습에 영구 이관 (0=비활성)")
@@ -125,7 +126,8 @@ def main():
 	                            max_steps=args.max_steps,
 	                            deadlock_limit=args.deadlock_limit,
 	                            no_progress_limit=args.no_progress_limit,
-	                            num_drones=args.num_drones, num_dests=args.num_dests)
+	                            num_drones=args.num_drones, num_dests=args.num_dests,
+	                            rule_obs=args.advice)
 	# 학습 조건과 평가 조건을 일치시킨다 — v4에서 이 불일치로 결론이 세 번 뒤집혔다.
 	global MASK_KW, CC_MODE
 	CC_MODE = "random" if args.random_cc else None
@@ -148,7 +150,7 @@ def main():
 		wf = (straight_worker if args.straight_worker
 		      else learned_worker(os.path.join(ROOT, wck), wo, dev, args.stochastic))
 		if i < len(args.manager) and args.manager[i]:
-			mf = (set_manager(os.path.join(ROOT, args.manager[i]), dev, args.stochastic) if args.arch == "set"
+			mf = (set_manager(os.path.join(ROOT, args.manager[i]), dev, args.stochastic, args.advice) if args.arch == "set"
 			      else learned_manager(os.path.join(ROOT, args.manager[i]), mo, K, dev, args.stochastic))
 			low = "직진하위" if args.straight_worker else "학습하위"
 			methods.append((f"학습상위 + {low} ({name})", wf, mf))
@@ -156,7 +158,7 @@ def main():
 			methods.append((f"규칙상위 + 학습하위 ({name})", wf, rule_manager))
 
 	for k, hold, mx, npl in args.hybrid:
-		lf = set_manager(os.path.join(ROOT, args.manager[0]), dev, args.stochastic)
+		lf = set_manager(os.path.join(ROOT, args.manager[0]), dev, args.stochastic, args.advice)
 		tag = f"K={k} hold={hold}" + (f" 이관탈출>{mx}" if mx else "") + (f" 이관무배송>{npl}" if npl else "")
 		methods.append((f"혼합 ({tag})", straight_worker, hybrid_manager(lf, k, hold, mx, npl)))
 
