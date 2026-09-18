@@ -39,7 +39,7 @@ class DisasterRelayDroneEnv:
 	             max_steps=1000, deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
-	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False):
+	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
 		# 후보 n_cand개 중 n_far개는 제어 센터에서 가장 먼 미배송지로 채운다
@@ -68,6 +68,10 @@ class DisasterRelayDroneEnv:
 		self.residual_penalty = residual_penalty
 		# True면 집합 관측에 기하 규칙이 지금 제안하는 행동(원핫 7)을 'advice'로 넣는다
 		self.rule_obs = rule_obs
+		# 연결성 투영이 잘라낸 변위 비율(corr)의 합에 곱해 팀 보상에서 뺀다. 학습 정책은 중계를 세우는
+		# 대신 제약에 끌려가며 전진했고(막힘 드론-스텝 규칙 308 대 학습 1,345), 팀 보상에 그 비용이
+		# 없어 상위가 이를 문제로 인식하지 못했다.
+		self.blocked_penalty = blocked_penalty
 		# False면 26_09_04_15 이전처럼 목표 반경 안에 있는 매 스텝 도달 보너스를 준다.
 		# 회귀 원인 절제용 — 기본값은 목표당 1회(현행)다.
 		self.arrive_once = arrive_once
@@ -373,6 +377,7 @@ class DisasterRelayDroneEnv:
 		delta = tmp - self.drones_pos
 
 		scale = self._project(delta, moving)
+		self._blocked_corr = 0.0
 		for i in range(self.num_drones):
 			if not moving[i]:
 				continue
@@ -381,6 +386,7 @@ class DisasterRelayDroneEnv:
 			if corr > 1e-3:
 				self.blocked[i] += 1
 				w_rew[i] -= 0.1 * corr      # 잘려나간 변위에 비례
+				self._blocked_corr += corr
 
 		# 명령 대비 실현 변위 비율을 EMA로 추적한다. 상위가 교착을 인지하는 신호가 된다.
 		cmd = np.linalg.norm(delta, axis=1)
@@ -459,6 +465,8 @@ class DisasterRelayDroneEnv:
 		team -= self.time_penalty * self.num_drones
 		if self.residual_penalty > 0.0:
 			team -= self.residual_penalty * self.num_drones * (self.dests_active.sum() / self.num_dests)
+		if self.blocked_penalty > 0.0:
+			team -= self.blocked_penalty * self._blocked_corr
 
 		h = self._hop_depth()
 		self.hop2plus += int(np.sum(h >= 2))

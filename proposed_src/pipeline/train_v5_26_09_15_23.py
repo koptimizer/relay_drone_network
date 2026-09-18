@@ -64,6 +64,7 @@ P.add_argument("--init-from", default="", help="다른 실행의 latest.pth에�
 P.add_argument("--residual-penalty", type=float, default=0.0,
                help="매 스텝 팀 보상 -= 값 x 드론수 x 미배송비율 (makespan 대리 목적)")
 P.add_argument("--rule-obs", action="store_true", help="기하 규칙의 제안 행동(원핫)을 상위 관측에 넣는다")
+P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘라낸 변위 비율 합에 곱해 팀 보상에서 뺀다")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -83,7 +84,7 @@ def make_env(n, m):
 	                             relay_hold=A.relay_hold, num_drones=n, num_dests=m,
 	                             n_far=A.n_far, commit_max=A.commit_max,
 	                             complete_bonus=A.complete_bonus, residual_penalty=A.residual_penalty,
-	                             rule_obs=A.rule_obs)
+	                             rule_obs=A.rule_obs, blocked_penalty=A.blocked_penalty)
 
 
 def pad_obs(o, n):
@@ -244,7 +245,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 홀드아웃상한={A.holdout_steps} 선택={A.select}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 홀드아웃상한={A.holdout_steps} 선택={A.select}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
