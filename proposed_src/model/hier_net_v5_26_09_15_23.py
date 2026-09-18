@@ -68,25 +68,62 @@ class EntityEncoder(nn.Module):
 class SetManagerActor(nn.Module):
 	"""집합 관측에서 드론별 이산 행동 분포를 낸다. 후보는 포인터, 복귀·중계는 고정 헤드."""
 
-	def __init__(self, d=128, advice=False):
+	def __init__(self, d=128, advice=False, autoregressive=False):
 		super().__init__()
+		self.autoregressive = autoregressive
 		self.enc = EntityEncoder(d, advice=advice)
 		self.point = mlp(2 * d, 1, d)
 		self.fixed = mlp(d, 2, d)
 
-	def forward(self, o, mask=None):
-		"""(행동, 확률, 로그확률)을 (B, N, ·) 형태로 반환한다."""
+	def _logits(self, o):
+		"""집합 관측에서 (B,N,K) 로짓."""
 		h, e_cand = self.enc(o)                                 # (B,N,d), (B,N,C,d)
 		C = e_cand.shape[2]
 		hc = h.unsqueeze(2).expand(-1, -1, C, -1)
 		l_cand = self.point(torch.cat([hc, e_cand], dim=-1)).squeeze(-1)   # (B,N,C)
 		l_fix = self.fixed(h)                                              # (B,N,2)
-		logits = torch.cat([l_cand, l_fix], dim=-1)                        # (B,N,K)
-		if mask is not None:
-			logits = logits.masked_fill(~mask, -1e9)
-		probs = F.softmax(logits, dim=-1)
-		logp = torch.log(probs + 1e-8)
-		action = torch.distributions.Categorical(probs=probs).sample()
+		return torch.cat([l_cand, l_fix], dim=-1)                          # (B,N,K)
+
+	def forward(self, o, mask=None, given=None):
+		"""(행동, 확률, 로그확률)을 (B, N, ·) 형태로 반환한다.
+
+		autoregressive=True면 제어 센터에서 먼 드론부터 한 대씩 결정하고, 결정된 드론의 새 역할을
+		동료 관측(peer의 kind 원핫)에 써넣은 뒤 다음 드론을 결정한다. 편대 대형(선두 1 + 중계 k)은
+		드론별 독립 표본으로는 우연히만 나오지만, 순차 결정에서는 앞 드론의 선택을 보고 맞출 수 있다.
+		given이 있으면 그 행동으로 조건부를 만든다(학습 시 teacher forcing).
+		"""
+		if not self.autoregressive:
+			logits = self._logits(o)
+			if mask is not None:
+				logits = logits.masked_fill(~mask, -1e9)
+			probs = F.softmax(logits, dim=-1)
+			logp = torch.log(probs + 1e-8)
+			action = torch.distributions.Categorical(probs=probs).sample()
+			return action, probs, logp
+		B, N = o["self"].shape[:2]
+		K = o["cand"].shape[2] + 2
+		peer = o["peer"].clone()                                # (B,N,N,9) — kind 원핫은 5:9
+		order = torch.argsort(o["self"][:, :, 1], dim=1, descending=True)   # d_cc 큰 순
+		action = torch.zeros(B, N, dtype=torch.long, device=peer.device)
+		probs = torch.zeros(B, N, K, device=peer.device)
+		logp = torch.zeros(B, N, K, device=peer.device)
+		bidx = torch.arange(B, device=peer.device)
+		for step in range(N):
+			j = order[:, step]                                  # (B,) 이번에 결정할 드론
+			oo = dict(o); oo["peer"] = peer
+			lg = self._logits(oo)[bidx, j]                      # (B,K)
+			if mask is not None:
+				lg = lg.masked_fill(~mask[bidx, j], -1e9)
+			pj = F.softmax(lg, dim=-1)
+			aj = given[bidx, j] if given is not None else torch.distributions.Categorical(probs=pj).sample()
+			action[bidx, j] = aj
+			probs[bidx, j] = pj
+			logp[bidx, j] = torch.log(pj + 1e-8)
+			# 결정된 드론 j의 새 역할을 다른 드론들이 보는 peer 특징에 써넣는다
+			kind = torch.where(aj >= K - 1, 3, torch.where(aj == K - 2, 1, 0))   # 중계=3, 복귀=1, 배송=0
+			onehot = F.one_hot(kind, 4).float()                                 # (B,4)
+			peer = peer.clone()
+			peer[bidx, :, j, 5:9] = onehot.unsqueeze(1).expand(-1, N, -1)
 		return action, probs, logp
 
 

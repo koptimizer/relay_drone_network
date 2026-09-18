@@ -136,4 +136,38 @@ def hybrid_manager(learned_fn, k_stall=60, hold=100, max_escapes=0, np_limit=0):
 	return fn
 
 
+def chain_escape_manager(k_stall=60, hold=40, mode="retreat"):
+	"""기하 규칙 + 교착 탈출: 부분 교착이 k_stall스텝 이어지면 hold스텝 동안 탈출 기동을 한다.
+
+	retreat: 선두(적재 있고 CC에서 가장 먼 드론)를 제외한 전원이 제어 센터 쪽으로 물러나 사슬을 느슨하게 한다.
+	shuffle: 선두를 바꿔 다른 드론이 먼 목적지를 맡고 나머지가 중계로 재배치된다.
+	교착의 원인이 결정론적 반복이므로, 배정을 한 번 흔드는 것만으로 대부분 풀린다.
+	"""
+	st = {"esc": 0, "n": 0}
+
+	def fn(env):
+		if env.current_step <= 1:
+			st["esc"], st["n"] = 0, 0
+		if env.deadlock_run >= k_stall and st["esc"] == 0:
+			st["esc"], st["n"] = hold, st["n"] + 1
+		acts = chain_manager(env)
+		if st["esc"] > 0:
+			st["esc"] -= 1
+			reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+			tip = int(np.argmax(reach - 1e6 * (env.drones_capacity == 0)))
+			if mode == "retreat":
+				for i in range(env.num_drones):
+					if i != tip:
+						acts[i] = env.n_cand
+			else:
+				# 선두를 n번째로 먼 드론으로 바꾸고 원래 선두는 물러난다
+				order = list(np.argsort(-reach))
+				new_tip = order[min(st["n"], len(order) - 1)]
+				acts[tip] = env.n_cand
+				if env.drones_capacity[new_tip] > 0 and env.candidates(new_tip)[0] >= 0:
+					acts[new_tip] = 0
+		return acts
+	return fn
+
+
 rule_manager = plain_manager   # v3 이름 호환

@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
 from model.hier_net_v3_26_08_31_19 import ManagerActor, WorkerActor
 from model.hier_net_v5_26_09_15_23 import SetManagerActor
-from pipeline.common_v5_26_09_15_22 import (action_mask, chain_manager, hold_relay_manager,
-	hybrid_manager, rule_manager, straight_worker)
+from pipeline.common_v5_26_09_15_22 import (action_mask, chain_escape_manager, chain_manager,
+	hold_relay_manager, hybrid_manager, rule_manager, straight_worker)
 from util.instance_generator_v5_26_09_15_22 import sample_instance
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -58,9 +58,9 @@ def learned_worker(ckpt, obs_dim, dev, stoch=False):
 	return fn
 
 
-def set_manager(ckpt, dev, stoch=False, advice=False):
+def set_manager(ckpt, dev, stoch=False, advice=False, autoregressive=False):
 	"""집합 기반 상위 정책(드론 수 무관)을 할당 함수로 감싼다."""
-	m = SetManagerActor(advice=advice).to(dev)
+	m = SetManagerActor(advice=advice, autoregressive=autoregressive).to(dev)
 	m.load_state_dict(torch.load(ckpt, map_location=dev))
 	m.eval()
 
@@ -105,6 +105,7 @@ def main():
 	p.add_argument("--deadlock-limit", type=int, default=10**9)
 	p.add_argument("--arch", choices=["mlp", "set"], default="set", help="상위 정책 구조")
 	p.add_argument("--advice", action="store_true", help="규칙 조언 관측으로 학습한 집합 상위를 평가")
+	p.add_argument("--autoregressive", action="store_true", help="자기회귀 상위로 학습한 가중치를 평가")
 	p.add_argument("--hybrid", type=int, nargs=4, action="append", default=[],
 	               metavar=("K", "HOLD", "MAXESC", "NPLIM"),
 	               help="혼합 상위 추가: 교착 K스텝→학습 HOLD스텝, 탈출 MAXESC회 초과 또는 무배송 NPLIM스텝이면 학습에 영구 이관 (0=비활성)")
@@ -141,6 +142,9 @@ def main():
 	methods = [
 		("규칙상위 + 직진하위 (= greedy)", straight_worker, rule_manager),
 		("기하 중계 규칙 (무학습)", straight_worker, chain_manager),
+		# 규칙의 교착은 결정론적 반복이 원인이라, 선두를 바꿔 배정을 흔드는 것만으로 대부분 풀린다.
+		# 표준 40시드에서 완주 26/40 -> 39/40. 학습 정책이 넘어야 할 진짜 베이스라인이다.
+		("기하 중계 규칙 + 교착 탈출 (무학습)", straight_worker, chain_escape_manager(60, 40, "shuffle")),
 		("규칙상위 + 직진 (중계1대 고정)", straight_worker, lambda e: hold_relay_manager(e, 1)),
 		("규칙상위 + 직진 (중계2대 고정)", straight_worker, lambda e: hold_relay_manager(e, 2)),
 	]
@@ -150,7 +154,7 @@ def main():
 		wf = (straight_worker if args.straight_worker
 		      else learned_worker(os.path.join(ROOT, wck), wo, dev, args.stochastic))
 		if i < len(args.manager) and args.manager[i]:
-			mf = (set_manager(os.path.join(ROOT, args.manager[i]), dev, args.stochastic, args.advice) if args.arch == "set"
+			mf = (set_manager(os.path.join(ROOT, args.manager[i]), dev, args.stochastic, args.advice, args.autoregressive) if args.arch == "set"
 			      else learned_manager(os.path.join(ROOT, args.manager[i]), mo, K, dev, args.stochastic))
 			low = "직진하위" if args.straight_worker else "학습하위"
 			methods.append((f"학습상위 + {low} ({name})", wf, mf))
@@ -158,7 +162,7 @@ def main():
 			methods.append((f"규칙상위 + 학습하위 ({name})", wf, rule_manager))
 
 	for k, hold, mx, npl in args.hybrid:
-		lf = set_manager(os.path.join(ROOT, args.manager[0]), dev, args.stochastic, args.advice)
+		lf = set_manager(os.path.join(ROOT, args.manager[0]), dev, args.stochastic, args.advice, args.autoregressive)
 		tag = f"K={k} hold={hold}" + (f" 이관탈출>{mx}" if mx else "") + (f" 이관무배송>{npl}" if npl else "")
 		methods.append((f"혼합 ({tag})", straight_worker, hybrid_manager(lf, k, hold, mx, npl)))
 

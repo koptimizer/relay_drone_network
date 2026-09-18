@@ -39,7 +39,8 @@ class DisasterRelayDroneEnv:
 	             max_steps=1000, deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
-	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0):
+	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
+	             coverage_shaping=0.0):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
 		# 후보 n_cand개 중 n_far개는 제어 센터에서 가장 먼 미배송지로 채운다
@@ -72,6 +73,10 @@ class DisasterRelayDroneEnv:
 		# 대신 제약에 끌려가며 전진했고(막힘 드론-스텝 규칙 308 대 학습 1,345), 팀 보상에 그 비용이
 		# 없어 상위가 이를 문제로 인식하지 못했다.
 		self.blocked_penalty = blocked_penalty
+		# 잠재 기반 shaping: Φ = 제어 센터와 연결된 드론의 통신 반경 안에 있는 미배송지 비율.
+		# 중계를 세워 사슬을 늘리면 Φ가 즉시 오르므로 '남을 위한' 중계의 가치가 그 자리에서 보상된다.
+		# 잠재 차분 형태라 최적 정책을 바꾸지 않는다 (Ng et al. 1999).
+		self.coverage_shaping = coverage_shaping
 		# False면 26_09_04_15 이전처럼 목표 반경 안에 있는 매 스텝 도달 보너스를 준다.
 		# 회귀 원인 절제용 — 기본값은 목표당 1회(현행)다.
 		self.arrive_once = arrive_once
@@ -121,6 +126,7 @@ class DisasterRelayDroneEnv:
 		self.goal_reached = np.zeros(self.num_drones, dtype=bool)
 		self.relay_slot = np.full(self.num_drones, -1)  # 점유 중인 중계 슬롯 번호 (-1=중계 아님)
 		self.goal_age = np.zeros(self.num_drones, dtype=int)   # 현재 목표를 받은 뒤 지난 스텝
+		self._prev_cov = self._coverage() if self.coverage_shaping > 0.0 else 0.0
 		self.prev_goal_dist = self._goal_dists()
 
 		self.deliveries = np.zeros(self.num_drones, dtype=int)
@@ -304,6 +310,18 @@ class DisasterRelayDroneEnv:
 			front, k = nxt, k + 1
 		return h
 
+	def _coverage(self):
+		"""제어 센터와 연결된 드론의 반경 안에 있는 미배송지 비율."""
+		act = np.flatnonzero(self.dests_active)
+		if len(act) == 0:
+			return 1.0
+		con = self._bfs_connected(self.drones_pos)
+		pos = self.drones_pos[con]
+		if len(pos) == 0:
+			return 0.0
+		d = np.linalg.norm(self.dests_pos[act][:, None, :] - pos[None, :, :], axis=2)
+		return float((d.min(axis=1) <= self.comm_range).mean())
+
 	def _is_cut(self, i):
 		"""드론 i를 빼면 제어 센터와 끊기는 동료가 생기는가 (중계 기여 판정)."""
 		keep = [j for j in range(self.num_drones) if j != i]
@@ -467,6 +485,10 @@ class DisasterRelayDroneEnv:
 			team -= self.residual_penalty * self.num_drones * (self.dests_active.sum() / self.num_dests)
 		if self.blocked_penalty > 0.0:
 			team -= self.blocked_penalty * self._blocked_corr
+		if self.coverage_shaping > 0.0:
+			cov = self._coverage()
+			team += self.coverage_shaping * (cov - self._prev_cov)
+			self._prev_cov = cov
 
 		h = self._hop_depth()
 		self.hop2plus += int(np.sum(h >= 2))
