@@ -67,6 +67,8 @@ P.add_argument("--rule-obs", action="store_true", help="기하 규칙의 제안 
 P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘라낸 변위 비율 합에 곱해 팀 보상에서 뺀다")
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
+P.add_argument("--ent-frac", type=float, default=0.6,
+               help="엔트로피 목표 = ent_frac·log(유효 행동 수). 0.6이면 alpha가 2~3에 머물러 정책이 흐트러진다 (26-09-19 온도 프로브)")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -313,7 +315,7 @@ def main():
 				# 목표 엔트로피는 유효 행동 수에 비례한다. 고정값을 쓰면 마스크로 선택지가 줄 때
 				# 달성 불가능해져 alpha가 폭주한다 (실측: 0.1 -> 6e7, ep281).
 				n_valid = b["mask"].float().sum(-1).clamp_min(1.0)
-				target_ent = ((0.6 * torch.log(n_valid)) * dm).sum() / dm.sum()
+				target_ent = ((A.ent_frac * torch.log(n_valid)) * dm).sum() / dm.sum()
 				al = -(log_alpha * (target_ent - ent).detach())
 				al_opt.zero_grad(); al.backward(); al_opt.step()
 				log_alpha.data.clamp_(np.log(1e-3), np.log(10.0))   # 안전장치
