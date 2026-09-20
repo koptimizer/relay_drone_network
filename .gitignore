@@ -28,3 +28,8 @@ gurobi.log
 *.swp
 .DS_Store
 nohup.out
+
+# LaTeX 빌드 부산물
+docs/tex/*.log
+docs/tex/*.aux
+docs/tex/*.out
