@@ -40,7 +40,7 @@ class DisasterRelayDroneEnv:
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
 	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
-	             coverage_shaping=0.0):
+	             coverage_shaping=0.0, stall_switch_bonus=0.0):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
 		# 후보 n_cand개 중 n_far개는 제어 센터에서 가장 먼 미배송지로 채운다
@@ -77,6 +77,9 @@ class DisasterRelayDroneEnv:
 		# 중계를 세워 사슬을 늘리면 Φ가 즉시 오르므로 '남을 위한' 중계의 가치가 그 자리에서 보상된다.
 		# 잠재 차분 형태라 최적 정책을 바꾸지 않는다 (Ng et al. 1999).
 		self.coverage_shaping = coverage_shaping
+		# 정체(이동 실현율 EMA < 0.3, 목표 20스텝 이상 유지) 중인 드론이 목표를 바꾸면 팀 보상. 탈출을 정책이 배우게 한다
+		self.stall_switch_bonus = stall_switch_bonus
+		self._switch_bonus = 0.0
 		# False면 26_09_04_15 이전처럼 목표 반경 안에 있는 매 스텝 도달 보너스를 준다.
 		# 회귀 원인 절제용 — 기본값은 목표당 1회(현행)다.
 		self.arrive_once = arrive_once
@@ -127,6 +130,7 @@ class DisasterRelayDroneEnv:
 		self.relay_slot = np.full(self.num_drones, -1)  # 점유 중인 중계 슬롯 번호 (-1=중계 아님)
 		self.goal_age = np.zeros(self.num_drones, dtype=int)   # 현재 목표를 받은 뒤 지난 스텝
 		self._prev_cov = self._coverage() if self.coverage_shaping > 0.0 else 0.0
+		self._switch_bonus = 0.0
 		self.prev_goal_dist = self._goal_dists()
 
 		self.deliveries = np.zeros(self.num_drones, dtype=int)
@@ -244,6 +248,9 @@ class DisasterRelayDroneEnv:
 		# 상태가 지워져 목표 유지(commitment)를 판단할 수 없다.
 		changed = ((self.goal_kind != prev[0]) | (self.goal_dest != prev[1])
 		           | (self.relay_slot != prev[2]))
+		if self.stall_switch_bonus > 0.0:
+			stalled = (self.move_ema < 0.3) & (self.goal_age >= 20)
+			self._switch_bonus += self.stall_switch_bonus * float(np.sum(changed & stalled))
 		self.goal_reached[changed] = False
 		self.goal_age[changed] = 0
 		self.prev_goal_dist = self._goal_dists()
@@ -489,6 +496,9 @@ class DisasterRelayDroneEnv:
 			cov = self._coverage()
 			team += self.coverage_shaping * (cov - self._prev_cov)
 			self._prev_cov = cov
+		if self._switch_bonus != 0.0:
+			team += self._switch_bonus
+			self._switch_bonus = 0.0
 
 		h = self._hop_depth()
 		self.hop2plus += int(np.sum(h >= 2))
