@@ -79,11 +79,15 @@ def main():
 	         "$M$ & $|N|$ & $\\bar{T}$ & binaries & runs & best & spread & bound \\\\\n\\midrule")
 	for M in sorted(groups):
 		rs = groups[M]
-		ms = [r["milp_steps"] for r in rs]
-		best = min(rs, key=lambda r: r["milp_steps"])
-		spread = "---" if len(ms) == 1 else f"{min(ms):.0f}--{max(ms):.0f}"
-		L.append(f"{M} & {best['nodes']} & {best['horizon']} & {best.get('binaries', 0) or '---'} & "
-		         f"{len(rs)} & {best['milp_steps']:.0f} & {spread} & {best['bound_steps']:.0f} \\\\")
+		ok = [r for r in rs if r.get("milp_steps") is not None]
+		ms = [r["milp_steps"] for r in ok]
+		ref = min(ok, key=lambda r: r["milp_steps"]) if ok else rs[0]
+		runs = f"{len(ok)}/{len(rs)}"
+		bestv = f"{min(ms):.0f}" if ms else "none"
+		spread = "---" if len(ms) <= 1 else f"{min(ms):.0f}--{max(ms):.0f}"
+		bd = f"{ref['bound_steps']:.0f}" if ref.get("bound_steps") is not None else "---"
+		L.append(f"{M} & {ref['nodes']} & {ref['horizon']} & {ref.get('binaries', 0) or '---'} & "
+		         f"{runs} & {bestv} & {spread} & {bd} \\\\")
 	L.append("\\bottomrule\n\\end{tabular}\n\\end{table}\n")
 
 	L.append("\\begin{table}[h]\n\\centering\n\\caption{The best MILP plan replayed in the simulator, "
@@ -94,17 +98,49 @@ def main():
 	         "\\begin{tabular}{rrrrrr}\n\\toprule\n"
 	         "$M$ & MILP & replayed & cut steps & rule & $C_{\\mathrm{LB}}$ \\\\\n\\midrule")
 	for M in sorted(groups):
-		best = min(groups[M], key=lambda r: r["milp_steps"])
-		cc, dests = sample_instance(M, seed=best["seed"], num_drones=best["drones"])
-		lb, _ = lower_bound(cc, dests, best["drones"])
-		rp = best["replay"]
-		mk = rp["makespan"] if rp["makespan"] else "---"
-		L.append(f"{M} & {best['milp_steps']:.0f} & {mk} & {rp['blocked']} & "
-		         f"{best['rule_makespan']} & {lb:.0f} \\\\")
+		ok = [r for r in groups[M] if r.get("milp_steps") is not None]
+		ref = min(ok, key=lambda r: r["milp_steps"]) if ok else groups[M][0]
+		cc, dests = sample_instance(M, seed=ref["seed"], num_drones=ref["drones"])
+		lb, _ = lower_bound(cc, dests, ref["drones"])
+		rp = ref.get("replay")
+		mk = (rp["makespan"] if rp and rp["makespan"] else "---")
+		cut = rp["blocked"] if rp else "---"
+		mil = f"{ref['milp_steps']:.0f}" if ok else "none"
+		L.append(f"{M} & {mil} & {mk} & {cut} & {ref['rule_makespan']} & {lb:.0f} \\\\")
 	L.append("\\bottomrule\n\\end{tabular}\n\\end{table}\n")
 
-	big = max(groups)
-	best = min(groups[big], key=lambda r: r["milp_steps"])
+	# 서술: 편차와 실행 가능해 확보 실패를 수치로 말한다
+	nar = []
+	for M in sorted(groups):
+		rs = groups[M]
+		ok = [r for r in rs if r.get("milp_steps") is not None]
+		if len(rs) > 1:
+			nar.append(f"at $M = {M}$, {len(ok)} of {len(rs)} runs returned a feasible plan")
+		elif not ok:
+			nar.append(f"at $M = {M}$, the single run returned none")
+	spreads = [r["milp_steps"] for r in groups[min(groups)] if r.get("milp_steps") is not None]
+	wins = []
+	for M in sorted(groups):
+		ok = [r for r in groups[M] if r.get("milp_steps") is not None]
+		if not ok:
+			continue
+		b = min(ok, key=lambda r: r["milp_steps"])
+		if b["replay"] and b["replay"]["makespan"]:
+			wins.append(f"{b['replay']['makespan']} against {b['rule_makespan']}\\,s at $M = {M}$")
+	L.append("Two facts stand out. The incumbent is unstable: " +
+	         (f"{len(spreads)} runs of the same $M = {min(groups)}$ model with different solver seeds "
+	          f"returned makespans from {min(spreads):.0f} to {max(spreads):.0f}\\,s. " if len(spreads) > 1 else "") +
+	         "And the primal side degrades sharply with the number of destinations: " +
+	         ", ".join(nar) + ". The model is a reference for the smallest instances only. "
+	         "Where it does return a plan, the plan is good: replayed in the simulator it beats the "
+	         "geometric rule with deadlock escape (" + "; ".join(wins) + "), and it never loses "
+	         "connectivity. The cut-step counts in Table~\\ref{tab:replay} are the price of sampling "
+	         "connectivity at period boundaries: the simulator had to shorten that many commanded "
+	         "displacements, without ever disconnecting a drone.\n")
+
+	big = max(M for M in groups if any(r.get("milp_steps") is not None for r in groups[M]))
+	best = min([r for r in groups[big] if r.get("milp_steps") is not None],
+	           key=lambda r: r["milp_steps"])
 	npy = os.path.join(ROOT, "figures", f"{best['_tag']}_plan.npy")
 	fig_pdf = os.path.join(ROOT, "figures", "milp_plan_v5_26_09_21_03.pdf")
 	if os.path.exists(npy):

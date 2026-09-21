@@ -8,8 +8,9 @@ The instances come from the project's own generator (\texttt{sample\_instance}, 
 \toprule
 $M$ & $|N|$ & $\bar{T}$ & binaries & runs & best & spread & bound \\
 \midrule
-4 & 99 & 18 & 5913 & 5 & 140 & 140--170 & 81 \\
-6 & 98 & 23 & 7539 & 1 & 180 & --- & 100 \\
+4 & 99 & 18 & 5913 & 5/5 & 140 & 140--170 & 81 \\
+6 & 98 & 23 & 7539 & 1/2 & 180 & --- & 100 \\
+10 & 107 & 30 & 10941 & 0/2 & none & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -24,9 +25,12 @@ $M$ & MILP & replayed & cut steps & rule & $C_{\mathrm{LB}}$ \\
 \midrule
 4 & 140 & 138 & 22 & 145 & 50 \\
 6 & 180 & 176 & 59 & 185 & 53 \\
+10 & none & --- & --- & 244 & 57 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Two facts stand out. The incumbent is unstable: 5 runs of the same $M = 4$ model with different solver seeds returned makespans from 140 to 170\,s. And the primal side degrades sharply with the number of destinations: at $M = 4$, 5 of 5 runs returned a feasible plan, at $M = 6$, 1 of 2 runs returned a feasible plan, at $M = 10$, 0 of 2 runs returned a feasible plan. The model is a reference for the smallest instances only. Where it does return a plan, the plan is good: replayed in the simulator it beats the geometric rule with deadlock escape (138 against 145\,s at $M = 4$; 176 against 185\,s at $M = 6$), and it never loses connectivity. The cut-step counts in Table~\ref{tab:replay} are the price of sampling connectivity at period boundaries: the simulator had to shorten that many commanded displacements, without ever disconnecting a drone.
 
 \begin{figure}[h]
 \centering

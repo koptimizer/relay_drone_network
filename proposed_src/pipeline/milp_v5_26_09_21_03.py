@@ -277,7 +277,18 @@ def main():
 	print(f"[모형] 변수 {m.NumVars} (이진 {m.NumBinVars}) 제약 {m.NumConstrs} 생성 {time.time()-t0:.0f}초", flush=True)
 	m.optimize()
 	if m.SolCount == 0:
-		print("[결과] 실행 가능해를 찾지 못했다 (지평선을 늘려야 한다)", flush=True)
+		# 실패도 기록한다. 같은 모형이 시드에 따라 해를 찾기도 못 찾기도 해, 이 편차가 결과다
+		print("[결과] 실행 가능해를 찾지 못했다", flush=True)
+		res = dict(drones=A.num_drones, dests=A.num_dests, seed=A.seed, kappa=A.kappa,
+		           spacing=round(spacing, 1), nodes=len(pos), horizon=horizon,
+		           binaries=int(m.NumBinVars), variables=int(m.NumVars), rows=int(m.NumConstrs),
+		           status=int(m.Status), gap=None, milp_periods=None, milp_steps=None,
+		           bound_steps=round(float(m.ObjBound) * A.kappa, 1),
+		           solve_sec=round(float(m.Runtime), 1), rule_makespan=hs["makespan"],
+		           rule_delivered=hs["delivered"], replay=None)
+		os.makedirs(os.path.join(ROOT, "figures"), exist_ok=True)
+		with open(os.path.join(ROOT, "figures", f"{A.out}.json"), "w") as f:
+			json.dump(res, f, ensure_ascii=False, indent=1)
 		return
 	plan = extract_plan(v, pos, A.num_drones, horizon)
 	C = float(v["C"].X)

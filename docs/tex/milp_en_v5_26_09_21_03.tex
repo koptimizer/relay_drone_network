@@ -287,8 +287,20 @@ need for $M$ deliveries. Together with the model optimum it brackets the true op
 
 The model scales as $|N|\,|K|\,|T|$ binaries and $|E|\,|T|$ continuous variables, with
 $|N| = \Theta(h^{-2})$ and $|T| = \Theta(\kappa^{-1})$, and the resolution condition ties $h$
-to the chain slack. Instances with many drones or destinations are out of reach; the model is
-a reference point for small instances, not a solution method. It also inherits the two
+to the chain slack. The measured ceiling on this hardware is between six and ten destinations
+for three drones: with ten destinations the model has $10{,}587$ binaries and $99{,}091$ rows,
+and two runs of ninety and of forty minutes returned no feasible plan at all. The model is a
+reference point for small instances, not a solution method.
+
+A certified lower bound on the continuous optimum would need the opposite discretisation: treat
+each lattice cell as a region rather than a point and test movement and communication with the
+\emph{minimum} distance between cells, $\max\{0, \|p_i - p_j\| - r_i - r_j\}$ with
+$r_i = h/\sqrt{2}$ for a lattice cell and $r_i = 0$ for the control centre and the destinations.
+Every continuous trajectory then maps to a feasible cell schedule, so the relaxed optimum bounds
+the continuous one from below. Making that bound valid also requires relaxing the within-period
+timing of deliveries and of the service freeze, which the present model fixes to period
+boundaries; we leave the construction to future work rather than report a bound we cannot
+certify. It also inherits the two
 approximations of the previous section, and it assumes, as the simulator does, that service
 times are deterministic and that no drone fails.
 
