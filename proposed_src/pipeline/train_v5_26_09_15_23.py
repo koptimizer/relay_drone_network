@@ -69,6 +69,8 @@ P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(�
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
 P.add_argument("--stall-switch-bonus", type=float, default=0.0,
                help="정체 중(이동 실현율 EMA<0.3, 목표 20스텝 이상) 드론이 목표를 바꾸면 팀 보상 c. 무작위성 없이 탈출을 배우게 한다")
+P.add_argument("--ent-frac-final", type=float, default=-1.0,
+               help="0 이상이면 ent_frac에서 이 값까지 에피소드에 걸쳐 선형 감쇠 (탐색 -> 활용)")
 P.add_argument("--ent-frac", type=float, default=0.6,
                help="엔트로피 목표 = ent_frac·log(유효 행동 수). 0.6이면 alpha가 2~3에 머물러 정책이 흐트러진다 (26-09-19 온도 프로브)")
 P.add_argument("--rule-reg", type=float, default=0.0,
@@ -252,11 +254,14 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
 	for ep in range(start_ep, A.max_episodes + 1):
+		# 엔트로피 목표를 선형 감쇠시킨다. 초반에는 넓게 탐색하고 후반에는 정책을 날카롭게 한다
+		ent_frac = (A.ent_frac if A.ent_frac_final < 0 else
+		            A.ent_frac + (A.ent_frac_final - A.ent_frac) * min(1.0, (ep - 1) / max(1, A.max_episodes - 1)))
 		if A.random_config:
 			n, m, cc, d = sample_config(inst_rng, A.drones_range, A.dests_range, random_cc=True)
 			if (n, m) != (env.num_drones, env.num_dests):
@@ -317,7 +322,7 @@ def main():
 				# 목표 엔트로피는 유효 행동 수에 비례한다. 고정값을 쓰면 마스크로 선택지가 줄 때
 				# 달성 불가능해져 alpha가 폭주한다 (실측: 0.1 -> 6e7, ep281).
 				n_valid = b["mask"].float().sum(-1).clamp_min(1.0)
-				target_ent = ((A.ent_frac * torch.log(n_valid)) * dm).sum() / dm.sum()
+				target_ent = ((ent_frac * torch.log(n_valid)) * dm).sum() / dm.sum()
 				al = -(log_alpha * (target_ent - ent).detach())
 				al_opt.zero_grad(); al.backward(); al_opt.step()
 				log_alpha.data.clamp_(np.log(1e-3), np.log(10.0))   # 안전장치
