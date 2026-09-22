@@ -45,48 +45,58 @@ legacy/      더 이상 쓰지 않으나 보존하는 코드 (MILP 시도, v1 �
 ## 실행
 
 ```bash
-# 3단계 학습 — 집합 상위, 구성 무작위 (드론 3-8, 목적지 20-80, CC 무작위)
-python3 proposed_src/pipeline/train_v5_26_09_15_23.py --tag v5_s3 --random-config --seed 1
+# 학습 — 자기회귀 집합 상위, 드론 3-4·목적지 20-80·CC 무작위, 엔트로피 목표 0.6->0.25 (400ep 감쇠)
+python3 proposed_src/pipeline/train_v5_26_09_15_23.py --tag v5_d34 --random-config \
+    --drones-range 3 4 --autoregressive --rule-reg 2.0 --residual-penalty 0.1 \
+    --ent-frac 0.6 --ent-frac-final 0.25 --ent-anneal-episodes 400 \
+    --select makespan --holdout-steps 3000 --eval-n 80 --seed 1
 
 # 평가 — 학습에서 본 적 없는 구성으로 (예: 드론 5, 목적지 50, CC 무작위)
-python3 proposed_src/pipeline/eval_v5_26_09_15_23.py --n 40 --no-cluster-penalty --stochastic \
-    --straight-worker --max-steps 10000 --no-progress-limit 1000000000 --deadlock-limit 1000000000 \
-    --num-drones 5 --num-dests 50 --random-cc --manager weights/v5_26_09_15_23_s3b/best_manager.pth
+python3 proposed_src/pipeline/eval_v5_26_09_15_23.py --n 40 --arch set --autoregressive \
+    --no-cluster-penalty --stochastic --straight-worker --max-steps 10000 \
+    --no-progress-limit 1000000000 --deadlock-limit 1000000000 \
+    --num-drones 5 --num-dests 50 --random-cc --manager weights/v5_26_09_22_05_D34a/best_manager.pth
 
-# 혼합 상위 평가 (규칙 + 학습 교착 탈출, 무배송 300 이관)
-python3 proposed_src/pipeline/eval_v5_26_09_15_23.py --n 60 --reps 2 --no-cluster-penalty --stochastic \
-    --straight-worker --max-steps 10000 --no-progress-limit 1000000000 --deadlock-limit 1000000000 \
-    --manager weights/v5_26_09_15_23_s3b/best_manager.pth --hybrid 60 100 0 300
+# MILP 참조 모형 (작은 인스턴스, Gurobi 필요. 수식은 docs/tex/milp_en_v5_26_09_21_03.pdf)
+python3 proposed_src/pipeline/milp_v5_26_09_21_03.py --num-drones 3 --num-dests 6 \
+    --kappa 10 --time-limit 1800 --norel 150
 
 # 시각화 (10 에피소드 GIF)
-python3 proposed_src/util/viz_single_v5_26_09_16_10.py --policy hybrid --arch set --straight \
-    --manager weights/v5_26_09_15_23_s3b/best_manager.pth --episodes 10
+python3 proposed_src/util/viz_single_v5_26_09_16_10.py --policy learned --arch set --straight \
+    --manager weights/v5_26_09_22_05_D34a/best_manager.pth --episodes 10
 ```
 
-## 현재 결과 (v5.1)
+## 현재 결과 (v5.3)
 
-집합 기반 상위 정책(드론 3-8대·목적지 20-80곳·CC 무작위로 학습, 추가 학습 없음)을 두 방식으로 쓴다.
-**학습 단독**은 상위 전체를 학습 정책이 맡고, **혼합**은 평소엔 기하 중계 규칙이 배분하다가 규칙이
-막히면(부분 교착 60스텝) 학습 정책이 100스텝 탈출을 맡고, 무배송 300스텝이면 영구 이관한다.
-값은 완주율 / 완주 시 makespan (여유 예산, 샘플링 추론).
+제안 방법은 **학습 단독**이다. 집합 기반 자기회귀 상위 정책이 20스텝마다 드론별 목표(배송지·복귀·중계
+슬롯)를 배분하고, 하위는 직진 제어다. 드론 3-4대·목적지 20-80곳·CC 무작위로 한 번 학습한 가중치를
+추가 학습 없이 모든 구성에 쓴다. 값은 완주율 / 완주 시 makespan (여유 예산 10,000스텝, 샘플링 추론).
 
-| 방법 | 4/50 고정CC (120롤) | 3/30 CC무작위 (40) | 5/50 CC무작위 (40) | 6/80 CC무작위 (40) |
-|---|---|---|---|---|
-| 탐욕 | 0% / — | 0% / — | 25% / 535 | 50% / 619 |
-| 기하 중계 규칙 (학습 없음) | 57.5% / **827** | 95.0% / **582** | 90.0% / **599** | 97.5% / **803** |
-| 학습 단독 | 100% / 1,480 | 100% / 1,094 | 100% / 820 | 100% / 901 |
-| **혼합 (규칙 + 학습 교착 탈출)** | **100%** / **958** | **100%** / 629 | **100%** / 632 | **100%** / 854.0 |
+| 방법 | 4/50 고정CC (120롤) | 3/30 CC무작위 (40) | 5/50 CC무작위 (40) |
+|---|---|---|---|
+| 탐욕 (중계 없음) | 0% / — | — | — |
+| 기하 중계 규칙 (학습 없음) | 56.7% / 816 | 95.0% / **583** | 87.5% / 590 |
+| 기하 중계 규칙 + 교착 탈출 | 98.3% / 914 | 100% / **634** | 95.0% / 691 |
+| **학습 단독 (D34a)** | 99.2% / **899** | 100% / 740 | **100%** / **553** |
+| 학습 단독 (D34b, 완주 우선) | **100%** / 955 | 100% / 751 | **100%** / 578 |
 
-**혼합이 완주 100%를 유지하면서 makespan을 학습 단독 대비 23-43% 줄였다.** 규칙 대비 2-16%
-느리지만 규칙은 드론이 빠듯한 구성에서 57-95%만 완주한다. 최장 교착은 14-54로 규칙의 수십분의 1이다.
+**학습 단독이 표준 구성과 드론 5대 구성에서 규칙+탈출을 앞선다.** 5/50에서는 20% 빠르면서 완주도
+40/40 대 38/40이다. 표준 구성은 899 대 914로 근소하고, 반복 측정 편차가 30스텝 수준이라 동률로
+읽는 것이 정확하다. 남은 약점은 드론 3대 구성으로 17% 뒤진다.
 
-학습 정책 자체를 빠르게 만들려는 시도(완주 보상·gamma 0.999 미세조정, 결정 주기 연장)는 모두
-실패했다. 학습 정책은 배송당 이동거리가 규칙보다 짧고 제약에 덜 막히지만 복귀를 2.4배 자주
-고르는 보수적 정책이며, 그 성질은 교착 탈출에 유리하다. 역할을 나누는 것이 재학습보다 확실했다.
+베이스라인 주석: 원래 기하 중계 규칙은 결정론적이라 교착에서 빠져나오지 못해 완주가 57-95%에
+그친다. 정체 60스텝마다 선두를 교대하는 탈출 규칙을 더해 완주 98-100%로 끌어올린 것이 정직한
+비교 대상이며, 위 표의 두 번째 규칙 행이 그것이다.
+
+무엇이 통했는가: **SAC의 엔트로피 목표가 이 문제의 성능 상한을 정하고 있었다.** 관행적으로 둔
+0.6·log n은 정책을 흐트러뜨려 여러 스텝의 일관된 계획을 막는 동시에 교착 탈출의 유일한 원천이었다.
+0.6에서 0.25로 400 에피소드에 걸쳐 낮추자 표준 makespan이 1,418 -> 899로 내려갔다. 여기에 드론이
+빠듯한 구성만 학습시키자 드론이 넉넉한 구성에서도 더 좋아졌다.
+
+작은 인스턴스에서는 시공간 격자 MILP 참조 모형과도 비교한다(드론 3·목적지 4-6에서 최적 계획을
+찾아 시뮬레이터로 재생 검증). 모형과 수식은 [`docs/tex/milp_en_v5_26_09_21_03.pdf`](docs/tex/milp_en_v5_26_09_21_03.pdf)에 있다.
 
 이력과 규명 과정은 [`docs/VERSIONS.md`](docs/VERSIONS.md)를 참조한다.
-
-![v5.1 혼합 상위](figures/v5_hybrid_10ep_26_09_17_11.gif)
 
 ## 저장소에 포함하지 않은 것
 
