@@ -48,9 +48,15 @@ def sample_instance(num_dests=50, seed=None, num_drones=4, comm_range=300.0, bet
 	return cc, dests
 
 
-def sample_config(rng, drones=(3, 8), dests=(20, 80), random_cc=True):
+def sample_config(rng, drones=(3, 8), dests=(20, 80), random_cc=True, drone_weights=None):
 	"""학습용으로 드론 수·목적지 수를 뽑고, 그에 맞는 인스턴스를 만든다."""
-	n = int(rng.integers(drones[0], drones[1] + 1))
+	if drone_weights:
+		# 드론 수별 표본 비중. 편대가 꼭 필요한 빈곤 구성을 더 자주 보게 한다 (사이클 10)
+		cand = np.arange(drones[0], drones[1] + 1)
+		w = np.asarray(drone_weights, dtype=float)[:len(cand)]
+		n = int(rng.choice(cand, p=w / w.sum()))
+	else:
+		n = int(rng.integers(drones[0], drones[1] + 1))
 	m = int(rng.integers(dests[0], dests[1] + 1))
 	seed = int(rng.integers(0, 2 ** 31 - 1))
 	cc, d = sample_instance(m, seed=seed, num_drones=n, cc_pos="random" if random_cc else None)

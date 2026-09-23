@@ -49,6 +49,8 @@ P.add_argument("--num-dests", type=int, default=50)
 P.add_argument("--random-config", action="store_true",
                help="드론 3-8대, 목적지 20-80곳, 제어 센터 위치를 에피소드마다 무작위화 (3단계)")
 P.add_argument("--drones-range", type=int, nargs=2, default=[3, 8])
+P.add_argument("--drone-weights", type=float, nargs="*", default=None,
+               help="드론 수별 표본 비중 (범위 길이와 같게). 예: --drones-range 3 4 --drone-weights 3 1 이면 3대를 75%로 본다")
 P.add_argument("--dests-range", type=int, nargs=2, default=[20, 80])
 P.add_argument("--fixed-instance", action="store_true", help="고정 지도 한 장으로 학습 (절제용)")
 P.add_argument("--n-far", type=int, default=0, help="후보 중 먼 곳 수. 2로 두면 v4 상위가 -2.1 (기본 0)")
@@ -260,7 +262,7 @@ def main():
 		cw.writeheader(); ew.writeheader()
 
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
-	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
+	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
 	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
@@ -272,7 +274,8 @@ def main():
 		ent_frac = (A.ent_frac if A.ent_frac_final < 0 else
 		            A.ent_frac + (A.ent_frac_final - A.ent_frac) * min(1.0, (ep - 1) / max(1, span - 1)))
 		if A.random_config:
-			n, m, cc, d = sample_config(inst_rng, A.drones_range, A.dests_range, random_cc=True)
+			n, m, cc, d = sample_config(inst_rng, A.drones_range, A.dests_range, random_cc=True,
+			                            drone_weights=A.drone_weights)
 			if (n, m) != (env.num_drones, env.num_dests):
 				env = make_env(n, m)
 			env.cc_pos, env.dests_pos = cc, d
