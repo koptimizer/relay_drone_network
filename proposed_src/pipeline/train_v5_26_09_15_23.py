@@ -80,6 +80,10 @@ P.add_argument("--ent-frac", type=float, default=0.6,
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
+P.add_argument("--speed-weight", type=float, default=10.0,
+               help="makespan 선택 점수의 속도 항 가중치. 기본 10이면 완주 1%p(1점)가 속도 300스텝과 "
+                    "맞먹어 빠른 체크포인트가 완주 1~2곳 때문에 버려진다 (사이클 10에서 750 에피소드 낭비). "
+                    "40으로 두면 완주 1%p가 75스텝에 대응한다")
 P.add_argument("--select", choices=["delivered", "makespan"], default="delivered",
                help="최고 체크포인트 판정 기준. makespan이면 배송 + 5*(1 - 평균스텝/상한)")
 A = P.parse_args()
@@ -209,7 +213,7 @@ def holdout(actor, dev):
 	       "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st])), "steps": steps}
 	# 선택 점수: 배송을 우선하되 같은 배송이면 빨리 끝낸 쪽을 고른다
 	# makespan 선택: 완주율을 최우선으로, 같으면 평균 소요 스텝이 짧은 쪽 (상한 3000이면 완주 시각과 같다)
-	out["score"] = (100.0 * out["full"] + (A.holdout_steps - steps) / A.holdout_steps * 10.0
+	out["score"] = (100.0 * out["full"] + (A.holdout_steps - steps) / A.holdout_steps * A.speed_weight
 	                if A.select == "makespan" else out["delivered"])
 	return out
 
@@ -258,7 +262,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
