@@ -70,7 +70,7 @@ DRONE
 * 깃헙 push시 "버전넘버 + YY-MM-DD-HH"형태로 태그를 달고 *10단어 이하의 간단한 설명*을 포함할 것
 * 연구 관련 소스 파일은 환경(proposed_src/env), 에이전트 네트워크(proposed_src/model), 학습 루프(proposed_src/pipeline), 로깅 및 시각화 폴더(proposed_src/util)를 만들어서 각 분류하고, 접미로 나와 합의된 버전넘버 + 날짜시간(YY_MM_DD_HH)을 적을 것.
 * 학습 weight나 결과 리포트 파일, docs, figure 파일들도 모두 나와 합의된 버전넘버 + 날짜시간(YY_MM_DD_HH)을 접미로 붙일 것.
-* 현재 합의 버전: v5.3 (26_09_23_00) — 버전 차이는 docs/VERSIONS.md 참조
+* 현재 합의 버전: v5.4 (26_09_24_15) — 버전 차이는 docs/VERSIONS.md 참조
 
 ## 6. 검증 과정
 * **정량적 평가 지표:** 에피소드 당 총 보상(Reward/Episode), RewardNorm Mean, Actor/Critic Loss 안정성, GradNorm 등의 지표를 실시간 트래킹한다.
