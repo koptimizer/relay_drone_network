@@ -1,0 +1,6 @@
+episode,n_drones,n_dests,steps,team_reward,delivered,makespan,reloads,hop2plus,max_reach,stall_ratio,max_stall_run,term_reason,relay_frac,wall_sec
+1,4,57,1000,516.66,48,,8,0.4703,732.7,0.3428,35,step_limit,0.1422,4.7
+2,3,50,1000,437.944,40,,7,0.4497,771.5,0.2389,56,step_limit,0.1685,8.7
+3,4,72,1000,564.6,54,,9,0.4698,754.9,0.3291,57,step_limit,0.1412,15.0
+4,3,46,1000,439.598,39,,7,0.358,621.8,0.108,20,step_limit,0.1477,20.0
+5,3,58,1000,570.071,50,,8,0.5343,793.7,0.2164,77,step_limit,0.3446,71.4

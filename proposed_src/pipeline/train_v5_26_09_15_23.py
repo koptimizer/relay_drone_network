@@ -50,7 +50,7 @@ P.add_argument("--random-config", action="store_true",
                help="드론 3-8대, 목적지 20-80곳, 제어 센터 위치를 에피소드마다 무작위화 (3단계)")
 P.add_argument("--drones-range", type=int, nargs=2, default=[3, 8])
 P.add_argument("--drone-weights", type=float, nargs="*", default=None,
-               help="드론 수별 표본 비중 (범위 길이와 같게). 예: --drones-range 3 4 --drone-weights 3 1 이면 3대를 75%로 본다")
+               help="드론 수별 표본 비중 (범위 길이와 같게). 예: --drones-range 3 4 --drone-weights 3 1 이면 3대를 75%%로 본다")
 P.add_argument("--dests-range", type=int, nargs=2, default=[20, 80])
 P.add_argument("--fixed-instance", action="store_true", help="고정 지도 한 장으로 학습 (절제용)")
 P.add_argument("--n-far", type=int, default=0, help="후보 중 먼 곳 수. 2로 두면 v4 상위가 -2.1 (기본 0)")
@@ -69,6 +69,8 @@ P.add_argument("--rule-obs", action="store_true", help="기하 규칙의 제안 
 P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘라낸 변위 비율 합에 곱해 팀 보상에서 뺀다")
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
+P.add_argument("--relay-reg", type=float, default=1.0,
+               help="규칙 정규화에서 규칙이 중계를 지시한 드론에 곱하는 가중치. 1.0이면 기존과 동일")
 P.add_argument("--stall-switch-bonus", type=float, default=0.0,
                help="정체 중(이동 실현율 EMA<0.3, 목표 20스텝 이상) 드론이 목표를 바꾸면 팀 보상 c. 무작위성 없이 탈출을 배우게 한다")
 P.add_argument("--ent-frac-final", type=float, default=-1.0,
@@ -83,9 +85,9 @@ P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
 P.add_argument("--speed-weight", type=float, default=10.0,
-               help="makespan 선택 점수의 속도 항 가중치. 기본 10이면 완주 1%p(1점)가 속도 300스텝과 "
+               help="makespan 선택 점수의 속도 항 가중치. 기본 10이면 완주 1%%p(1점)가 속도 300스텝과 "
                     "맞먹어 빠른 체크포인트가 완주 1~2곳 때문에 버려진다 (사이클 10에서 750 에피소드 낭비). "
-                    "40으로 두면 완주 1%p가 75스텝에 대응한다")
+                    "40으로 두면 완주 1%%p가 75스텝에 대응한다")
 P.add_argument("--select", choices=["delivered", "makespan"], default="delivered",
                help="최고 체크포인트 판정 기준. makespan이면 배송 + 5*(1 - 평균스텝/상한)")
 A = P.parse_args()
@@ -264,7 +266,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -328,6 +330,10 @@ def main():
 					# 규칙 행동이 마스크 안에 있는 드론만 정규화한다
 					ok = dm * b["mask"].gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1).float()
 					nll = -lp.gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1)
+					# 중계 지시에 더 큰 가중치를 줄 수 있다 — 드론이 부족한 구성에서 정책이
+					# 중계를 규칙의 절반만 쓰고(0.78 대 1.39) 투영에 막혀 시간을 잃는다 (26-09-27 측정)
+					if A.relay_reg != 1.0:
+						ok = ok * torch.where(b["ra"] == b["mask"].shape[-1] - 1, A.relay_reg, 1.0)
 					la = la + A.rule_reg * (nll * ok).sum() / ok.sum().clamp_min(1.0)
 				a_opt.zero_grad(); la.backward(); nn.utils.clip_grad_norm_(actor.parameters(), 1.0); a_opt.step()
 				ent = (-(p * lp).sum(-1) * dm).sum() / dm.sum()

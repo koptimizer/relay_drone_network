@@ -1,0 +1,15 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+집합 상위 학습 | 반경 300 상한 1000 무배송 500 gamma 0.997 구성=무작위 드론[3, 4] 목적지[20, 80] CC무작위 인스턴스=무작위 목표유지=off 완주보상=0.0 잔여페널티=0.1 규칙관측=False 규칙정규화=2.0/중계가중치=3.0 막힘페널티=0.0 도달권shaping=0.0 정체전환보상=0.0 엔트로피비=0.6->0.25@400 자기회귀=True 홀드아웃상한=3000 선택=makespan/속도가중치=40.0
+/home/kopt/drone/proposed_src/pipeline/train_v5_26_09_15_23.py:360: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+  writer.add_scalar("train/alpha", float(log_alpha.exp()), ep)
+Ep 1 | 드론4 목적지43 | 1000스텝 | 배송 38/43 | 재적재  6 | 중계율 0.08 | alpha 0.100 | step_limit
+Ep 2 | 드론3 목적지74 | 1000스텝 | 배송 51/74 | 재적재  9 | 중계율 0.06 | alpha 0.100 | step_limit
+Ep 3 | 드론4 목적지43 | 1000스텝 | 배송 39/43 | 재적재  7 | 중계율 0.09 | alpha 0.100 | step_limit
+Ep 4 | 드론3 목적지23 | 1000스텝 | 배송 20/23 | 재적재  3 | 중계율 0.11 | alpha 0.100 | step_limit
+Ep 5 | 드론3 목적지31 | 1000스텝 | 배송 29/31 | 재적재  4 | 중계율 0.20 | alpha 0.099 | step_limit
+Ep 6 | 드론3 목적지68 | 1000스텝 | 배송 59/68 | 재적재 10 | 중계율 0.27 | alpha 0.110 | step_limit
+Ep 7 | 드론4 목적지44 |  739스텝 | 배송 44/44 | 재적재  7 | 중계율 0.37 | alpha 0.118 | complete
