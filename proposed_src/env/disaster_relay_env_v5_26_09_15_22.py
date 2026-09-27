@@ -40,6 +40,7 @@ class DisasterRelayDroneEnv:
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
 	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
+	             relay_credit=0.0,
 	             coverage_shaping=0.0, stall_switch_bonus=0.0):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
@@ -73,6 +74,7 @@ class DisasterRelayDroneEnv:
 		# 대신 제약에 끌려가며 전진했고(막힘 드론-스텝 규칙 308 대 학습 1,345), 팀 보상에 그 비용이
 		# 없어 상위가 이를 문제로 인식하지 못했다.
 		self.blocked_penalty = blocked_penalty
+		self.relay_credit = relay_credit      # 배송 1건마다 그 통신 경로 위의 중계 드론에 주는 개별 보상
 		# 잠재 기반 shaping: Φ = 제어 센터와 연결된 드론의 통신 반경 안에 있는 미배송지 비율.
 		# 중계를 세워 사슬을 늘리면 Φ가 즉시 오르므로 '남을 위한' 중계의 가치가 그 자리에서 보상된다.
 		# 잠재 차분 형태라 최적 정책을 바꾸지 않는다 (Ng et al. 1999).
@@ -136,6 +138,7 @@ class DisasterRelayDroneEnv:
 		self.deliveries = np.zeros(self.num_drones, dtype=int)
 		self.reloads = np.zeros(self.num_drones, dtype=int)
 		self.blocked = np.zeros(self.num_drones, dtype=int)
+		self.drone_bonus = np.zeros(self.num_drones)   # 이번 스텝의 드론별 개별 보상 (중계 크레딧)
 		# 교착 추적: 명령 대비 실제로 실현된 변위 비율의 EMA. 1이면 자유, 0이면 완전 정지.
 		self.move_ema = np.ones(self.num_drones)
 		self.team_move_ema = 1.0
@@ -317,6 +320,29 @@ class DisasterRelayDroneEnv:
 			front, k = nxt, k + 1
 		return h
 
+	def _relay_path(self, i):
+		"""드론 i에서 제어 센터까지 최단 통신 경로 위의 중간 드론 목록 (i와 센터는 제외)."""
+		n = self.num_drones
+		d = np.linalg.norm(self.drones_pos[:, None, :] - self.drones_pos[None, :, :], axis=2)
+		prev = np.full(n, -2)
+		front = list(np.flatnonzero(np.linalg.norm(self.drones_pos - self.cc_pos, axis=1) <= self.comm_range))
+		for j in front:
+			prev[j] = -1
+		while front:
+			nxt = []
+			for j in front:
+				for k in np.flatnonzero((prev == -2) & (d[j] <= self.comm_range)):
+					prev[k] = j
+					nxt.append(int(k))
+			front = nxt
+		if prev[i] == -2:
+			return []
+		path, j = [], int(prev[i])
+		while j >= 0:
+			path.append(j)
+			j = int(prev[j])
+		return path
+
 	def _coverage(self):
 		"""제어 센터와 연결된 드론의 반경 안에 있는 미배송지 비율."""
 		act = np.flatnonzero(self.dests_active)
@@ -384,6 +410,7 @@ class DisasterRelayDroneEnv:
 		self.goal_age += 1
 		w_rew = np.zeros(self.num_drones)   # 하위: 목표 진척
 		team = 0.0                          # 상위: 팀 목적함수
+		self.drone_bonus[:] = 0.0           # 드론별 개별 보상은 매 스텝 새로 쌓는다
 
 		# 이동 제안 — 하역/재적재 중이면 정지
 		delta = np.zeros((self.num_drones, 2))
@@ -472,6 +499,10 @@ class DisasterRelayDroneEnv:
 						self.t_last_deliv = self.current_step
 						self.no_progress = 0
 						team += 10.0
+						if self.relay_credit > 0.0:
+							# 이 배송을 가능하게 한 중계 드론에게만 주는 개별 크레딧
+							for j in self._relay_path(i):
+								self.drone_bonus[j] += self.relay_credit
 						break
 			elif np.linalg.norm(self.drones_pos[i] - self.cc_pos) <= self.interaction_radius:
 				self.drones_capacity[i] = self.max_capacity

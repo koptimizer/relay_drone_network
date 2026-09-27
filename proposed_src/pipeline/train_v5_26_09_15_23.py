@@ -69,6 +69,10 @@ P.add_argument("--rule-obs", action="store_true", help="기하 규칙의 제안 
 P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘라낸 변위 비율 합에 곱해 팀 보상에서 뺀다")
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
+P.add_argument("--relay-credit", type=float, default=0.0,
+               help="배송 1건마다 그 통신 경로 위의 중계 드론에게 주는 개별 보상 (드론별 보상과 함께 쓴다)")
+P.add_argument("--per-drone-reward", action="store_true",
+               help="critic을 팀 보상 평균이 아니라 드론별 보상으로 학습한다 (개별 크레딧 식별)")
 P.add_argument("--holdout-mix", action="store_true",
                help="홀드아웃 절반을 드론 3·목적지 30·CC 무작위로 바꾼다 (선택 점수는 두 구성 평균)")
 P.add_argument("--relay-reg", type=float, default=1.0,
@@ -107,6 +111,7 @@ def make_env(n, m):
 	                             n_far=A.n_far, commit_max=A.commit_max,
 	                             complete_bonus=A.complete_bonus, residual_penalty=A.residual_penalty,
 	                             rule_obs=A.rule_obs, blocked_penalty=A.blocked_penalty,
+	                             relay_credit=A.relay_credit,
 	                             coverage_shaping=A.coverage_shaping, stall_switch_bonus=A.stall_switch_bonus)
 
 
@@ -149,8 +154,9 @@ class OptionBuffer:
 		self.ra = np.zeros((cap, N_MAX), np.int64)     # 옵션 시작 시 규칙이 제안한 행동
 		self.mask, self.mask2 = b(cap, N_MAX, K), b(cap, N_MAX, K)
 		self.r, self.disc, self.d = z(cap, 1), z(cap, 1), z(cap, 1)
+		self.rv = z(cap, N_MAX)                        # 드론별 보상 (팀 + 개별 중계 크레딧)
 
-	def push(self, o, ma, mask, r, o2, mask2, disc, d, ra=None):
+	def push(self, o, ma, mask, r, o2, mask2, disc, d, ra=None, rv=None):
 		i = self.ptr
 		for k in self.o:
 			self.o[k][i], self.o2[k][i] = o[k], o2[k]
@@ -159,6 +165,8 @@ class OptionBuffer:
 			self.ra[i, :len(ra)] = ra
 		self.mask[i], self.mask2[i] = mask, mask2
 		self.r[i], self.disc[i], self.d[i] = r, disc, d
+		if rv is not None:
+			self.rv[i, :len(rv)] = rv
 		self.ptr = (self.ptr + 1) % self.cap
 		self.size = min(self.size + 1, self.cap)
 
@@ -166,7 +174,8 @@ class OptionBuffer:
 		idx = np.random.randint(0, self.size, bs)
 		t = lambda x: torch.as_tensor(x[idx], device=dev)
 		return dict(o={k: t(v) for k, v in self.o.items()}, o2={k: t(v) for k, v in self.o2.items()},
-		            ma=t(self.ma), ra=t(self.ra), mask=t(self.mask), mask2=t(self.mask2), r=t(self.r), disc=t(self.disc), d=t(self.d))
+		            ma=t(self.ma), ra=t(self.ra), mask=t(self.mask), mask2=t(self.mask2), r=t(self.r),
+		            rv=t(self.rv), disc=t(self.disc), d=t(self.d))
 
 	def __len__(self):
 		return self.size
@@ -289,7 +298,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -312,21 +321,24 @@ def main():
 		r0 = act_rule(env)
 		env.set_goals(a)
 		done, t, ep_tr, opt_r, opt_k, relay_n, dec_n = False, 0, 0.0, 0.0, 0, 0, 0
+		opt_rv = np.zeros(env.num_drones)
 		while not done and t < A.max_steps:
 			_obs, _wr, tr, done = env.step(straight_worker(env))
 			t += 1
 			ep_tr += tr
 			opt_r += (GAMMA ** opt_k) * tr
+			opt_rv += (GAMMA ** opt_k) * (tr + env.drone_bonus)
 			opt_k += 1
 			hl_now = (t % A.hl_every == 0) or bool(env.goal_invalid().any())
 			if hl_now or done:
 				a2, o2, m2 = act(env, actor, dev)
 				r2 = act_rule(env)
-				buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0)
+				buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0, rv=opt_rv)
 				relay_n += int((a == 6).sum()); dec_n += len(a)
 				if not done:
 					env.set_goals(a2)
 					a, o0, m0, r0, opt_r, opt_k = a2, o2, m2, r2, 0.0, 0
+					opt_rv = np.zeros(env.num_drones)
 
 			if len(buf) > WARMUP and t % A.update_every == 0:
 				b = buf.sample(BATCH, dev)
@@ -336,12 +348,21 @@ def main():
 					_, p2, lp2 = actor(b["o2"], b["mask2"])
 					nq1, nq2 = mq_t(b["o2"], b["o2"]["drone_mask"])
 					v2 = (p2 * (torch.min(nq1, nq2) - alpha * lp2)).sum(-1)          # (B,N)
-					v2 = (v2 * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
-					y = b["r"] + b["disc"] * (1 - b["d"]) * v2
+					if not A.per_drone_reward:
+						v2 = (v2 * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
+						y = b["r"] + b["disc"] * (1 - b["d"]) * v2
+					else:
+						# 드론별 회귀 목표: 각 Q 행이 자기 보상에 묶여 분해가 식별된다
+						y = b["rv"] + b["disc"] * (1 - b["d"]) * v2
 				q1, q2 = mq(b["o"], b["o"]["drone_mask"])
-				qa1 = (q1.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1) * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
-				qa2 = (q2.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1) * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
-				lq = nn.MSELoss()(qa1, y) + nn.MSELoss()(qa2, y)
+				if not A.per_drone_reward:
+					qa1 = (q1.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1) * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
+					qa2 = (q2.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1) * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
+					lq = nn.MSELoss()(qa1, y) + nn.MSELoss()(qa2, y)
+				else:
+					qa1 = q1.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1)
+					qa2 = q2.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1)
+					lq = ((((qa1 - y) ** 2 + (qa2 - y) ** 2) * dm).sum() / dm.sum())
 				q_opt.zero_grad(); lq.backward(); nn.utils.clip_grad_norm_(mq.parameters(), 1.0); q_opt.step()
 
 				_, p, lp = actor(b["o"], b["mask"], given=b["ma"])
