@@ -1,0 +1,25 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  개입 없음: 완주 120/120 개입 0회
+  정체>60 온도2: 완주 120/120 개입 75회
+  정체>60 온도5: 완주 120/120 개입 13회
+  정체>120 온도2: 완주 120/120 개입 15회
+  정체>120 온도5: 완주 120/120 개입 3회
+  규칙+탈출: 완주 119/120
+
+설정                      완주      중앙값      절단평균      평균      최대    2000초과     개입
+개입 없음              120/120      866       887     914    2360         1      0
+정체>60 온도2          120/120      876       894     912    2028         1     75
+                  개입 없음 대비 쌍별 중앙 +6 승 60 패 60 p=0.9155
+정체>60 온도5          120/120      883       892     899    1429         0     13
+                  개입 없음 대비 쌍별 중앙 +12 승 54 패 65 p=0.9979
+정체>120 온도2         120/120      892       907     919    1537         0     15
+                  개입 없음 대비 쌍별 중앙 +42 승 53 패 67 p=0.3235
+정체>120 온도5         120/120      880       874     890    1623         0      3
+                  개입 없음 대비 쌍별 중앙 -16 승 63 패 57 p=0.5859
+규칙+탈출              119/120      870       873     897    2014         1      0
+                  개입 없음 대비 쌍별 중앙 -17 승 64 패 55 p=0.4474
+
+저장: /home/kopt/drone/figures/stall_temp_v5_26_09_27_09.csv

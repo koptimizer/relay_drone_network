@@ -1,0 +1,13 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  개입 없음: 완주 600/600 개입 0회
+  정체>120 온도5: 완주 600/600 개입 96회
+
+설정                      완주      중앙값      절단평균      평균      최대    2000초과     개입
+개입 없음              600/600      886       898     916    2361         2      0
+정체>120 온도5         600/600      878       894     905    1541         0     96
+                  개입 없음 대비 쌍별 중앙 -7 승 309 패 287 p=0.4279
+
+저장: /home/kopt/drone/figures/stall_tail_v5_26_09_27_10.csv
