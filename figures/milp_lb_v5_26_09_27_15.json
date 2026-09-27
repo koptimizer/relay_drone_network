@@ -1,0 +1,16 @@
+{
+ "seed": 901,
+ "num_drones": 3,
+ "num_dests": 4,
+ "spacing": 98.20927516479826,
+ "kappa": 10,
+ "horizon": 15,
+ "cells": 301,
+ "rule_makespan": 145,
+ "status": 9,
+ "runtime": 240.03187489509583,
+ "obj_bound": 3.0006013220056156,
+ "lb_period": 3,
+ "lb_steps": 30,
+ "relaxed_obj": 15.00014
+}

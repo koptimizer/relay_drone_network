@@ -292,16 +292,37 @@ for three drones: with ten destinations the model has $10{,}587$ binaries and $9
 and two runs of ninety and of forty minutes returned no feasible plan at all. The model is a
 reference point for small instances, not a solution method.
 
-A certified lower bound on the continuous optimum would need the opposite discretisation: treat
-each lattice cell as a region rather than a point and test movement and communication with the
+\subsection*{A certified lower bound: attempted and abandoned}
+
+A certified lower bound on the continuous optimum needs the opposite discretisation: treat each
+lattice cell as a region rather than a point and test movement and communication with the
 \emph{minimum} distance between cells, $\max\{0, \|p_i - p_j\| - r_i - r_j\}$ with
 $r_i = h/\sqrt{2}$ for a lattice cell and $r_i = 0$ for the control centre and the destinations.
-Every continuous trajectory then maps to a feasible cell schedule, so the relaxed optimum bounds
-the continuous one from below. Making that bound valid also requires relaxing the within-period
-timing of deliveries and of the service freeze, which the present model fixes to period
-boundaries; we leave the construction to future work rather than report a bound we cannot
-certify. It also inherits the two
-approximations of the previous section, and it assumes, as the simulator does, that service
-times are deterministic and that no drone fails.
+Every continuous trajectory then maps to a feasible cell schedule, so the relaxed optimum, and
+with it any dual bound the solver reports, bounds the continuous optimum from below. We built
+this relaxation: service is relaxed from a two-boundary freeze to occupancy of the destination's
+cell at a single boundary (a half-open interval of length $\Delta$ contains exactly one boundary),
+at most one service or reload per drone per boundary, earliest-arrival fixings
+$y_{i k t} = 0$ for $t < \lceil \underline{d}(i_0,i)/v\Delta \rceil$, pairwise separation of two
+services by the same drone, and the cumulative makespan linearisation, which is the stronger
+formulation when only the bound matters.
+
+The result is negative and it is instructive. On the three-drone, four-destination instance the
+relaxation has $247{,}952$ variables and $265{,}613$ rows; after seven minutes the dual bound is
+four periods, that is $40$ steps, \emph{below} the trivial analytic bound
+$d_{\max}/v + S = 696/13.89 + 10 = 60$ steps for the same instance. The cause is that the cell
+test inflates the reach of a relay chain by one cell diagonal per hop: with $h = 98.2$ m a
+three-hop chain reaches $3(R + h\sqrt{2}) = 1{,}317$ m instead of $3R = 900$ m, a $46\%$
+overestimate, so the relaxation serves the farthest destination without ever forming a chain and
+the connectivity constraint, which is the entire difficulty of the problem, stops binding.
+Keeping the inflation below $10\%$ of $NR$ requires $h \lesssim 21$ m, which puts about
+$5{,}800$ cells inside the $900$ m reach disc and roughly $6.8 \times 10^{7}$ flow variables:
+three orders of magnitude beyond what we can solve. Any spatial discretisation coarse enough to
+be tractable weakens exactly the constraint that has to bind, so we report the analytic bound
+above and no MILP-certified bound. The code is kept at
+\texttt{proposed\_src/pipeline/milp\_lb\_v5\_26\_09\_27\_15.py} as a record of the attempt.
+
+The model also inherits the two approximations of the previous section, and it assumes, as the
+simulator does, that service times are deterministic and that no drone fails.
 
 \end{document}

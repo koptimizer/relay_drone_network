@@ -1,0 +1,17 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[규칙+탈출] 배송 4/4 makespan 145
+[격자] 칸 98.2m 한 기간 이동 138.9m 칸수 301 지평선 15기간
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Academic license 2561211 - for non-commercial use only - registered to ko___@korea.ac.kr
+[모형] 변수 247952 (이진 14703) 제약 265613 생성 3초
+
+=== 결과 ===
+완화 최적값의 하한 4.001기간 -> 연속 최적 makespan >= 40 스텝
+완화 모형의 잠정해 15.000기간 (완화이므로 실행 가능한 계획은 아니다)
+규칙+탈출 145 스텝 -> 최적 대비 최대 262% 초과
+저장: /home/kopt/drone/figures/milp_lb_cut_v5_26_09_27_15.json
