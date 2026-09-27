@@ -69,6 +69,8 @@ P.add_argument("--rule-obs", action="store_true", help="기하 규칙의 제안 
 P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘라낸 변위 비율 합에 곱해 팀 보상에서 뺀다")
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
+P.add_argument("--holdout-mix", action="store_true",
+               help="홀드아웃 절반을 드론 3·목적지 30·CC 무작위로 바꾼다 (선택 점수는 두 구성 평균)")
 P.add_argument("--relay-reg", type=float, default=1.0,
                help="규칙 정규화에서 규칙이 중계를 지시한 드론에 곱하는 가중치. 1.0이면 기존과 동일")
 P.add_argument("--stall-switch-bonus", type=float, default=0.0,
@@ -205,20 +207,41 @@ def rollout(env, actor, dev, seed, cc_mode=None):
 	return env.episode_stats()
 
 
+def part_score(st):
+	"""롤아웃 묶음에서 완주율과 평균 스텝으로 선택 점수를 만든다."""
+	steps = float(np.mean([s["steps"] for s in st]))
+	full = float(np.mean([1.0 if s["makespan"] else 0.0 for s in st]))
+	return full, steps, 100.0 * full + (A.holdout_steps - steps) / A.holdout_steps * A.speed_weight
+
+
 def holdout(actor, dev):
-	"""표준 구성(드론 4·목적지 50·CC 고정)에서 샘플링 평가. 상한은 --holdout-steps."""
+	"""표준 구성(드론 4·목적지 50·CC 고정)에서 샘플링 평가. --holdout-mix면 절반을 3/30 무작위 CC로."""
 	env = make_env(4, 50)
 	env.max_steps = A.holdout_steps
-	st = [rollout(env, actor, dev, A.eval_seed0 + i) for i in range(A.eval_n)]
-	g = lambda k: float(np.mean([s[k] for s in st]))
+	n2 = A.eval_n // 2 if A.holdout_mix else 0
+	st = [rollout(env, actor, dev, A.eval_seed0 + i) for i in range(A.eval_n - n2)]
+	st3 = []
+	if n2:
+		e3 = make_env(3, 30)
+		e3.max_steps = A.holdout_steps
+		st3 = [rollout(e3, actor, dev, A.eval_seed0 + 300 + i, cc_mode="random") for i in range(n2)]
+	g = lambda k: float(np.mean([s[k] for s in st + st3]))
 	steps = g("steps")
-	out = {"delivered": g("delivered"), "delivered_sd": float(np.std([s["delivered"] for s in st])),
+	out = {"delivered": g("delivered"), "delivered_sd": float(np.std([s["delivered"] for s in st + st3])),
 	       "reloads": g("reloads"), "hop2plus": g("hop2plus"), "max_reach": g("max_reach"),
-	       "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st])), "steps": steps}
+	       "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st + st3])), "steps": steps}
 	# 선택 점수: 배송을 우선하되 같은 배송이면 빨리 끝낸 쪽을 고른다
 	# makespan 선택: 완주율을 최우선으로, 같으면 평균 소요 스텝이 짧은 쪽 (상한 3000이면 완주 시각과 같다)
-	out["score"] = (100.0 * out["full"] + (A.holdout_steps - steps) / A.holdout_steps * A.speed_weight
-	                if A.select == "makespan" else out["delivered"])
+	if A.select != "makespan":
+		out["score"] = out["delivered"]
+	elif not n2:
+		out["score"] = 100.0 * out["full"] + (A.holdout_steps - steps) / A.holdout_steps * A.speed_weight
+	else:
+		# 구성마다 스텝 규모가 다르므로 점수를 따로 내어 평균한다 (4/50이 3/30을 가리지 않게)
+		f4, s4, q4 = part_score(st)
+		f3, s3, q3 = part_score(st3)
+		out["full4"], out["steps4"], out["full3"], out["steps3"] = f4, s4, f3, s3
+		out["score"] = 0.5 * (q4 + q3)
 	return out
 
 
