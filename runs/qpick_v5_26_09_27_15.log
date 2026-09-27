@@ -1,0 +1,11 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+actor 표본     완주 120/120  중앙   618  절단평균   628  최대  2538
+actor 최빈     완주 119/120  중앙   619  절단평균   660  최대  8482
+critic 탐욕    완주 120/120  중앙  1966  절단평균  2171  최대  7694
+규칙+탈출        완주 120/120  중앙   573  절단평균   586  최대  1447
+  actor 최빈 대 actor 표본: 쌍별 중앙 -4 승 60 패 59 p=0.3575
+  critic 탐욕 대 actor 표본: 쌍별 중앙 +1194 승 3 패 117 p=0.0000
+  규칙+탈출 대 actor 표본: 쌍별 중앙 -40 승 77 패 43 p=0.0011
