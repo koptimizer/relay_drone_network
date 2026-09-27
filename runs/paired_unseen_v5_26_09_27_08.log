@@ -1,0 +1,119 @@
+[2026-09-27 08:42:37] 미지 3/30 쌍별 비교
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  rep0 seed501: 규칙 475 학습 523
+  rep0 seed502: 규칙 587 학습 777
+  rep0 seed503: 규칙 566 학습 757
+  rep0 seed504: 규칙 689 학습 635
+  rep0 seed505: 규칙 542 학습 552
+  rep0 seed506: 규칙 521 학습 696
+  rep0 seed507: 규칙 486 학습 534
+  rep0 seed508: 규칙 530 학습 426
+  rep0 seed509: 규칙 584 학습 537
+  rep0 seed510: 규칙 540 학습 676
+  rep0 seed511: 규칙 575 학습 504
+  rep0 seed512: 규칙 768 학습 751
+  rep0 seed513: 규칙 561 학습 680
+  rep0 seed514: 규칙 545 학습 666
+  rep0 seed515: 규칙 597 학습 637
+  rep0 seed516: 규칙 541 학습 580
+  rep0 seed517: 규칙 567 학습 520
+  rep0 seed518: 규칙 567 학습 587
+  rep0 seed519: 규칙 652 학습 724
+  rep0 seed520: 규칙 479 학습 613
+  rep0 seed521: 규칙 539 학습 680
+  rep0 seed522: 규칙 762 학습 680
+  rep0 seed523: 규칙 772 학습 636
+  rep0 seed524: 규칙 596 학습 698
+  rep0 seed525: 규칙 688 학습 720
+  rep0 seed526: 규칙 721 학습 828
+  rep0 seed527: 규칙 365 학습 393
+  rep0 seed528: 규칙 667 학습 619
+  rep0 seed529: 규칙 576 학습 606
+  rep0 seed530: 규칙 479 학습 497
+  rep0 seed531: 규칙 598 학습 656
+  rep0 seed532: 규칙 526 학습 517
+  rep0 seed533: 규칙 730 학습 498
+  rep0 seed534: 규칙 462 학습 654
+  rep0 seed535: 규칙 906 학습 728
+  rep0 seed536: 규칙 568 학습 640
+  rep0 seed537: 규칙 398 학습 521
+  rep0 seed538: 규칙 569 학습 531
+  rep0 seed539: 규칙 626 학습 762
+  rep0 seed540: 규칙 1447 학습 509
+
+롤아웃 40개 (시드 501~540 x 1회, 드론 3 목적지 30)
+완주: 규칙+탈출 40 · 학습 40 · 둘 다 40
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 609   학습 619   차이 +10
+
+[쌍별 비교] 둘 다 완주한 40개
+  규칙+탈출 609   학습 619   쌍별 차이 +10 (중앙값 +36)
+  학습이 빠른 경우 14 · 느린 경우 26 · 동점 0
+  윌콕슨 부호순위 p=0.0805
+
+저장: /home/kopt/drone/figures/paired_d3_v5_26_09_27_08.csv
+[2026-09-27 08:43:00] 미지 5/50 쌍별 비교
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  rep0 seed701: 규칙 941 학습 856
+  rep0 seed702: 규칙 656 학습 715
+  rep0 seed703: 규칙 545 학습 665
+  rep0 seed704: 규칙 547 학습 520
+  rep0 seed705: 규칙 587 학습 620
+  rep0 seed706: 규칙 693 학습 560
+  rep0 seed707: 규칙 520 학습 483
+  rep0 seed708: 규칙 681 학습 581
+  rep0 seed709: 규칙 519 학습 474
+  rep0 seed710: 규칙 719 학습 806
+  rep0 seed711: 규칙 480 학습 438
+  rep0 seed712: 규칙 553 학습 566
+  rep0 seed713: 규칙 438 학습 408
+  rep0 seed714: 규칙 550 학습 573
+  rep0 seed715: 규칙 596 학습 561
+  rep0 seed716: 규칙 689 학습 526
+  rep0 seed717: 규칙 472 학습 460
+  rep0 seed718: 규칙 516 학습 517
+  rep0 seed719: 규칙 586 학습 618
+  rep0 seed720: 규칙 681 학습 668
+  rep0 seed721: 규칙 489 학습 409
+  rep0 seed722: 규칙 662 학습 483
+  rep0 seed723: 규칙 530 학습 434
+  rep0 seed724: 규칙 756 학습 675
+  rep0 seed725: 규칙 519 학습 505
+  rep0 seed726: 규칙 459 학습 434
+  rep0 seed727: 규칙 896 학습 469
+  rep0 seed728: 규칙 671 학습 604
+  rep0 seed729: 규칙 None 학습 502
+  rep0 seed730: 규칙 508 학습 551
+  rep0 seed731: 규칙 714 학습 553
+  rep0 seed732: 규칙 591 학습 491
+  rep0 seed733: 규칙 694 학습 761
+  rep0 seed734: 규칙 680 학습 898
+  rep0 seed735: 규칙 577 학습 481
+  rep0 seed736: 규칙 468 학습 442
+  rep0 seed737: 규칙 523 학습 514
+  rep0 seed738: 규칙 519 학습 469
+  rep0 seed739: 규칙 492 학습 502
+  rep0 seed740: 규칙 532 학습 459
+
+롤아웃 40개 (시드 701~740 x 1회, 드론 5 목적지 50)
+완주: 규칙+탈출 39 · 학습 40 · 둘 다 39
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 596   학습 556   차이 -40
+
+[쌍별 비교] 둘 다 완주한 39개
+  규칙+탈출 596   학습 558   쌍별 차이 -38 (중앙값 -30)
+  학습이 빠른 경우 27 · 느린 경우 12 · 동점 0
+  윌콕슨 부호순위 p=0.0098
+
+규칙만 실패한 1개에서 학습의 makespan: 502 (범위 502-502)
+
+저장: /home/kopt/drone/figures/paired_d5_v5_26_09_27_08.csv
+[2026-09-27 08:43:54] 완료

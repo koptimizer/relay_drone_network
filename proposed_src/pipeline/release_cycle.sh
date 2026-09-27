@@ -20,8 +20,9 @@ if [ -z "$VER" ] || [ -z "$MSG" ]; then
 fi
 
 # CLAUDE.md 규칙: 태그는 '버전넘버 + YY-MM-DD-HH', 설명은 10단어 이하
-TAG="$(echo "$VER" | sed 's/_/-/3; s/_/-/3; s/_/-/3' | sed 's/\(v[0-9]*\)_/\1_/')"
-TAG="$(echo "$VER" | awk -F'_' '{printf "%s_%s-%s-%s-%s", $1, $2, $3, $4, $5}')"
+# 이미 'v5_26-09-23-00' 꼴로 들어오면 그대로 두고, 빈 칸에 꼬리 대시를 붙이지 않는다
+# (붙여서 v5_26-09-23-00--- 같은 태그가 만들어지고 매번 손으로 지운 사고가 세 번 있었다)
+TAG="$(echo "$VER" | awk -F'_' '{s=$1; for(i=2;i<=NF;i++) s=s (i==2?"_":"-") $i; print s}')"
 WORDS=$(echo "$MSG" | wc -w)
 if [ "$WORDS" -gt 10 ]; then
 	echo "오류: 설명이 ${WORDS}단어입니다. CLAUDE.md 규칙상 10단어 이하여야 합니다."
