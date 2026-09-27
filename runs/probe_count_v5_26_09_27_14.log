@@ -1,0 +1,11 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+학습 그대로         완주 120/120  중앙   630  절단평균   640  최대  4904  막힘    594
+대수만 맞춤         완주 120/120  중앙   614  절단평균   618  최대  1083  막힘    113
+중계 드론도 규칙      완주 120/120  중앙   598  절단평균   593  최대   806  막힘    173
+규칙+탈출          완주 120/120  중앙   574  절단평균   587  최대  1447  막힘    162
+  대수만 맞춤 대 학습 그대로: 쌍별 중앙 -14 승 68 패 51 p=0.0476
+  중계 드론도 규칙 대 학습 그대로: 쌍별 중앙 -44 승 78 패 42 p=0.0000
+  규칙+탈출 대 학습 그대로: 쌍별 중앙 -43 승 80 패 39 p=0.0001
