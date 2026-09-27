@@ -1,0 +1,11 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+가중치                      완주     중앙값     중계대수      막힘
+SWa ep700             40/40     635     0.76     434
+RR3a ep700            40/40     628     0.92     408
+RR3b ep700           없음
+RG4a ep700            40/40     584     0.88     402
+RG4b ep700            40/40     616     0.80     476
+규칙+탈출                 40/40     573     1.39     161
