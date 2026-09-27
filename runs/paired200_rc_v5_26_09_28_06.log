@@ -1,0 +1,146 @@
+[2026-09-28 06:48:18] 3/30 200롤 RR3a
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 501~540 x 5회, 드론 3 목적지 30)
+완주: 규칙+탈출 200 · 학습 200 · 둘 다 200
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 615   학습 661   차이 +47
+
+[쌍별 비교] 둘 다 완주한 200개
+  규칙+탈출 615   학습 661   쌍별 차이 +47 (중앙값 +56)
+  학습이 빠른 경우 55 · 느린 경우 145 · 동점 0
+  윌콕슨 부호순위 p=0.0000
+
+저장: /home/kopt/drone/figures/paired200_d3_RR3a_v5_26_09_28_06.csv
+[2026-09-28 06:50:36] 5/50 200롤 RR3a
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 701~740 x 5회, 드론 5 목적지 50)
+완주: 규칙+탈출 189 · 학습 200 · 둘 다 189
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 645   학습 606   차이 -38
+
+[쌍별 비교] 둘 다 완주한 189개
+  규칙+탈출 645   학습 604   쌍별 차이 -41 (중앙값 -19)
+  학습이 빠른 경우 111 · 느린 경우 78 · 동점 0
+  윌콕슨 부호순위 p=0.0142
+
+규칙만 실패한 11개에서 학습의 makespan: 657 (범위 447-1090)
+
+저장: /home/kopt/drone/figures/paired200_d5_RR3a_v5_26_09_28_06.csv
+[2026-09-28 06:57:44] 3/30 200롤 RR3b
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 501~540 x 5회, 드론 3 목적지 30)
+완주: 규칙+탈출 200 · 학습 200 · 둘 다 200
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 609   학습 748   차이 +140
+
+[쌍별 비교] 둘 다 완주한 200개
+  규칙+탈출 609   학습 748   쌍별 차이 +140 (중앙값 +54)
+  학습이 빠른 경우 67 · 느린 경우 133 · 동점 0
+  윌콕슨 부호순위 p=0.0000
+
+저장: /home/kopt/drone/figures/paired200_d3_RR3b_v5_26_09_28_06.csv
+[2026-09-28 07:00:14] 5/50 200롤 RR3b
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 701~740 x 5회, 드론 5 목적지 50)
+완주: 규칙+탈출 192 · 학습 200 · 둘 다 192
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 622   학습 603   차이 -19
+
+[쌍별 비교] 둘 다 완주한 192개
+  규칙+탈출 622   학습 600   쌍별 차이 -22 (중앙값 -44)
+  학습이 빠른 경우 125 · 느린 경우 65 · 동점 2
+  윌콕슨 부호순위 p=0.0000
+
+규칙만 실패한 8개에서 학습의 makespan: 668 (범위 516-913)
+
+저장: /home/kopt/drone/figures/paired200_d5_RR3b_v5_26_09_28_06.csv
+[2026-09-28 07:06:37] 3/30 200롤 RG4a
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 501~540 x 5회, 드론 3 목적지 30)
+완주: 규칙+탈출 200 · 학습 199 · 둘 다 199
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 619   학습 655   차이 +36
+
+[쌍별 비교] 둘 다 완주한 199개
+  규칙+탈출 619   학습 655   쌍별 차이 +36 (중앙값 +23)
+  학습이 빠른 경우 83 · 느린 경우 116 · 동점 0
+  윌콕슨 부호순위 p=0.0119
+학습만 실패한 1개에서 규칙의 makespan: 669
+
+저장: /home/kopt/drone/figures/paired200_d3_RG4a_v5_26_09_28_06.csv
+[2026-09-28 07:09:29] 5/50 200롤 RG4a
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 701~740 x 5회, 드론 5 목적지 50)
+완주: 규칙+탈출 191 · 학습 200 · 둘 다 191
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 630   학습 584   차이 -46
+
+[쌍별 비교] 둘 다 완주한 191개
+  규칙+탈출 630   학습 583   쌍별 차이 -47 (중앙값 -47)
+  학습이 빠른 경우 124 · 느린 경우 65 · 동점 2
+  윌콕슨 부호순위 p=0.0000
+
+규칙만 실패한 9개에서 학습의 makespan: 608 (범위 523-685)
+
+저장: /home/kopt/drone/figures/paired200_d5_RG4a_v5_26_09_28_06.csv
+[2026-09-28 07:15:55] 3/30 200롤 RG4b
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 501~540 x 5회, 드론 3 목적지 30)
+완주: 규칙+탈출 200 · 학습 200 · 둘 다 200
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 610   학습 679   차이 +69
+
+[쌍별 비교] 둘 다 완주한 200개
+  규칙+탈출 610   학습 679   쌍별 차이 +69 (중앙값 +39)
+  학습이 빠른 경우 67 · 느린 경우 132 · 동점 1
+  윌콕슨 부호순위 p=0.0000
+
+저장: /home/kopt/drone/figures/paired200_d3_RG4b_v5_26_09_28_06.csv
+[2026-09-28 07:18:17] 5/50 200롤 RG4b
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+
+롤아웃 200개 (시드 701~740 x 5회, 드론 5 목적지 50)
+완주: 규칙+탈출 191 · 학습 200 · 둘 다 191
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 625   학습 617   차이 -7
+
+[쌍별 비교] 둘 다 완주한 191개
+  규칙+탈출 625   학습 613   쌍별 차이 -12 (중앙값 -14)
+  학습이 빠른 경우 108 · 느린 경우 81 · 동점 2
+  윌콕슨 부호순위 p=0.2127
+
+규칙만 실패한 9개에서 학습의 makespan: 706 (범위 547-1248)
+
+저장: /home/kopt/drone/figures/paired200_d5_RG4b_v5_26_09_28_06.csv
+[2026-09-28 07:24:49] 완료
