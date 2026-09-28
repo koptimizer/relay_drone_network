@@ -233,7 +233,8 @@ def holdout(actor, dev):
 	if n2:
 		e3 = make_env(3, 30)
 		e3.max_steps = A.holdout_steps
-		st3 = [rollout(e3, actor, dev, A.eval_seed0 + 300 + i, cc_mode="random") for i in range(n2)]
+		# 평가용 3/30 시드(501-540)와 겹치지 않게 600을 더한다 — 겹치면 시험 집합에 맞춰 고르는 꼴이 된다
+		st3 = [rollout(e3, actor, dev, A.eval_seed0 + 600 + i, cc_mode="random") for i in range(n2)]
 	g = lambda k: float(np.mean([s[k] for s in st + st3]))
 	steps = g("steps")
 	out = {"delivered": g("delivered"), "delivered_sd": float(np.std([s["delivered"] for s in st + st3])),
