@@ -3,35 +3,10 @@
 pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
 Hello from the pygame community. https://www.pygame.org/contribute.html
 집합 상위 학습 | 반경 300 상한 1000 무배송 500 gamma 0.997 구성=무작위 드론[3, 4] 목적지[20, 80] CC무작위 인스턴스=무작위 목표유지=off 완주보상=0.0 잔여페널티=0.1 규칙관측=False 규칙정규화=2.0/중계가중치=1.0 막힘페널티=0.0 중계크레딧=0.0/드론별보상=False 도달권shaping=0.0 정체전환보상=0.0 엔트로피비=0.6->0.25@400 자기회귀=True 홀드아웃상한=3000 선택=makespan/속도가중치=40.0
-/home/kopt/drone/proposed_src/pipeline/train_v5_26_09_15_23.py:405: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+/home/kopt/drone/proposed_src/pipeline/train_v5_26_09_15_23.py:407: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
 Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
   writer.add_scalar("train/alpha", float(log_alpha.exp()), ep)
-Ep 1 | 드론3 목적지31 | 1000스텝 | 배송 26/31 | 재적재  3 | 중계율 0.15 | alpha 0.100 | step_limit
-Ep 2 | 드론3 목적지37 | 1000스텝 | 배송 31/37 | 재적재  5 | 중계율 0.15 | alpha 0.100 | step_limit
-Ep 3 | 드론4 목적지60 | 1000스텝 | 배송 47/60 | 재적재  8 | 중계율 0.19 | alpha 0.100 | step_limit
-Ep 4 | 드론4 목적지48 | 1000스텝 | 배송 42/48 | 재적재  7 | 중계율 0.18 | alpha 0.100 | step_limit
-Ep 5 | 드론3 목적지40 |  876스텝 | 배송 40/40 | 재적재  6 | 중계율 0.32 | alpha 0.102 | complete
-Ep 6 | 드론4 목적지49 |  678스텝 | 배송 49/49 | 재적재  6 | 중계율 0.35 | alpha 0.109 | complete
-Ep 7 | 드론3 목적지63 | 1000스텝 | 배송 54/63 | 재적재  8 | 중계율 0.38 | alpha 0.119 | step_limit
-Ep 8 | 드론3 목적지43 |  987스텝 | 배송 43/43 | 재적재  6 | 중계율 0.43 | alpha 0.129 | complete
-Ep 9 | 드론4 목적지63 |  741스텝 | 배송 63/63 | 재적재 10 | 중계율 0.26 | alpha 0.137 | complete
-Ep 10 | 드론4 목적지78 |  902스텝 | 배송 78/78 | 재적재 13 | 중계율 0.28 | alpha 0.147 | complete
-Ep 11 | 드론3 목적지27 |  619스텝 | 배송 27/27 | 재적재  3 | 중계율 0.39 | alpha 0.154 | complete
-Ep 12 | 드론4 목적지76 |  911스텝 | 배송 76/76 | 재적재 13 | 중계율 0.22 | alpha 0.165 | complete
-Ep 13 | 드론3 목적지70 | 1000스텝 | 배송 64/70 | 재적재 11 | 중계율 0.21 | alpha 0.178 | step_limit
-Ep 14 | 드론3 목적지40 | 1000스텝 | 배송 25/40 | 재적재  5 | 중계율 0.22 | alpha 0.192 | step_limit
-Ep 15 | 드론4 목적지63 | 1000스텝 | 배송 59/63 | 재적재  9 | 중계율 0.32 | alpha 0.206 | step_limit
-Ep 16 | 드론3 목적지56 | 1000스텝 | 배송 52/56 | 재적재  8 | 중계율 0.22 | alpha 0.222 | step_limit
-Ep 17 | 드론3 목적지49 | 1000스텝 | 배송 39/49 | 재적재  7 | 중계율 0.24 | alpha 0.239 | step_limit
-Ep 18 | 드론4 목적지24 |  646스텝 | 배송 24/24 | 재적재  4 | 중계율 0.33 | alpha 0.251 | complete
-Ep 19 | 드론3 목적지28 |  402스텝 | 배송 28/28 | 재적재  5 | 중계율 0.13 | alpha 0.258 | complete
-Ep 20 | 드론4 목적지30 |  418스텝 | 배송 30/30 | 재적재  5 | 중계율 0.23 | alpha 0.266 | complete
-Ep 21 | 드론4 목적지41 |  646스텝 | 배송 41/41 | 재적재  6 | 중계율 0.27 | alpha 0.279 | complete
-Ep 22 | 드론4 목적지40 |  524스텝 | 배송 40/40 | 재적재  7 | 중계율 0.18 | alpha 0.289 | complete
-Ep 23 | 드론3 목적지54 | 1000스텝 | 배송 48/54 | 재적재  8 | 중계율 0.26 | alpha 0.311 | step_limit
-Ep 24 | 드론4 목적지43 |  855스텝 | 배송 43/43 | 재적재  7 | 중계율 0.25 | alpha 0.330 | complete
-Ep 25 | 드론3 목적지56 |  980스텝 | 배송 34/56 | 재적재  5 | 중계율 0.19 | alpha 0.354 | no_progress
-Ep 26 | 드론3 목적지20 |  514스텝 | 배송 20/20 | 재적재  2 | 중계율 0.20 | alpha 0.368 | complete
-Ep 27 | 드론4 목적지58 | 1000스텝 | 배송 51/58 | 재적재  7 | 중계율 0.32 | alpha 0.396 | step_limit
-Ep 28 | 드론3 목적지47 | 1000스텝 | 배송 42/47 | 재적재  6 | 중계율 0.30 | alpha 0.425 | step_limit
-Ep 29 | 드론3 목적지40 |  861스텝 | 배송 40/40 | 재적재  6 | 중계율 0.30 | alpha 0.453 | complete
+Ep 1 | 드론3 목적지31 | 1000스텝 | 배송 26/31 | 재적재  3 | 중계율 0.18 | alpha 0.100 | step_limit
+Ep 2 | 드론3 목적지37 | 1000스텝 | 배송 31/37 | 재적재  4 | 중계율 0.19 | alpha 0.100 | step_limit
+Ep 3 | 드론4 목적지60 | 1000스텝 | 배송 46/60 | 재적재  8 | 중계율 0.20 | alpha 0.100 | step_limit
+Ep 4 | 드론4 목적지48 |  936스텝 | 배송 48/48 | 재적재  8 | 중계율 0.19 | alpha 0.100 | complete

@@ -292,7 +292,9 @@ def main():
 		print(f"이어받기: {A.init_from} (ep{ck['episode']}) — 에피소드·최고 기록은 초기화", flush=True)
 	mode = "a" if start_ep > 1 else "w"
 	cf, ef = open(CSV, mode, newline="", encoding="utf-8"), open(EVL, mode, newline="", encoding="utf-8")
-	cw, ew = csv.DictWriter(cf, fieldnames=cols), csv.DictWriter(ef, fieldnames=ecols)
+	# --holdout-mix는 구성별 항목(full3/steps3/full4/steps4)을 더 얹으므로 여분 키를 무시한다
+	cw = csv.DictWriter(cf, fieldnames=cols, extrasaction="ignore")
+	ew = csv.DictWriter(ef, fieldnames=ecols, extrasaction="ignore")
 	if mode == "w":
 		cw.writeheader(); ew.writeheader()
 
@@ -427,8 +429,10 @@ def main():
 			             "wall_sec": round(time.time() - t0, 1)}); ef.flush()
 			for k, v in ev.items():
 				writer.add_scalar(f"holdout/{k}", v, ep)
+			mix = (f" [4/50 {ev['full4']:.2f}·{ev['steps4']:.0f} | 3/30 {ev['full3']:.2f}·{ev['steps3']:.0f}]"
+			       if "full3" in ev else "")
 			print(f"  [홀드아웃] 배송 {ev['delivered']:.1f}±{ev['delivered_sd']:.1f} 완주 {ev['full']:.2f} 스텝 {ev['steps']:.0f} 점수 {ev['score']:.1f} "
-			      f"재적재 {ev['reloads']:.1f} 2홉+ {ev['hop2plus']:.2f} | 최고 {best:.1f}@ep{best_ep} 정체 {stale}/{A.patience}"
+			      f"재적재 {ev['reloads']:.1f} 2홉+ {ev['hop2plus']:.2f}{mix} | 최고 {best:.1f}@ep{best_ep} 정체 {stale}/{A.patience}"
 			      f"{'  ← 갱신' if is_best else ''}", flush=True)
 			if stale >= A.patience:
 				print(f"\n조기 종료. 최고 {best:.1f}@ep{best_ep}", flush=True)
