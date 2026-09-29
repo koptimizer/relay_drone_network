@@ -1,0 +1,37 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+규칙+탈출: 완주 80/80 중앙 580 절단평균 586
+
+[v5_26_09_29_04_MH1]
+     400: 완주 80/80 중앙   703 절단평균   721 최대  2643
+     600: 완주 80/80 중앙   635 절단평균   657 최대  1524
+     800: 완주 79/80 중앙   647 절단평균   675 최대  3511
+    1000: 완주 80/80 중앙   657 절단평균   763 최대  4359
+    1200: 완주 80/80 중앙   658 절단평균   695 최대  1967
+    best: 완주 80/80 중앙   655 절단평균   663 최대  6180
+
+[v5_26_09_29_04_MH2]
+     400: 완주 79/80 중앙   693 절단평균   715 최대  4558
+     600: 완주 80/80 중앙   643 절단평균   665 최대  8509
+     800: 완주 79/80 중앙   698 절단평균   685 최대  6675
+    1000: 완주 80/80 중앙   620 절단평균   640 최대  1166
+    1200: 완주 79/80 중앙   675 절단평균   691 최대  2007
+    best: 완주 80/80 중앙   658 절단평균   682 최대  1561
+
+[v5_26_09_29_04_MH3]
+     400: 완주 80/80 중앙   704 절단평균   724 최대  4921
+     600: 완주 80/80 중앙   705 절단평균   722 최대  4647
+     800: 완주 79/80 중앙   686 절단평균   690 최대  1953
+    1000: 완주 80/80 중앙   642 절단평균   653 최대  1142
+    1200: 완주 80/80 중앙   712 절단평균   739 최대  3312
+    best: 완주 80/80 중앙   664 절단평균   674 최대  4737
+
+[v5_26_09_29_04_MH4]
+     400: 완주 79/80 중앙   649 절단평균   710 최대  2309
+     600: 완주 79/80 중앙   641 절단평균   651 최대  3375
+     800: 완주 79/80 중앙   645 절단평균   667 최대  5405
+    1000: 완주 80/80 중앙   696 절단평균   730 최대  5093
+    1200: 완주 80/80 중앙   668 절단평균   715 최대  3602
+    best: 완주 80/80 중앙   666 절단평균   678 최대  2182
