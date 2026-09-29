@@ -40,7 +40,7 @@ class DisasterRelayDroneEnv:
 	             incomplete_penalty=0.0, arrive_once=False, relay_beta=0.9,
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
 	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
-	             relay_credit=0.0,
+	             relay_credit=0.0, relay_share=0.0,
 	             coverage_shaping=0.0, stall_switch_bonus=0.0):
 		self.num_drones = num_drones
 		self.num_dests = num_dests
@@ -75,6 +75,7 @@ class DisasterRelayDroneEnv:
 		# 없어 상위가 이를 문제로 인식하지 못했다.
 		self.blocked_penalty = blocked_penalty
 		self.relay_credit = relay_credit      # 배송 1건마다 그 통신 경로 위의 중계 드론에 주는 개별 보상
+		self.relay_share = relay_share        # 같은 크레딧을 배송 드론에서 떼어 준다 (총합 보존, 사이클 14 교정)
 		# 잠재 기반 shaping: Φ = 제어 센터와 연결된 드론의 통신 반경 안에 있는 미배송지 비율.
 		# 중계를 세워 사슬을 늘리면 Φ가 즉시 오르므로 '남을 위한' 중계의 가치가 그 자리에서 보상된다.
 		# 잠재 차분 형태라 최적 정책을 바꾸지 않는다 (Ng et al. 1999).
@@ -499,10 +500,16 @@ class DisasterRelayDroneEnv:
 						self.t_last_deliv = self.current_step
 						self.no_progress = 0
 						team += 10.0
-						if self.relay_credit > 0.0:
-							# 이 배송을 가능하게 한 중계 드론에게만 주는 개별 크레딧
-							for j in self._relay_path(i):
-								self.drone_bonus[j] += self.relay_credit
+						if self.relay_credit > 0.0 or self.relay_share > 0.0:
+							# 이 배송을 가능하게 한 중계 드론에게 주는 개별 크레딧.
+							# relay_share는 배송 드론에서 떼어 주므로 팀 총합이 변하지 않는다 —
+							# 얹기만 하면 중계가 수단이 아니라 목적이 된다 (사이클 14 실패).
+							path = self._relay_path(i)
+							c = self.relay_credit if self.relay_credit > 0.0 else self.relay_share
+							for j in path:
+								self.drone_bonus[j] += c
+							if self.relay_share > 0.0:
+								self.drone_bonus[i] -= c * len(path)
 						break
 			elif np.linalg.norm(self.drones_pos[i] - self.cc_pos) <= self.interaction_radius:
 				self.drones_capacity[i] = self.max_capacity

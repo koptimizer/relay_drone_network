@@ -73,6 +73,8 @@ P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(�
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
 P.add_argument("--relay-credit", type=float, default=0.0,
                help="배송 1건마다 그 통신 경로 위의 중계 드론에게 주는 개별 보상 (드론별 보상과 함께 쓴다)")
+P.add_argument("--relay-share", type=float, default=0.0,
+               help="중계 크레딧을 배송 드론에서 떼어 준다 (총합 보존). --relay-credit의 교정된 형태")
 P.add_argument("--per-drone-reward", action="store_true",
                help="critic을 팀 보상 평균이 아니라 드론별 보상으로 학습한다 (개별 크레딧 식별)")
 P.add_argument("--holdout-mix", action="store_true",
@@ -113,7 +115,7 @@ def make_env(n, m):
 	                             n_far=A.n_far, commit_max=A.commit_max,
 	                             complete_bonus=A.complete_bonus, residual_penalty=A.residual_penalty,
 	                             rule_obs=A.rule_obs, blocked_penalty=A.blocked_penalty,
-	                             relay_credit=A.relay_credit,
+	                             relay_credit=A.relay_credit, relay_share=A.relay_share,
 	                             coverage_shaping=A.coverage_shaping, stall_switch_bonus=A.stall_switch_bonus)
 
 
@@ -303,7 +305,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
