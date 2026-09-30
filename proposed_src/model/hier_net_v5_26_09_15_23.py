@@ -128,11 +128,17 @@ class SetManagerActor(nn.Module):
 
 
 class SetManagerTwinQ(nn.Module):
-	"""집합 관측용 중앙 critic. 드론 임베딩 사이 어텐션으로 팀 상태를 보고 드론별 Q를 낸다."""
+	"""집합 관측용 중앙 critic. 드론 임베딩 사이 어텐션으로 팀 상태를 보고 드론별 Q를 낸다.
 
-	def __init__(self, n_actions, d=128, heads=4, advice=False):
+	joint=True면 결합 행동을 조건으로 받는다: 다른 드론들이 고른 역할을 peer 특징(kind 원핫 5:9)에
+	써넣은 뒤 각 드론의 K개 행동을 평가한다. 중계의 가치는 동료가 배송하러 가는지에 달려 있어
+	상태만 보는 Q로는 정할 수 없다 (사이클 13-16 진단, 26-10-01).
+	"""
+
+	def __init__(self, n_actions, d=128, heads=4, advice=False, joint=False):
 		super().__init__()
 		self.k = n_actions
+		self.joint = joint
 		self.enc1, self.enc2 = EntityEncoder(d, advice=advice), EntityEncoder(d, advice=advice)
 		self.team1 = nn.MultiheadAttention(d, heads, batch_first=True)
 		self.team2 = nn.MultiheadAttention(d, heads, batch_first=True)
@@ -143,8 +149,21 @@ class SetManagerTwinQ(nn.Module):
 		t, _ = team(h, h, h, key_padding_mask=~dmask)
 		return head(torch.cat([h, t], dim=-1))                  # (B,N,K)
 
-	def forward(self, o, drone_mask=None):
-		"""(B, N, K) 형태의 Q 두 벌."""
+	def _with_actions(self, o, action):
+		"""결합 행동을 peer의 kind 원핫에 써넣은 관측 사본. actor의 자기회귀 쓰기와 같은 부호화."""
+		K = self.k
+		kind = torch.where(action >= K - 1, 3, torch.where(action == K - 2, 1, 0))   # 중계=3, 복귀=1, 배송=0
+		onehot = F.one_hot(kind, 4).float()                                          # (B,N,4)
+		peer = o["peer"].clone()
+		peer[:, :, :, 5:9] = onehot.unsqueeze(1).expand(-1, peer.shape[1], -1, -1)   # peer[b,i,j] <- 드론 j의 역할
+		oo = dict(o)
+		oo["peer"] = peer
+		return oo
+
+	def forward(self, o, drone_mask=None, action=None):
+		"""(B, N, K) 형태의 Q 두 벌. joint면 action (B,N)이 필요하다."""
 		B, N = o["self"].shape[:2]
 		dm = torch.ones(B, N, dtype=torch.bool, device=o["self"].device) if drone_mask is None else drone_mask
+		if self.joint and action is not None:
+			o = self._with_actions(o, action)
 		return self._q(self.enc1, self.team1, self.head1, o, dm), self._q(self.enc2, self.team2, self.head2, o, dm)
