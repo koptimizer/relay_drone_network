@@ -226,6 +226,7 @@ budget and no early termination.
 \caption{Learned policy against the rule with escape on identical instances. Positive paired
 difference means the learned policy is slower. $p$ from the Wilcoxon signed-rank test.}
 \label{tab:main}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Configuration & Rollouts & Completed rule / ours & Median rule / ours & Paired diff. & Wins--losses & $p$ \\
@@ -234,7 +235,7 @@ Configuration & Rollouts & Completed rule / ours & Median rule / ours & Paired d
 3 / 30, unseen & 200 & 200 / 200 & \textbf{572} / 617 & $+40$ & 73--127 & $<10^{-4}$ \\
 5 / 50, unseen & 200 & 190 / \textbf{200} & 570 / \textbf{532} & $\mathbf{-54}$ & 141--45 & $<10^{-4}$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 The learned policy completes every instance in every configuration; the rule leaves 3 of 240
@@ -299,6 +300,7 @@ between two-seed means are meaningful; those are in bold.
 \caption{Ablation: completion and mean makespan, two seeds, difference from the full method in
 parentheses.}
 \label{tab:abl}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 Removed & 4 / 50 & 3 / 30 & 5 / 50 \\
@@ -310,7 +312,7 @@ Entropy annealing & 120/120 $\cdot$ 1{,}056 ($\mathbf{+128}$) & 40/40 $\cdot$ 77
 Config. randomisation & 120/120 $\cdot$ 883 ($-44$) & 40/40 $\cdot$ 1{,}402 ($\mathbf{+646}$) & 40/40 $\cdot$ 642 ($+68$) \\
 Rule regularisation & 118/120 $\cdot$ 1{,}246 ($\mathbf{+320}$) & 39/40 $\cdot$ 1{,}163 ($\mathbf{+408}$) & 40/40 $\cdot$ 666 ($\mathbf{+92}$) \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 Rule regularisation is essential; configuration randomisation is what generalisation costs on
@@ -353,6 +355,7 @@ full method sits at $+40$.
 \centering
 \caption{Training-side interventions aimed at relay assignment. Two seeds each.}
 \label{tab:fail}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llc}
 \toprule
 Intervention & Mechanism & 3 / 30 paired median \\
@@ -364,7 +367,7 @@ Per-drone reward credit to path relays & credit assignment & $+36$, $+58$ \\
 Mixed holdout (half three-drone) for selection & selection sees the target & $+37$, $+68$ \\
 Zero-sum credit taken from the deliverer & credit without an incentive to relay & $+91$, $+126$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 Imitation weighting raised the relay share during training from 0.24 to 0.30 but not toward
