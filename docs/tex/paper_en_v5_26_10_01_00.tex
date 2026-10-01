@@ -405,8 +405,12 @@ it on the training configuration, and runs three orders of magnitude faster than
 optimisation. It is slower than the rule by 40 steps when drones are scarce, and we have
 localised that loss to one decision, which drone should relay, that the current critic cannot
 value because it never conditions on the joint action. A critic that does, in the manner of
-centralised critics for decentralised execution, is the remaining untried lever and the subject
-of ongoing work. Two methodological points travel beyond this problem: completed-episode averages
+centralised critics for decentralised execution, was the last structural lever we tried: with
+four seeds it was slower than the same recipe without it on all three configurations (paired
+medians $+58$, $+89$ and $-27$ against $+10$, $+58$ and $-42$), which we attribute to the variance
+of a sampled joint action in the target and to the autoregressive actor already carrying the
+information the critic was given. The remaining option is a manager whose output is a team
+assignment rather than per-drone options, which is a different design. Two methodological points travel beyond this problem: completed-episode averages
 favour the method that gives up, and forty rollouts cannot support claims about tails.
 
 \section*{References}
