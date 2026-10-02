@@ -23,9 +23,9 @@ from util.instance_generator_v5_26_09_15_22 import sample_instance
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def learned(ckpt, dev, ar):
+def learned(ckpt, dev, ar, ar_near=False):
 	"""집합 상위 가중치를 표본 추출 결정 함수로 감싼다 (평가 규약과 동일)."""
-	m = SetManagerActor(autoregressive=ar).to(dev)
+	m = SetManagerActor(autoregressive=ar, ar_near=ar_near).to(dev)
 	m.load_state_dict(torch.load(os.path.join(ROOT, ckpt), map_location=dev))
 	m.eval()
 
@@ -58,6 +58,8 @@ def main():
 	p = argparse.ArgumentParser()
 	p.add_argument("--manager", default="weights/v5_26_09_23_18_SWa/best_manager.pth")
 	p.add_argument("--autoregressive", action="store_true")
+	p.add_argument("--ar-near", action="store_true", help="가까운 드론부터 결정하도록 학습한 가중치")
+	p.add_argument("--stall-redecide", type=int, default=0, help="학습 정책에만 적용하는 정체 재결정 스텝 (학습과 같은 값)")
 	p.add_argument("--n", type=int, default=60)
 	p.add_argument("--reps", type=int, default=2)
 	p.add_argument("--seed0", type=int, default=101)
@@ -76,11 +78,15 @@ def main():
 	                            num_drones=args.num_drones, num_dests=args.num_dests)
 	env.reset()
 	cc = "random" if args.random_cc else None
-	pol = (("규칙+탈출", chain_escape_manager(60, 40, "shuffle")), ("학습", learned(args.manager, dev, args.autoregressive)))
+	pol = (("규칙+탈출", chain_escape_manager(60, 40, "shuffle")), ("학습", learned(args.manager, dev, args.autoregressive, args.ar_near)))
 	rec = []
 	for rep in range(args.reps):
 		for s in range(args.seed0, args.seed0 + args.n):
-			rec.append({"rep": rep, "seed": s, **{nm: run(env, mf, args.hl_every, s, cc) for nm, mf in pol}})
+			row = {"rep": rep, "seed": s}
+			for nm, mf in pol:
+				env.stall_redecide = args.stall_redecide if nm == "학습" else 0   # 규칙 베이스라인은 그대로
+				row[nm] = run(env, mf, args.hl_every, s, cc)
+			rec.append(row)
 			print(f"  rep{rep} seed{s}: 규칙 {rec[-1]['규칙+탈출']} 학습 {rec[-1]['학습']}", flush=True)
 
 	a = np.array([r["규칙+탈출"] if r["규칙+탈출"] else np.nan for r in rec], dtype=float)

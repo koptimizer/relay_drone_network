@@ -41,8 +41,11 @@ class DisasterRelayDroneEnv:
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
 	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
 	             relay_credit=0.0, relay_share=0.0,
-	             coverage_shaping=0.0, stall_switch_bonus=0.0):
+	             coverage_shaping=0.0, stall_switch_bonus=0.0, stall_redecide=0):
 		self.num_drones = num_drones
+		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
+		self.stall_redecide = stall_redecide
+		self.redecide_run = 0
 		self.num_dests = num_dests
 		# 후보 n_cand개 중 n_far개는 제어 센터에서 가장 먼 미배송지로 채운다
 		self.n_far = min(n_far, n_cand - 1)
@@ -145,6 +148,7 @@ class DisasterRelayDroneEnv:
 		self.team_move_ema = 1.0
 		self.deadlock_run = 0        # 부분 교착이 연속으로 이어진 스텝 수
 		self.max_deadlock_run = 0
+		self.redecide_run = 0        # 마지막 정체 재결정 이후 이어진 부분 교착 스텝 수
 		self.stalled_dsteps = 0      # 드론별 정지로 집계한 드론-스텝
 		self.mover_dsteps = 0
 		self.no_progress = 0         # 마지막 배송 이후 경과 스텝
@@ -277,6 +281,10 @@ class DisasterRelayDroneEnv:
 	def goal_invalid(self):
 		"""상위 재결정이 필요한 드론 마스크를 반환한다."""
 		bad = np.zeros(self.num_drones, dtype=bool)
+		if self.stall_redecide > 0 and self.redecide_run >= self.stall_redecide:
+			self.redecide_run = 0
+			bad[:] = True
+			return bad
 		for i in range(self.num_drones):
 			k = self.goal_kind[i]
 			if k == GOAL_DELIVER:
@@ -458,6 +466,7 @@ class DisasterRelayDroneEnv:
 		jammed = len(movers) > 0 and blocked_now.sum() >= max(1, len(movers) - 1)
 		self.deadlock_run = self.deadlock_run + 1 if jammed else 0
 		self.max_deadlock_run = max(self.max_deadlock_run, self.deadlock_run)
+		self.redecide_run = self.redecide_run + 1 if jammed else 0
 
 		self.comm_status = self._bfs_connected(self.drones_pos)
 		if not self.comm_status.all():      # 하드 제약이 정상이면 발생하지 않는다

@@ -68,9 +68,11 @@ class EntityEncoder(nn.Module):
 class SetManagerActor(nn.Module):
 	"""집합 관측에서 드론별 이산 행동 분포를 낸다. 후보는 포인터, 복귀·중계는 고정 헤드."""
 
-	def __init__(self, d=128, advice=False, autoregressive=False):
+	def __init__(self, d=128, advice=False, autoregressive=False, ar_near=False):
 		super().__init__()
 		self.autoregressive = autoregressive
+		# ar_near=True면 제어 센터에서 가까운 드론부터 결정한다 (중계는 가까운 드론이 서므로 먼저 정한다)
+		self.ar_near = ar_near
 		self.enc = EntityEncoder(d, advice=advice)
 		self.point = mlp(2 * d, 1, d)
 		self.fixed = mlp(d, 2, d)
@@ -103,7 +105,7 @@ class SetManagerActor(nn.Module):
 		B, N = o["self"].shape[:2]
 		K = o["cand"].shape[2] + 2
 		peer = o["peer"].clone()                                # (B,N,N,9) — kind 원핫은 5:9
-		order = torch.argsort(o["self"][:, :, 1], dim=1, descending=True)   # d_cc 큰 순
+		order = torch.argsort(o["self"][:, :, 1], dim=1, descending=not self.ar_near)   # 기본 d_cc 큰 순
 		action = torch.zeros(B, N, dtype=torch.long, device=peer.device)
 		probs = torch.zeros(B, N, K, device=peer.device)
 		logp = torch.zeros(B, N, K, device=peer.device)
