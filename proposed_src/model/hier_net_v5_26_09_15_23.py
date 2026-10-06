@@ -66,42 +66,32 @@ class EntityEncoder(nn.Module):
 
 
 class MixNet(nn.Module):
-	"""드론별 값을 팀 값 하나로 합치는 단조 혼합망 (QMIX형 하이퍼네트워크).
+	"""드론별 값을 상태 의존 단조 가중 평균으로 합친다 (가중치 합은 항상 1).
 
-	가중치를 절댓값으로 쓰므로 팀 값은 각 드론 값에 대해 단조 증가한다 — 결합 행동의 최선이
-	드론별 argmax와 같다는 성질이 유지되면서, 가중치가 상태마다 달라 평균과 달리 드론별 분해가
-	식별된다 (평균은 합만 맞으면 어떤 분해든 손실이 같아 크레딧이 없다, 26-09-27 진단).
+	QMIX형 하이퍼네트워크를 그대로 쓰면 상태 편향 항이 목표값을 혼자 맞출 수 있어 드론별 Q의
+	크기가 아무것에도 묶이지 않고, 부트스트랩과 맞물려 발산한다 (실측: 목표 Q가 ep37부터
+	80,000까지, 26-10-06). 가중치를 합 1로 정규화하면 이득이 정확히 1이라 평균과 같은 눈금이
+	유지되면서, 가중치가 상태마다 달라 평균과 달리 드론별 분해가 식별된다.
 	"""
 
-	def __init__(self, n_max, d_state, h=32):
+	def __init__(self, n_max, d_state, floor=0.5):
 		super().__init__()
-		self.n, self.h = n_max, h
-		self.w1 = mlp(d_state, n_max * h, 64)
-		self.b1 = mlp(d_state, h, 64)
-		self.w2 = mlp(d_state, h, 64)
-		self.w2l = mlp(d_state, h, 64)
-		self.b2 = mlp(d_state, 1, 64)
-		# 초기값에서 팀 값이 부호와 무관하게 거의 정확히 드론 평균이 되도록 둔다 — 선형 경로에 1/h,
-		# 비선형 경로에 1e-4. 눈금이 어긋나면 MSE 기울기가 폭주해 혼합망 자체의 효과를 가린다.
-		# 비선형 경로를 정확히 0으로 두면 abs의 0에서의 기울기가 0이라 그 경로가 영구히 죽는다.
-		for m, v in ((self.w1, 1.0), (self.w2, 1e-4), (self.w2l, 1.0 / h), (self.b1, 0.0), (self.b2, 0.0)):
-			nn.init.zeros_(m[-1].weight)
-			nn.init.constant_(m[-1].bias, v)
+		self.n, self.floor = n_max, floor
+		self.w = mlp(d_state, n_max, 64)
+		# 초기값에서 모든 가중치가 같아 정확히 드론 평균이 된다 (softplus(0)이 모두 같다)
+		nn.init.zeros_(self.w[-1].weight)
+		nn.init.zeros_(self.w[-1].bias)
 
 	def forward(self, v, state, dmask):
 		"""v (B,N) 드론별 값, state (B,d_state), dmask (B,N) -> 팀 값 (B,1)."""
-		B = v.shape[0]
-		nv = dmask.sum(-1, keepdim=True).clamp_min(1.0).unsqueeze(1)  # (B,1,1) 유효 드론 수
-		v = (v * dmask).unsqueeze(1)                                 # (B,1,N) — 패딩 드론은 0으로 기여 없음
-		w1 = self.w1(state).abs().view(B, self.n, self.h)
-		# 유효 드론 수로 나누어 드론 수가 달라도 눈금이 같게 한다 (양수 배율이므로 단조성 유지).
-		# 활성은 포화되지 않는 단조 함수 — ELU는 음수 쪽에서 -1로 눌려 음의 수익 구간에서 신호를 잃는다
-		lin = torch.bmm(v, w1) / nv + self.b1(state).unsqueeze(1)    # (B,1,h)
-		hid = F.leaky_relu(lin, 0.1)
-		# 단조 선형 경로를 함께 둔다. 활성만 쓰면 음수 쪽 기울기 0.1 때문에 눈금이 부호에 따라
-		# 달라지고, 학습 초기의 음의 목표값에서 예측이 10분의 1로 눌린다.
-		w2, w2l = self.w2(state).abs().unsqueeze(-1), self.w2l(state).abs().unsqueeze(-1)
-		return (torch.bmm(hid, w2) + torch.bmm(lin, w2l) + self.b2(state).unsqueeze(1)).squeeze(1)
+		a = F.softplus(self.w(state)) * dmask                        # 양수 가중치, 패딩 드론은 0
+		a = a / a.sum(-1, keepdim=True).clamp_min(1e-6)
+		# 가중치에 하한을 둔다. 어떤 드론의 가중치가 0에 가까워지면 그 Q 행이 적합에서 풀려
+		# 크기가 자유로워지고, 가중치가 큰 다른 상태에서 읽힐 때 목표값을 밀어올린다
+		# (실측: 하한 없이 70에피소드 동안 목표 Q가 꺾이지 않고 133까지 상승, 26-10-06).
+		u = dmask / dmask.sum(-1, keepdim=True).clamp_min(1e-6)      # 균등 가중치
+		a = (1.0 - self.floor) * a + self.floor * u
+		return (a * v).sum(-1, keepdim=True)
 
 
 class SetManagerActor(nn.Module):
