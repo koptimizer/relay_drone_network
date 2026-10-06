@@ -72,6 +72,8 @@ P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
 P.add_argument("--ar-near", action="store_true", help="자기회귀 순서를 제어 센터에서 가까운 드론부터로 (사이클 19a)")
+P.add_argument("--mix-critic", action="store_true",
+               help="팀 값을 드론별 Q의 평균 대신 단조 혼합망으로 합친다 (사이클 20, QMIX형). 평균은 합만 맞으면 어떤 분해든 손실이 같아 드론별 크레딧이 없다")
 P.add_argument("--stall-redecide", type=int, default=0, help="부분 교착이 이 스텝만큼 이어지면 전 드론 재결정 (사이클 19b, 0=끔)")
 P.add_argument("--relay-credit", type=float, default=0.0,
                help="배송 1건마다 그 통신 경로 위의 중계 드론에게 주는 개별 보상 (드론별 보상과 함께 쓴다)")
@@ -268,11 +270,13 @@ def main():
 	"""집합 상위 정책을 학습한다."""
 	torch.manual_seed(A.seed)
 	np.random.seed(A.seed)
+	if A.mix_critic and A.per_drone_reward:
+		raise SystemExit("--mix-critic과 --per-drone-reward는 같이 쓸 수 없다 (집계 방식이 상충)")
 	dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	inst_rng = np.random.default_rng(A.seed + 1000)
 	actor = SetManagerActor(advice=A.rule_obs, autoregressive=A.autoregressive, ar_near=A.ar_near).to(dev)
-	mq = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic).to(dev)
-	mq_t = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic).to(dev)
+	mq = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
+	mq_t = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
 	mq_t.load_state_dict(mq.state_dict())
 	a_opt, q_opt = optim.Adam(actor.parameters(), lr=3e-4), optim.Adam(mq.parameters(), lr=3e-4)
 	log_alpha = torch.tensor(np.log(0.1), requires_grad=True, device=dev)
@@ -288,6 +292,7 @@ def main():
 	ecols = ["episode", "delivered", "delivered_sd", "reloads", "hop2plus", "max_reach", "full", "steps", "score", "is_best", "wall_sec"]
 
 	start_ep, best, best_ep, stale = 1, -1.0, 0, 0
+	last_lq, last_y = 0.0, 0.0   # 혼합망 발산 감시용 (critic 손실·목표값 크기)
 	latest = os.path.join(W_DIR, "latest.pth")
 	if A.resume and os.path.exists(latest):
 		ck = torch.load(latest, map_location=dev, weights_only=False)
@@ -311,7 +316,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -362,14 +367,26 @@ def main():
 					# 결합 critic: 다음 상태의 동료 행동은 actor가 방금 표본한 것으로 고정한다
 					nq1, nq2 = mq_t(b["o2"], b["o2"]["drone_mask"], action=a2)
 					v2 = (p2 * (torch.min(nq1, nq2) - alpha * lp2)).sum(-1)          # (B,N)
-					if not A.per_drone_reward:
+					if A.mix_critic:
+						# 드론별 기대값을 쌍쌍이 혼합망에 넣어 팀 값을 만든다. 다음 상태의 동료
+						# 행동을 표본하지 않으므로 사이클 18(결합 critic)의 목표값 분산이 없다.
+						va = (p2 * (nq1 - alpha * lp2)).sum(-1)
+						vb = (p2 * (nq2 - alpha * lp2)).sum(-1)
+						t1, t2 = mq_t.mixed(va, vb, b["o2"], b["o2"]["drone_mask"])
+						y = b["r"] + b["disc"] * (1 - b["d"]) * torch.min(t1, t2)
+					elif not A.per_drone_reward:
 						v2 = (v2 * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
 						y = b["r"] + b["disc"] * (1 - b["d"]) * v2
 					else:
 						# 드론별 회귀 목표: 각 Q 행이 자기 보상에 묶여 분해가 식별된다
 						y = b["rv"] + b["disc"] * (1 - b["d"]) * v2
 				q1, q2 = mq(b["o"], b["o"]["drone_mask"], action=b["ma"])
-				if not A.per_drone_reward:
+				if A.mix_critic:
+					m1, m2 = mq.mixed(q1.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1),
+					                  q2.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1),
+					                  b["o"], b["o"]["drone_mask"])
+					lq = nn.MSELoss()(m1, y) + nn.MSELoss()(m2, y)
+				elif not A.per_drone_reward:
 					qa1 = (q1.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1) * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
 					qa2 = (q2.gather(-1, b["ma"].unsqueeze(-1)).squeeze(-1) * dm).sum(-1, keepdim=True) / dm.sum(-1, keepdim=True)
 					lq = nn.MSELoss()(qa1, y) + nn.MSELoss()(qa2, y)
@@ -405,6 +422,8 @@ def main():
 				log_alpha.data.clamp_(np.log(1e-3), np.log(10.0))   # 안전장치
 				for pt, pp in zip(mq_t.parameters(), mq.parameters()):
 					pt.data.copy_((1 - TAU) * pt.data + TAU * pp.data)
+				# 혼합망은 눈금이 어긋나면 발산하므로 critic 손실과 목표값 크기를 함께 남긴다
+				last_lq, last_y = float(lq.detach()), float(y.detach().mean())
 
 		st = env.episode_stats()
 		row = {"episode": ep, "n_drones": env.num_drones, "n_dests": env.num_dests, "steps": t,
@@ -417,6 +436,8 @@ def main():
 		writer.add_scalar("train/delivered", st["delivered"], ep)
 		writer.add_scalar("train/relay_frac", row["relay_frac"], ep)
 		writer.add_scalar("train/alpha", float(log_alpha.exp()), ep)
+		writer.add_scalar("train/critic_loss", last_lq, ep)
+		writer.add_scalar("train/target_q", last_y, ep)
 		row_alpha = float(log_alpha.exp())
 		print(f"Ep {ep} | 드론{env.num_drones} 목적지{env.num_dests:2d} | {t:4d}스텝 | 배송 {st['delivered']:2d}/{env.num_dests} "
 		      f"| 재적재 {st['reloads']:2d} | 중계율 {row['relay_frac']:.2f} | alpha {row_alpha:.3f} | {st['term_reason']}", flush=True)

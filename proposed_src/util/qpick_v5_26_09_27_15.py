@@ -37,9 +37,9 @@ def actor_fn(ck, dev, ar, argmax=False):
 	return fn
 
 
-def critic_fn(ck, dev, n_act):
-	"""latest.pth의 critic을 드론별 Q 탐욕 정책으로 감싼다."""
-	c = SetManagerTwinQ(n_act).to(dev)
+def critic_fn(ck, dev, n_act, mix=False):
+	"""latest.pth의 critic을 드론별 Q 탐욕 정책으로 감싼다 (단조 혼합이면 argmax는 그대로다)."""
+	c = SetManagerTwinQ(n_act, mix=mix).to(dev)
 	c.load_state_dict(torch.load(os.path.join(ROOT, ck), map_location=dev)["critic"])
 	c.eval()
 
@@ -74,6 +74,7 @@ def main():
 	p = argparse.ArgumentParser()
 	p.add_argument("--dir", default="weights/v5_26_09_23_18_SWa")
 	p.add_argument("--autoregressive", action="store_true")
+	p.add_argument("--mix-critic", action="store_true", help="단조 혼합망으로 학습한 critic을 읽는다")
 	p.add_argument("--n", type=int, default=40)
 	p.add_argument("--reps", type=int, default=3)
 	p.add_argument("--seed0", type=int, default=501)
@@ -94,7 +95,7 @@ def main():
 	src = f"{args.dir}/latest.pth" if args.actor_latest else f"{args.dir}/best_manager.pth"
 	pol = (("actor 표본", actor_fn(src, dev, args.autoregressive)),
 	       ("actor 최빈", actor_fn(src, dev, args.autoregressive, True)),
-	       ("critic 탐욕", critic_fn(f"{args.dir}/latest.pth", dev, n_act)),
+	       ("critic 탐욕", critic_fn(f"{args.dir}/latest.pth", dev, n_act, args.mix_critic)),
 	       ("규칙+탈출", chain_escape_manager(60, 40, "shuffle")))
 	seeds = [(r, s) for r in range(args.reps) for s in range(args.seed0, args.seed0 + args.n)]
 	res = {}

@@ -65,6 +65,45 @@ class EntityEncoder(nn.Module):
 		return h, e_cand
 
 
+class MixNet(nn.Module):
+	"""드론별 값을 팀 값 하나로 합치는 단조 혼합망 (QMIX형 하이퍼네트워크).
+
+	가중치를 절댓값으로 쓰므로 팀 값은 각 드론 값에 대해 단조 증가한다 — 결합 행동의 최선이
+	드론별 argmax와 같다는 성질이 유지되면서, 가중치가 상태마다 달라 평균과 달리 드론별 분해가
+	식별된다 (평균은 합만 맞으면 어떤 분해든 손실이 같아 크레딧이 없다, 26-09-27 진단).
+	"""
+
+	def __init__(self, n_max, d_state, h=32):
+		super().__init__()
+		self.n, self.h = n_max, h
+		self.w1 = mlp(d_state, n_max * h, 64)
+		self.b1 = mlp(d_state, h, 64)
+		self.w2 = mlp(d_state, h, 64)
+		self.w2l = mlp(d_state, h, 64)
+		self.b2 = mlp(d_state, 1, 64)
+		# 초기값에서 팀 값이 부호와 무관하게 거의 정확히 드론 평균이 되도록 둔다 — 선형 경로에 1/h,
+		# 비선형 경로에 1e-4. 눈금이 어긋나면 MSE 기울기가 폭주해 혼합망 자체의 효과를 가린다.
+		# 비선형 경로를 정확히 0으로 두면 abs의 0에서의 기울기가 0이라 그 경로가 영구히 죽는다.
+		for m, v in ((self.w1, 1.0), (self.w2, 1e-4), (self.w2l, 1.0 / h), (self.b1, 0.0), (self.b2, 0.0)):
+			nn.init.zeros_(m[-1].weight)
+			nn.init.constant_(m[-1].bias, v)
+
+	def forward(self, v, state, dmask):
+		"""v (B,N) 드론별 값, state (B,d_state), dmask (B,N) -> 팀 값 (B,1)."""
+		B = v.shape[0]
+		nv = dmask.sum(-1, keepdim=True).clamp_min(1.0).unsqueeze(1)  # (B,1,1) 유효 드론 수
+		v = (v * dmask).unsqueeze(1)                                 # (B,1,N) — 패딩 드론은 0으로 기여 없음
+		w1 = self.w1(state).abs().view(B, self.n, self.h)
+		# 유효 드론 수로 나누어 드론 수가 달라도 눈금이 같게 한다 (양수 배율이므로 단조성 유지).
+		# 활성은 포화되지 않는 단조 함수 — ELU는 음수 쪽에서 -1로 눌려 음의 수익 구간에서 신호를 잃는다
+		lin = torch.bmm(v, w1) / nv + self.b1(state).unsqueeze(1)    # (B,1,h)
+		hid = F.leaky_relu(lin, 0.1)
+		# 단조 선형 경로를 함께 둔다. 활성만 쓰면 음수 쪽 기울기 0.1 때문에 눈금이 부호에 따라
+		# 달라지고, 학습 초기의 음의 목표값에서 예측이 10분의 1로 눌린다.
+		w2, w2l = self.w2(state).abs().unsqueeze(-1), self.w2l(state).abs().unsqueeze(-1)
+		return (torch.bmm(hid, w2) + torch.bmm(lin, w2l) + self.b2(state).unsqueeze(1)).squeeze(1)
+
+
 class SetManagerActor(nn.Module):
 	"""집합 관측에서 드론별 이산 행동 분포를 낸다. 후보는 포인터, 복귀·중계는 고정 헤드."""
 
@@ -137,10 +176,14 @@ class SetManagerTwinQ(nn.Module):
 	상태만 보는 Q로는 정할 수 없다 (사이클 13-16 진단, 26-10-01).
 	"""
 
-	def __init__(self, n_actions, d=128, heads=4, advice=False, joint=False):
+	def __init__(self, n_actions, d=128, heads=4, advice=False, joint=False, mix=False, n_max=8):
 		super().__init__()
 		self.k = n_actions
 		self.joint = joint
+		# 혼합망의 상태는 드론별 자기 특징의 유효 평균 + 유효 드론 비율이다. Q 머리와 분리해
+		# 두어야 QMIX처럼 "상태가 가중치를, 드론 값이 크기를" 정하는 구조가 된다.
+		self.mix1 = MixNet(n_max, F_SELF + 1) if mix else None
+		self.mix2 = MixNet(n_max, F_SELF + 1) if mix else None
 		self.enc1, self.enc2 = EntityEncoder(d, advice=advice), EntityEncoder(d, advice=advice)
 		self.team1 = nn.MultiheadAttention(d, heads, batch_first=True)
 		self.team2 = nn.MultiheadAttention(d, heads, batch_first=True)
@@ -150,6 +193,18 @@ class SetManagerTwinQ(nn.Module):
 		h, _ = enc(o)                                           # (B,N,d)
 		t, _ = team(h, h, h, key_padding_mask=~dmask)
 		return head(torch.cat([h, t], dim=-1))                  # (B,N,K)
+
+	def team_state(self, o, dmask):
+		"""혼합망에 줄 팀 상태: 유효 드론의 자기 특징 평균과 유효 드론 비율."""
+		m = dmask.unsqueeze(-1).float()
+		mean = (o["self"] * m).sum(1) / m.sum(1).clamp_min(1.0)
+		return torch.cat([mean, m.sum(1) / dmask.shape[1]], dim=-1)
+
+	def mixed(self, v1, v2, o, dmask):
+		"""드론별 값 두 벌을 단조 혼합망으로 각각 팀 값 (B,1)으로 합친다."""
+		s = self.team_state(o, dmask)
+		d = dmask.float()
+		return self.mix1(v1, s, d), self.mix2(v2, s, d)
 
 	def _with_actions(self, o, action):
 		"""결합 행동을 peer의 kind 원핫에 써넣은 관측 사본. actor의 자기회귀 쓰기와 같은 부호화."""
