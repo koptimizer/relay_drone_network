@@ -53,6 +53,40 @@ def critic_fn(ck, dev, n_act, mix=False):
 	return fn
 
 
+def critic_seq_fn(ck, dev, n_act):
+	"""순차 크레딧으로 학습한 critic의 탐욕 정책. 학습과 같은 순서로 한 대씩 argmax를 밟는다.
+
+	동시 argmax로 재면 학습 때 본 적 없는 관측(앞 드론의 역할이 비어 있는 상태)에서 평가하게 되어
+	그 critic의 정책이 아니다. 지표를 바꾸면 그 지표를 쓰는 경로를 함께 바꿔야 한다.
+	"""
+	c = SetManagerTwinQ(n_act).to(dev)
+	c.load_state_dict(torch.load(os.path.join(ROOT, ck), map_location=dev)["critic"])
+	c.eval()
+
+	def fn(e):
+		o = {k: torch.as_tensor(v, device=dev).unsqueeze(0) for k, v in e.manager_set_obs().items()}
+		msk = action_mask(e, dev).unsqueeze(0)
+		N = e.num_drones
+		peer = o["peer"].clone()
+		order = torch.argsort(o["self"][:, :, 1], dim=1, descending=True, stable=True)
+		act = np.zeros(N, dtype=np.int64)
+		with torch.no_grad():
+			for s in range(N):
+				j = int(order[0, s])
+				oo = dict(o)
+				oo["peer"] = peer
+				q1, q2 = c(oo)
+				q = torch.min(q1, q2)[0, j].masked_fill(~msk[0, j], -1e9)
+				aj = int(q.argmax())
+				act[j] = aj
+				kind = 3 if aj >= n_act - 1 else (1 if aj == n_act - 2 else 0)
+				peer = peer.clone()
+				peer[0, :, j, 5:9] = 0.0
+				peer[0, :, j, 5 + kind] = 1.0
+		return act
+	return fn
+
+
 def run(env, mf, seed, cc):
 	"""한 인스턴스를 굴려 makespan(미완주면 None)을 돌려준다."""
 	env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=seed, num_drones=env.num_drones,
@@ -75,6 +109,7 @@ def main():
 	p.add_argument("--dir", default="weights/v5_26_09_23_18_SWa")
 	p.add_argument("--autoregressive", action="store_true")
 	p.add_argument("--mix-critic", action="store_true", help="단조 혼합망으로 학습한 critic을 읽는다")
+	p.add_argument("--seq-decision", action="store_true", help="순차 크레딧 critic — 탐욕 정책도 순차로 밟는다")
 	p.add_argument("--n", type=int, default=40)
 	p.add_argument("--reps", type=int, default=3)
 	p.add_argument("--seed0", type=int, default=501)
@@ -95,7 +130,8 @@ def main():
 	src = f"{args.dir}/latest.pth" if args.actor_latest else f"{args.dir}/best_manager.pth"
 	pol = (("actor 표본", actor_fn(src, dev, args.autoregressive)),
 	       ("actor 최빈", actor_fn(src, dev, args.autoregressive, True)),
-	       ("critic 탐욕", critic_fn(f"{args.dir}/latest.pth", dev, n_act, args.mix_critic)),
+	       ("critic 탐욕", critic_seq_fn(f"{args.dir}/latest.pth", dev, n_act) if args.seq_decision
+	        else critic_fn(f"{args.dir}/latest.pth", dev, n_act, args.mix_critic)),
 	       ("규칙+탈출", chain_escape_manager(60, 40, "shuffle")))
 	seeds = [(r, s) for r in range(args.reps) for s in range(args.seed0, args.seed0 + args.n)]
 	res = {}

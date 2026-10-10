@@ -454,13 +454,19 @@ def main():
 				b = buf.sample(BATCH, dev)
 				bi = torch.arange(b["j"].shape[0], device=dev)
 				alpha = log_alpha.exp().detach()
+				# 호출 하나가 드론 수만큼의 결정으로 쪼개지고 그 사이 할인이 1이므로, 엔트로피 항을
+				# 그대로 쓰면 옵션 값에 드론 수만큼 누적돼 Q가 보상이 아니라 탐색량에 지배된다
+				# (실측: 목표 Q가 기존의 5배, critic 탐욕이 20개 중 4개만 완주, 26-10-11).
+				# 결정 수로 나누면 호출 전체의 엔트로피 압력이 동시 결정 때와 같아진다.
+				nsub = b["o"]["drone_mask"].float().sum(-1, keepdim=True).clamp_min(1.0)
+				al_e = alpha / nsub
 				with torch.no_grad():
 					lg2 = actor.logits(b["o2"])[bi, b["j2"]].masked_fill(~b["mask2"], -1e9)
 					p2 = F.softmax(lg2, dim=-1)
 					lp2 = torch.log(p2 + 1e-8)
 					nq1, nq2 = mq_t(b["o2"], b["o2"]["drone_mask"])
 					qn = torch.min(nq1, nq2)[bi, b["j2"]]
-					v2 = (p2 * (qn - alpha * lp2)).sum(-1, keepdim=True)
+					v2 = (p2 * (qn - al_e * lp2)).sum(-1, keepdim=True)
 					y = b["r"] + b["disc"] * (1 - b["d"]) * v2
 				q1, q2 = mq(b["o"], b["o"]["drone_mask"])
 				qa1 = q1[bi, b["j"]].gather(-1, b["a"].unsqueeze(-1))
@@ -474,7 +480,7 @@ def main():
 				with torch.no_grad():
 					qd1, qd2 = mq(b["o"], b["o"]["drone_mask"])
 					qmin = torch.min(qd1, qd2)[bi, b["j"]]
-				la = (p * (alpha * lp - qmin)).sum(-1).mean()
+				la = (p * (al_e * lp - qmin)).sum(-1).mean()
 				if A.rule_reg > 0.0:
 					ok = b["mask"].gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1).float()
 					nll = -lp.gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1)
