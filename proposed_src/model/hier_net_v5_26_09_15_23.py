@@ -115,6 +115,51 @@ class SetManagerActor(nn.Module):
 		l_fix = self.fixed(h)                                              # (B,N,2)
 		return torch.cat([l_cand, l_fix], dim=-1)                          # (B,N,K)
 
+	def _order(self, o):
+		"""결정 순서. 에피소드 시작에는 모든 드론이 제어 센터에 있어 거리가 동률이므로,
+		패딩 드론을 뒤로 밀고 안정 정렬을 써서 두 경로(forward·act_sequence)가 같은 순서를 낸다."""
+		key = o["self"][:, :, 1]
+		if "drone_mask" in o:
+			bad = -float("inf") if not self.ar_near else float("inf")
+			key = torch.where(o["drone_mask"], key, torch.full_like(key, bad))
+		return torch.argsort(key, dim=1, descending=not self.ar_near, stable=True)
+
+	def logits(self, o):
+		"""집합 관측에서 (B,N,K) 로짓 — 순차 크레딧 학습이 하위 결정 하나를 평가할 때 쓴다."""
+		return self._logits(o)
+
+	def act_sequence(self, o, mask, n=None):
+		"""결정 순서대로 한 대씩 표본하고, 각 하위 결정의 peer 사본·드론 번호·행동을 남긴다.
+
+		자기회귀 forward와 같은 분포를 내지만, 하위 결정 하나하나를 전이로 저장할 수 있도록
+		중간 상태(앞 드론들의 역할이 써넣어진 peer)를 함께 돌려준다 (사이클 22, 순차 크레딧).
+		"""
+		B, N = o["self"].shape[:2]
+		K = o["cand"].shape[2] + 2
+		peer = o["peer"].clone()
+		order = self._order(o)
+		action = torch.zeros(B, N, dtype=torch.long, device=peer.device)
+		steps = []
+		# n을 주면 실제 드론만 결정한다. 패딩 드론은 어텐션에서 가려지므로 역할을 써넣어도
+		# 분포가 같고, 전이로 저장하면 보상 없는 가짜 결정이 섞인다.
+		for s in range(N if n is None else min(n, N)):
+			j = int(order[0, s])
+			snap = peer[0].detach().cpu().numpy().copy()
+			oo = dict(o)
+			oo["peer"] = peer
+			lg = self._logits(oo)[0, j]
+			if mask is not None:
+				lg = lg.masked_fill(~mask[0, j], -1e9)
+			pj = F.softmax(lg, dim=-1)
+			aj = int(torch.distributions.Categorical(probs=pj).sample())
+			action[0, j] = aj
+			steps.append((snap, j, aj))
+			kind = 3 if aj >= K - 1 else (1 if aj == K - 2 else 0)
+			peer = peer.clone()
+			peer[0, :, j, 5:9] = 0.0
+			peer[0, :, j, 5 + kind] = 1.0
+		return action, steps
+
 	def forward(self, o, mask=None, given=None):
 		"""(행동, 확률, 로그확률)을 (B, N, ·) 형태로 반환한다.
 
@@ -134,7 +179,7 @@ class SetManagerActor(nn.Module):
 		B, N = o["self"].shape[:2]
 		K = o["cand"].shape[2] + 2
 		peer = o["peer"].clone()                                # (B,N,N,9) — kind 원핫은 5:9
-		order = torch.argsort(o["self"][:, :, 1], dim=1, descending=not self.ar_near)   # 기본 d_cc 큰 순
+		order = self._order(o)                              # 기본 d_cc 큰 순, 패딩은 뒤로
 		action = torch.zeros(B, N, dtype=torch.long, device=peer.device)
 		probs = torch.zeros(B, N, K, device=peer.device)
 		logp = torch.zeros(B, N, K, device=peer.device)

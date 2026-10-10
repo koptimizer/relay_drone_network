@@ -17,6 +17,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
@@ -72,6 +73,8 @@ P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
 P.add_argument("--ar-near", action="store_true", help="자기회귀 순서를 제어 센터에서 가까운 드론부터로 (사이클 19a)")
+P.add_argument("--seq-decision", action="store_true",
+               help="상위 결정을 드론별 동시 결정이 아니라 단일 에이전트의 순차 결정으로 학습한다 (사이클 22). 하위 결정 하나하나가 자기 행동가치를 가져 드론별 분해가 필요 없다")
 P.add_argument("--mix-critic", action="store_true",
                help="팀 값을 드론별 Q의 평균 대신 단조 혼합망으로 합친다 (사이클 20, QMIX형). 평균은 합만 맞으면 어떤 분해든 손실이 같아 드론별 크레딧이 없다")
 P.add_argument("--stall-redecide", type=int, default=0, help="부분 교착이 이 스텝만큼 이어지면 전 드론 재결정 (사이클 19b, 0=끔)")
@@ -192,6 +195,50 @@ class OptionBuffer:
 		return self.size
 
 
+class SeqBuffer:
+	"""하위 결정 단위 전이 버퍼 (사이클 22).
+
+	한 번의 상위 호출을 드론 수만큼의 결정으로 쪼개 담는다. 같은 호출 안의 결정 사이에는
+	시간이 흐르지 않으므로 보상 0·할인 1로 잇고, 마지막 결정만 환경 구간의 수익과 할인을 받는다.
+	단일 에이전트 전이가 되므로 팀 수익을 드론별로 분해할 필요가 없다.
+	"""
+
+	def __init__(self, cap=60000, C=5):
+		self.cap, self.ptr, self.size = cap, 0, 0
+		z = lambda *sh: np.zeros(sh, np.float32)
+		b = lambda *sh: np.zeros(sh, bool)
+		mk = lambda: dict(self=z(cap, N_MAX, 10), cand=z(cap, N_MAX, C, 6), cand_mask=b(cap, N_MAX, C),
+		                  peer=z(cap, N_MAX, N_MAX, 9), peer_mask=b(cap, N_MAX, N_MAX),
+		                  relay=z(cap, N_MAX, 4), drone_mask=b(cap, N_MAX))
+		self.o, self.o2 = mk(), mk()
+		self.j = np.zeros(cap, np.int64)
+		self.j2 = np.zeros(cap, np.int64)
+		self.a = np.zeros(cap, np.int64)
+		self.ra = np.zeros(cap, np.int64)
+		self.mask, self.mask2 = b(cap, K), b(cap, K)
+		self.r, self.disc, self.d = z(cap, 1), z(cap, 1), z(cap, 1)
+
+	def push(self, o, j, a, mask, r, disc, d, o2, j2, mask2, ra):
+		i = self.ptr
+		for k in self.o:
+			self.o[k][i], self.o2[k][i] = o[k], o2[k]
+		self.j[i], self.j2[i], self.a[i], self.ra[i] = j, j2, a, ra
+		self.mask[i], self.mask2[i] = mask, mask2
+		self.r[i], self.disc[i], self.d[i] = r, disc, d
+		self.ptr = (self.ptr + 1) % self.cap
+		self.size = min(self.size + 1, self.cap)
+
+	def sample(self, bs, dev):
+		idx = np.random.randint(0, self.size, bs)
+		t = lambda x: torch.as_tensor(x[idx], device=dev)
+		return dict(o={k: t(v) for k, v in self.o.items()}, o2={k: t(v) for k, v in self.o2.items()},
+		            j=t(self.j), j2=t(self.j2), a=t(self.a), ra=t(self.ra),
+		            mask=t(self.mask), mask2=t(self.mask2), r=t(self.r), disc=t(self.disc), d=t(self.d))
+
+	def __len__(self):
+		return self.size
+
+
 def act(env, actor, dev):
 	"""상위 정책으로 드론별 행동을 샘플링한다. (행동, 패딩 관측, 마스크) 반환."""
 	o = pad_obs(env.manager_set_obs(), env.num_drones)
@@ -202,6 +249,24 @@ def act(env, actor, dev):
 	with torch.no_grad():
 		a, _p, _ = actor(to_t(o, dev), mp.unsqueeze(0))
 	return a[0, :env.num_drones].cpu().numpy(), o, mp.cpu().numpy()
+
+
+def act_seq(env, actor, dev):
+	"""순차 결정으로 행동을 뽑고, 각 하위 결정의 (패딩 관측, 드론 번호, 행동, 마스크 행)을 함께 준다."""
+	o = pad_obs(env.manager_set_obs(), env.num_drones)
+	m = action_mask(env, dev, **MASK_KW)
+	mp = torch.zeros(N_MAX, K, dtype=torch.bool, device=dev)
+	mp[:env.num_drones] = m
+	mp[env.num_drones:, K - 2] = True
+	mpn = mp.cpu().numpy()
+	with torch.no_grad():
+		a, steps = actor.act_sequence(to_t(o, dev), mp.unsqueeze(0), n=env.num_drones)
+	sub = []
+	for snap, j, aj in steps:
+		oo = dict(o)
+		oo["peer"] = snap
+		sub.append({"o": oo, "j": j, "a": aj, "mask": mpn[j]})
+	return a[0, :env.num_drones].cpu().numpy(), sub
 
 
 def act_rule(env):
@@ -272,6 +337,10 @@ def main():
 	np.random.seed(A.seed)
 	if A.mix_critic and A.per_drone_reward:
 		raise SystemExit("--mix-critic과 --per-drone-reward는 같이 쓸 수 없다 (집계 방식이 상충)")
+	if A.seq_decision and (A.mix_critic or A.joint_critic or A.per_drone_reward or A.relay_credit or A.relay_share):
+		raise SystemExit("--seq-decision은 분해가 필요 없으므로 집계·크레딧 옵션과 같이 쓸 수 없다")
+	if A.seq_decision and not A.autoregressive:
+		raise SystemExit("--seq-decision은 자기회귀 결정 순서를 전제한다 (--autoregressive 필요)")
 	dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	inst_rng = np.random.default_rng(A.seed + 1000)
 	actor = SetManagerActor(advice=A.rule_obs, autoregressive=A.autoregressive, ar_near=A.ar_near).to(dev)
@@ -281,7 +350,7 @@ def main():
 	a_opt, q_opt = optim.Adam(actor.parameters(), lr=3e-4), optim.Adam(mq.parameters(), lr=3e-4)
 	log_alpha = torch.tensor(np.log(0.1), requires_grad=True, device=dev)
 	al_opt = optim.Adam([log_alpha], lr=3e-4)
-	buf = OptionBuffer()
+	buf = SeqBuffer() if A.seq_decision else OptionBuffer()
 
 	LOG_DIR, W_DIR = os.path.join(ROOT, "runs", A.tag), os.path.join(ROOT, "weights", A.tag)
 	os.makedirs(LOG_DIR, exist_ok=True), os.makedirs(W_DIR, exist_ok=True)
@@ -316,7 +385,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} 순차크레딧={A.seq_decision} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -335,7 +404,11 @@ def main():
 			env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=int(inst_rng.integers(0, 2 ** 31 - 1)),
 			                                            num_drones=env.num_drones, comm_range=env.comm_range)
 		env.reset()
-		a, o0, m0 = act(env, actor, dev)
+		if A.seq_decision:
+			a, sub0 = act_seq(env, actor, dev)
+			o0, m0 = sub0[0]["o"], sub0[0]["mask"]
+		else:
+			a, o0, m0 = act(env, actor, dev)
 		r0 = act_rule(env)
 		env.set_goals(a)
 		done, t, ep_tr, opt_r, opt_k, relay_n, dec_n = False, 0, 0.0, 0.0, 0, 0, 0
@@ -349,16 +422,75 @@ def main():
 			opt_k += 1
 			hl_now = (t % A.hl_every == 0) or bool(env.goal_invalid().any())
 			if hl_now or done:
-				a2, o2, m2 = act(env, actor, dev)
-				r2 = act_rule(env)
-				buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0, rv=opt_rv)
+				if A.seq_decision:
+					a2, sub2 = act_seq(env, actor, dev)
+					r2 = act_rule(env)
+					# 같은 호출 안의 결정은 보상 0·할인 1로 잇고, 마지막 결정만 환경 구간 수익을 받는다
+					for i, sd in enumerate(sub0):
+						last = (i == len(sub0) - 1)
+						nx = sub2[0] if last else sub0[i + 1]
+						buf.push(sd["o"], sd["j"], sd["a"], sd["mask"],
+						         opt_r if last else 0.0,
+						         (GAMMA ** opt_k) if last else 1.0,
+						         float(done) if last else 0.0,
+						         nx["o"], nx["j"], nx["mask"], int(r0[sd["j"]]))
+				else:
+					a2, o2, m2 = act(env, actor, dev)
+					r2 = act_rule(env)
+					buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0, rv=opt_rv)
 				relay_n += int((a == 6).sum()); dec_n += len(a)
 				if not done:
 					env.set_goals(a2)
-					a, o0, m0, r0, opt_r, opt_k = a2, o2, m2, r2, 0.0, 0
+					if A.seq_decision:
+						a, sub0, r0, opt_r, opt_k = a2, sub2, r2, 0.0, 0
+						o0, m0 = sub0[0]["o"], sub0[0]["mask"]
+					else:
+						a, o0, m0, r0, opt_r, opt_k = a2, o2, m2, r2, 0.0, 0
 					opt_rv = np.zeros(env.num_drones)
 
-			if len(buf) > WARMUP and t % A.update_every == 0:
+			if A.seq_decision and len(buf) > WARMUP and t % A.update_every == 0:
+				# 순차 크레딧: 하위 결정 하나가 곧 하나의 단일 에이전트 전이다. 팀 수익을 드론별로
+				# 나눌 필요가 없어 사이클 14·18·20이 막혔던 분해 문제가 아예 생기지 않는다.
+				b = buf.sample(BATCH, dev)
+				bi = torch.arange(b["j"].shape[0], device=dev)
+				alpha = log_alpha.exp().detach()
+				with torch.no_grad():
+					lg2 = actor.logits(b["o2"])[bi, b["j2"]].masked_fill(~b["mask2"], -1e9)
+					p2 = F.softmax(lg2, dim=-1)
+					lp2 = torch.log(p2 + 1e-8)
+					nq1, nq2 = mq_t(b["o2"], b["o2"]["drone_mask"])
+					qn = torch.min(nq1, nq2)[bi, b["j2"]]
+					v2 = (p2 * (qn - alpha * lp2)).sum(-1, keepdim=True)
+					y = b["r"] + b["disc"] * (1 - b["d"]) * v2
+				q1, q2 = mq(b["o"], b["o"]["drone_mask"])
+				qa1 = q1[bi, b["j"]].gather(-1, b["a"].unsqueeze(-1))
+				qa2 = q2[bi, b["j"]].gather(-1, b["a"].unsqueeze(-1))
+				lq = nn.MSELoss()(qa1, y) + nn.MSELoss()(qa2, y)
+				q_opt.zero_grad(); lq.backward(); nn.utils.clip_grad_norm_(mq.parameters(), 1.0); q_opt.step()
+
+				lg = actor.logits(b["o"])[bi, b["j"]].masked_fill(~b["mask"], -1e9)
+				p = F.softmax(lg, dim=-1)
+				lp = torch.log(p + 1e-8)
+				with torch.no_grad():
+					qd1, qd2 = mq(b["o"], b["o"]["drone_mask"])
+					qmin = torch.min(qd1, qd2)[bi, b["j"]]
+				la = (p * (alpha * lp - qmin)).sum(-1).mean()
+				if A.rule_reg > 0.0:
+					ok = b["mask"].gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1).float()
+					nll = -lp.gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1)
+					la = la + A.rule_reg * (nll * ok).sum() / ok.sum().clamp_min(1.0)
+				a_opt.zero_grad(); la.backward(); nn.utils.clip_grad_norm_(actor.parameters(), 1.0); a_opt.step()
+				ent = (-(p * lp).sum(-1)).mean()
+				n_valid = b["mask"].float().sum(-1).clamp_min(1.0)
+				target_ent = (ent_frac * torch.log(n_valid)).mean()
+				al = -(log_alpha * (target_ent - ent).detach())
+				al_opt.zero_grad(); al.backward(); al_opt.step()
+				log_alpha.data.clamp_(np.log(1e-3), np.log(10.0))
+				for pt, pp in zip(mq_t.parameters(), mq.parameters()):
+					pt.data.copy_((1 - TAU) * pt.data + TAU * pp.data)
+				last_lq, last_y = float(lq.detach()), float(y.detach().mean())
+
+			elif len(buf) > WARMUP and t % A.update_every == 0:
 				b = buf.sample(BATCH, dev)
 				dm = b["o"]["drone_mask"].float()
 				alpha = log_alpha.exp().detach()
