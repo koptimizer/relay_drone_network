@@ -73,6 +73,9 @@ P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
 P.add_argument("--ar-near", action="store_true", help="자기회귀 순서를 제어 센터에서 가까운 드론부터로 (사이클 19a)")
+P.add_argument("--init-actor", default="", help="지도학습(BC)으로 만든 actor 가중치로 시작한다 (사이클 23). critic은 무작위")
+P.add_argument("--critic-warmup", type=int, default=0,
+               help="처음 이만큼의 에피소드는 critic만 갱신한다. BC 초기화를 무작위 critic이 밀어내는 것을 막는다")
 P.add_argument("--seq-decision", action="store_true",
                help="상위 결정을 드론별 동시 결정이 아니라 단일 에이전트의 순차 결정으로 학습한다 (사이클 22). 하위 결정 하나하나가 자기 행동가치를 가져 드론별 분해가 필요 없다")
 P.add_argument("--mix-critic", action="store_true",
@@ -369,6 +372,9 @@ def main():
 		log_alpha.data.fill_(ck["log_alpha"])
 		start_ep, best, best_ep, stale = ck["episode"] + 1, ck["best"], ck["best_ep"], ck["stale"]
 		print(f"재개: ep{start_ep}, 최고 {best:.1f}@ep{best_ep} 정체 {stale}", flush=True)
+	if A.init_actor and not A.resume:
+		actor.load_state_dict(torch.load(os.path.join(ROOT, A.init_actor), map_location=dev))
+		print(f"BC 초기화: {A.init_actor} (critic은 무작위, critic 예열 {A.critic_warmup} 에피소드)", flush=True)
 	if A.init_from and not A.resume:
 		ck = torch.load(os.path.join(ROOT, A.init_from), map_location=dev, weights_only=False)
 		actor.load_state_dict(ck["actor"]); mq.load_state_dict(ck["critic"]); mq_t.load_state_dict(ck["critic_t"])
@@ -385,7 +391,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} 순차크레딧={A.seq_decision} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} BC초기화={bool(A.init_actor)}/critic예열={A.critic_warmup} 순차크레딧={A.seq_decision} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 
@@ -534,6 +540,12 @@ def main():
 					lq = ((((qa1 - y) ** 2 + (qa2 - y) ** 2) * dm).sum() / dm.sum())
 				q_opt.zero_grad(); lq.backward(); nn.utils.clip_grad_norm_(mq.parameters(), 1.0); q_opt.step()
 
+				if ep <= A.critic_warmup:
+					# critic 예열 구간: actor와 alpha는 건드리지 않는다
+					for pt, pp in zip(mq_t.parameters(), mq.parameters()):
+						pt.data.copy_((1 - TAU) * pt.data + TAU * pp.data)
+					last_lq, last_y = float(lq.detach()), float(y.detach().mean())
+					continue
 				_, p, lp = actor(b["o"], b["mask"], given=b["ma"])
 				with torch.no_grad():
 					# 결합 critic: 동료는 실제로 취한 행동에 고정하고 자기 K개 행동만 비교한다 (반사실 형태)
