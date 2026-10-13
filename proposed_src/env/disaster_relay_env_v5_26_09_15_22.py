@@ -753,7 +753,12 @@ class DisasterRelayDroneEnv:
 		extra = np.where(self.drones_capacity > 0, 0.0,
 		                 np.linalg.norm(self.drones_pos - self.cc_pos, axis=1)
 		                 + self.unload_time * self.max_speed)
-		eta = (d + extra[:, None]) / self.max_speed
+		# 실현 이동 비율로 나눈다. 연결성 투영에 막힌 드론은 명령대로 못 움직이므로 실제 도달이
+		# 늦다. 기하 거리만 쓰면 중계를 세워 동료를 풀어 주는 행동이 병목 ETA를 줄이지 않고,
+		# 오히려 배송 드론 하나가 빠져 ETA가 늘어 중계를 벌하게 된다 (26-10-13 관문에서 실측:
+		# 중계 비중이 대조군과 같음). move_ema는 명령 대비 실현 변위의 EMA다.
+		spd = self.max_speed * np.maximum(self.move_ema, 0.2)
+		eta = (d + extra[:, None]) / spd[:, None]
 		return float(eta.min(axis=0).max())
 
 	def global_state(self):
