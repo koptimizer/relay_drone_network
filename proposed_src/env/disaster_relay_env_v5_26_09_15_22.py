@@ -41,8 +41,14 @@ class DisasterRelayDroneEnv:
 	             relay_hold=0.02, num_drones=4, num_dests=50, n_far=0, commit_max=150,
 	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
 	             relay_credit=0.0, relay_share=0.0,
-	             coverage_shaping=0.0, stall_switch_bonus=0.0, stall_redecide=0):
+	             coverage_shaping=0.0, stall_switch_bonus=0.0, stall_redecide=0,
+	             bottleneck_penalty=0.0):
 		self.num_drones = num_drones
+		# 매 스텝 팀 보상에서 bottleneck_penalty x 드론수 x (병목 ETA / 100스텝)을 뺀다.
+		# 잔여 페널티는 미배송 '수'를 벌해 모든 배송 시각의 합(평균 완료 시간)을 줄이지만,
+		# makespan은 마지막 배송 하나만 본다. 병목 ETA는 가장 늦게 닿을 목적지의 예상 도달
+		# 시각이므로 그 적분을 줄이는 것이 makespan을 줄이는 것에 훨씬 가깝다 (사이클 24).
+		self.bottleneck_penalty = bottleneck_penalty
 		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
 		self.stall_redecide = stall_redecide
 		self.redecide_run = 0
@@ -537,6 +543,8 @@ class DisasterRelayDroneEnv:
 		team -= self.time_penalty * self.num_drones
 		if self.residual_penalty > 0.0:
 			team -= self.residual_penalty * self.num_drones * (self.dests_active.sum() / self.num_dests)
+		if self.bottleneck_penalty > 0.0:
+			team -= self.bottleneck_penalty * self.num_drones * (self.bottleneck_eta() / 100.0)
 		if self.blocked_penalty > 0.0:
 			team -= self.blocked_penalty * self._blocked_corr
 		if self.coverage_shaping > 0.0:
@@ -733,6 +741,20 @@ class DisasterRelayDroneEnv:
 			adv[np.arange(N), chain_manager(self)] = 1.0
 			out["advice"] = adv
 		return out
+
+	def bottleneck_eta(self):
+		"""미배송 목적지 중 가장 늦게 닿을 곳의 예상 도달 스텝. makespan의 느슨한 하한 근사다."""
+		act = np.flatnonzero(self.dests_active)
+		if len(act) == 0:
+			return 0.0
+		D = self.dests_pos[act]
+		d = np.linalg.norm(self.drones_pos[:, None, :] - D[None, :, :], axis=-1)   # (N, M)
+		# 적재가 빈 드론은 제어 센터를 거쳐야 한다 — 재적재 대기를 같은 거리 단위로 환산해 더한다
+		extra = np.where(self.drones_capacity > 0, 0.0,
+		                 np.linalg.norm(self.drones_pos - self.cc_pos, axis=1)
+		                 + self.unload_time * self.max_speed)
+		eta = (d + extra[:, None]) / self.max_speed
+		return float(eta.min(axis=0).max())
 
 	def global_state(self):
 		"""중앙 critic 입력: 전 드론 위치·적재량·연결, 목적지 활성 상태."""
