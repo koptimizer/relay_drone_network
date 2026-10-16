@@ -107,6 +107,7 @@ def main():
 	p.add_argument("--advice", action="store_true", help="규칙 조언 관측으로 학습한 집합 상위를 평가")
 	p.add_argument("--autoregressive", action="store_true", help="자기회귀 상위로 학습한 가중치를 평가")
 	p.add_argument("--ar-near", action="store_true", help="가까운 드론부터 결정하도록 학습한 가중치를 평가")
+	p.add_argument("--slide", action="store_true", help="연결성 투영을 경계 당김(접선 보존)으로 (사이클 25)")
 	p.add_argument("--stall-redecide", type=int, default=0, help="학습 정책에만 적용하는 정체 재결정 스텝 (학습과 같은 값)")
 	p.add_argument("--hybrid", type=int, nargs=4, action="append", default=[],
 	               metavar=("K", "HOLD", "MAXESC", "NPLIM"),
@@ -130,7 +131,7 @@ def main():
 	                            deadlock_limit=args.deadlock_limit,
 	                            no_progress_limit=args.no_progress_limit,
 	                            num_drones=args.num_drones, num_dests=args.num_dests,
-	                            rule_obs=args.advice)
+	                            rule_obs=args.advice, slide=args.slide)
 	# 학습 조건과 평가 조건을 일치시킨다 — v4에서 이 불일치로 결론이 세 번 뒤집혔다.
 	global MASK_KW, CC_MODE
 	CC_MODE = "random" if args.random_cc else None

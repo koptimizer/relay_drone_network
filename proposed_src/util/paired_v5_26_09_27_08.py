@@ -59,6 +59,7 @@ def main():
 	p.add_argument("--manager", default="weights/v5_26_09_23_18_SWa/best_manager.pth")
 	p.add_argument("--autoregressive", action="store_true")
 	p.add_argument("--ar-near", action="store_true", help="가까운 드론부터 결정하도록 학습한 가중치")
+	p.add_argument("--slide", action="store_true", help="연결성 투영을 경계 당김(접선 보존)으로 (사이클 25)")
 	p.add_argument("--stall-redecide", type=int, default=0, help="학습 정책에만 적용하는 정체 재결정 스텝 (학습과 같은 값)")
 	p.add_argument("--n", type=int, default=60)
 	p.add_argument("--reps", type=int, default=2)
@@ -75,7 +76,7 @@ def main():
 	dev = torch.device("cpu")
 	env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=args.max_steps,
 	                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
-	                            num_drones=args.num_drones, num_dests=args.num_dests)
+	                            num_drones=args.num_drones, num_dests=args.num_dests, slide=args.slide)
 	env.reset()
 	cc = "random" if args.random_cc else None
 	pol = (("규칙+탈출", chain_escape_manager(60, 40, "shuffle")), ("학습", learned(args.manager, dev, args.autoregressive, args.ar_near)))

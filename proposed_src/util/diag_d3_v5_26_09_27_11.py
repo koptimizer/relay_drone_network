@@ -37,8 +37,10 @@ def run(env, mf, seed):
 	return s, acc
 
 dev=torch.device('cpu'); torch.set_num_threads(2)
+SLIDE=len(sys.argv)>3 and sys.argv[3]=='slide'
 env=DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=10000,
-                          deadlock_limit=10**9, no_progress_limit=10**9, num_drones=3, num_dests=30)
+                          deadlock_limit=10**9, no_progress_limit=10**9, num_drones=3, num_dests=30,
+                          slide=SLIDE)
 env.reset()
 # 인자로 가중치를 주면 그것을 재고, 없으면 확정 제안(SWa)을 잰다
 CK=sys.argv[1] if len(sys.argv)>1 else 'weights/v5_26_09_23_18_SWa/best_manager.pth'

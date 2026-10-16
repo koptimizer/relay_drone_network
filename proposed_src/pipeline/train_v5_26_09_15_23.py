@@ -73,6 +73,8 @@ P.add_argument("--blocked-penalty", type=float, default=0.0, help="투영이 잘
 P.add_argument("--coverage-shaping", type=float, default=0.0, help="도달권(연결 드론 반경 안 미배송지 비율) 잠재 shaping 계수")
 P.add_argument("--autoregressive", action="store_true", help="상위 결정을 먼 드론부터 순차로 (앞 드론의 선택을 보고 결정)")
 P.add_argument("--ar-near", action="store_true", help="자기회귀 순서를 제어 센터에서 가까운 드론부터로 (사이클 19a)")
+P.add_argument("--slide", action="store_true",
+               help="연결성 투영을 '같은 방향 축소'에서 '통신 원판 경계로 당김'으로 바꾼다 (사이클 25). 멀어지는 성분만 자르고 접선 성분은 남는다")
 P.add_argument("--bottleneck-penalty", type=float, default=0.0,
                help="매 스텝 병목 ETA(가장 늦게 닿을 목적지의 예상 도달 스텝)에 비례해 팀 보상에서 뺀다 (사이클 24). 잔여 페널티는 평균 완료 시간을, 이것은 makespan을 겨냥한다")
 P.add_argument("--init-actor", default="", help="지도학습(BC)으로 만든 actor 가중치로 시작한다 (사이클 23). critic은 무작위")
@@ -132,7 +134,7 @@ def make_env(n, m):
 	                             relay_credit=A.relay_credit, relay_share=A.relay_share,
 	                             coverage_shaping=A.coverage_shaping, stall_switch_bonus=A.stall_switch_bonus,
 	                             stall_redecide=A.stall_redecide,
-	                             bottleneck_penalty=A.bottleneck_penalty)
+	                             bottleneck_penalty=A.bottleneck_penalty, slide=A.slide)
 
 
 def pad_obs(o, n):
@@ -394,7 +396,7 @@ def main():
 	print(f"집합 상위 학습 | 반경 {A.comm_range:.0f} 상한 {A.max_steps} 무배송 {A.no_progress_limit} "
 	      f"gamma {GAMMA} 구성={'무작위 드론' + str(A.drones_range) + str(A.drone_weights or '') + ' 목적지' + str(A.dests_range) + ' CC무작위' if A.random_config else f'고정 드론 {A.num_drones} 목적지 {A.num_dests}'} "
 	      f"인스턴스={'고정' if A.fixed_instance else '무작위'} 목표유지={A.commit_max if A.commit else 'off'} "
-	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 병목페널티={A.bottleneck_penalty} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} BC초기화={bool(A.init_actor)}/critic예열={A.critic_warmup} 순차크레딧={A.seq_decision} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
+	      f"완주보상={A.complete_bonus} 잔여페널티={A.residual_penalty} 병목페널티={A.bottleneck_penalty} 경계당김={A.slide} 규칙관측={A.rule_obs} 규칙정규화={A.rule_reg}/중계가중치={A.relay_reg} 막힘페널티={A.blocked_penalty} 중계크레딧={A.relay_credit}/재분배={A.relay_share}/드론별보상={A.per_drone_reward} 도달권shaping={A.coverage_shaping} 정체전환보상={A.stall_switch_bonus} 엔트로피비={A.ent_frac}->{A.ent_frac_final}@{A.ent_anneal_episodes} 자기회귀={A.autoregressive}/가까운순={A.ar_near} BC초기화={bool(A.init_actor)}/critic예열={A.critic_warmup} 순차크레딧={A.seq_decision} 혼합critic={A.mix_critic} 정체재결정={A.stall_redecide} 결합critic={A.joint_critic} 홀드아웃상한={A.holdout_steps} 선택={A.select}/속도가중치={A.speed_weight}", flush=True)
 	t0 = time.time()
 	env = make_env(A.num_drones, A.num_dests)
 

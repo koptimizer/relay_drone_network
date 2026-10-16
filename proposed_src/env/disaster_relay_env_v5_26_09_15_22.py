@@ -42,13 +42,18 @@ class DisasterRelayDroneEnv:
 	             complete_bonus=0.0, residual_penalty=0.0, rule_obs=False, blocked_penalty=0.0,
 	             relay_credit=0.0, relay_share=0.0,
 	             coverage_shaping=0.0, stall_switch_bonus=0.0, stall_redecide=0,
-	             bottleneck_penalty=0.0):
+	             bottleneck_penalty=0.0, slide=False):
 		self.num_drones = num_drones
 		# 매 스텝 팀 보상에서 bottleneck_penalty x 드론수 x (병목 ETA / 100스텝)을 뺀다.
 		# 잔여 페널티는 미배송 '수'를 벌해 모든 배송 시각의 합(평균 완료 시간)을 줄이지만,
 		# makespan은 마지막 배송 하나만 본다. 병목 ETA는 가장 늦게 닿을 목적지의 예상 도달
 		# 시각이므로 그 적분을 줄이는 것이 makespan을 줄이는 것에 훨씬 가깝다 (사이클 24).
 		self.bottleneck_penalty = bottleneck_penalty
+		# 연결성 투영 방식. False면 변위를 같은 방향으로 축소하므로 사슬을 당기는 드론은 사실상
+		# 멈춘다. True면 목표 위치를 통신 원판 경계로 당겨 멀어지는 성분만 자르고 접선 성분은
+		# 남긴다 (옆으로 도는 이동은 전속으로 살아남는다). 3/30에서 드론-시간의 32%가 축소로
+		# 사라지는 것이 규칙과의 격차의 근접 원인이다 (사이클 25).
+		self.slide = slide
 		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
 		self.stall_redecide = stall_redecide
 		self.redecide_run = 0
@@ -391,31 +396,78 @@ class DisasterRelayDroneEnv:
 				hi = mid
 		return lo
 
+	def _clamp_disk(self, m, eff, target):
+		"""목표 위치를 '어떤 노드와 통신 반경 안'이라는 원판의 가장 가까운 점으로 당긴다."""
+		pos = self.drones_pos + eff
+		idx = [j for j in range(self.num_drones) if j != m]
+		centers = np.vstack([self.cc_pos[None, :], pos[idx]]) if idx else self.cc_pos[None, :]
+		d = np.linalg.norm(target - centers, axis=1)
+		if (d <= self.comm_range).any():
+			return target
+		k = int(np.argmin(d))
+		# 경계 위에 정확히 놓으면 부동소수점 때문에 반경을 넘길 수 있어 아주 조금 안으로 넣는다
+		return centers[k] + (self.comm_range * (1.0 - 1e-9)) * (target - centers[k]) / d[k]
+
+	def _slide_disp(self, m, eff, want):
+		"""드론 m의 변위를 원판 경계로 당긴다. 원판은 볼록하므로 속도 상한 축소도 안전하다."""
+		p = self.drones_pos[m]
+		q = self._clamp_disk(m, eff, p + want)
+		disp = q - p
+		n, lim = np.linalg.norm(disp), np.linalg.norm(want)
+		if n > lim > 0.0:
+			disp = disp * (lim / n)
+		return disp
+
+	def _limit(self, m, eff, want):
+		"""드론 m의 변위를 연결 가능한 것으로 줄인다. slide면 경계 당김을 먼저 시도한다."""
+		if self.slide:
+			disp = self._slide_disp(m, eff, want)
+			trial = eff.copy()
+			trial[m] = disp
+			if self._bfs_connected(self.drones_pos + trial).all():
+				return disp
+		# 같은 방향 축소 (기존 방식). 상한은 이미 줄어든 현재 배율이다 — 1로 두면 앞서 제한한
+		# 드론이 다시 늘어나 루프가 진동한다.
+		lim = np.linalg.norm(want)
+		hi = 1.0 if lim <= 0.0 else min(1.0, float(np.linalg.norm(eff[m]) / lim))
+		lo = 0.0
+		for _ in range(5):
+			mid = 0.5 * (lo + hi)
+			trial = eff.copy()
+			trial[m] = want * mid
+			if self._bfs_connected(self.drones_pos + trial).all():
+				lo = mid
+			else:
+				hi = mid
+		return want * lo
+
 	def _project(self, delta, moving):
-		"""연결이 유지되도록 이동을 축소하고 드론별 변위 배율을 반환한다."""
-		scale = moving.astype(float)
-		at = lambda sc: self.drones_pos + delta * sc[:, None]
+		"""연결이 유지되는 드론별 변위 (N,2)를 반환한다."""
+		eff = delta * moving[:, None].astype(float)
+		if self._bfs_connected(self.drones_pos + eff).all():
+			return eff
 		for _ in range(self.num_drones):
-			if self._bfs_connected(at(scale)).all():
-				return scale
-			movers = np.flatnonzero(scale > 0.0)
-			if len(movers) == 0:
+			movers = [i for i in range(self.num_drones)
+			          if moving[i] and np.linalg.norm(eff[i]) > 1e-9]
+			if not movers:
 				break
 			# 제한했을 때 연결 드론 수가 가장 많아지는 드론을 고르고, 동점은 무작위로 깬다.
 			# 결정론적으로 깨면 사슬을 붙잡는 앵커 드론이 반복 선택되어 굶는다.
 			cand, cnts = {}, []
 			for m in movers:
-				sm = self._max_safe_scale(at, scale, m)
-				trial = scale.copy()
-				trial[m] = sm
-				cand[m] = sm
-				cnts.append(self._bfs_connected(at(trial)).sum())
+				disp = self._limit(m, eff, delta[m])
+				trial = eff.copy()
+				trial[m] = disp
+				cand[m] = disp
+				cnts.append(self._bfs_connected(self.drones_pos + trial).sum())
 			cnts = np.array(cnts)
-			m = int(self.rng.choice(movers[cnts == cnts.max()]))
-			scale[m] = cand[m]
-		if not self._bfs_connected(at(scale)).all():
-			scale[:] = 0.0     # 안전망: 직전 위치는 항상 연결 상태다
-		return scale
+			m = int(self.rng.choice(np.array(movers)[cnts == cnts.max()]))
+			eff[m] = cand[m]
+			if self._bfs_connected(self.drones_pos + eff).all():
+				return eff
+		if not self._bfs_connected(self.drones_pos + eff).all():
+			eff[:] = 0.0     # 안전망: 직전 위치는 항상 연결 상태다
+		return eff
 
 	# ---------- 전이 ----------
 
@@ -443,20 +495,25 @@ class DisasterRelayDroneEnv:
 		np.clip(self.drones_pos + delta, 0, self.map_size[0], out=(tmp := np.empty_like(delta)))
 		delta = tmp - self.drones_pos
 
-		scale = self._project(delta, moving)
+		eff = self._project(delta, moving)
+		# 진척 비율 = 명령 방향으로 실제로 간 비율. 같은 방향 축소면 기존 배율과 정확히 같고,
+		# 경계 당김이면 목표 쪽 성분만 센다 (옆으로 돈 거리는 목표 진척으로 치지 않는다).
+		cmd = np.linalg.norm(delta, axis=1)
+		scale = np.ones(self.num_drones)
+		nz = cmd > 1e-6
+		scale[nz] = np.clip(np.einsum("ij,ij->i", eff[nz], delta[nz]) / (cmd[nz] ** 2), 0.0, 1.0)
 		self._blocked_corr = 0.0
 		for i in range(self.num_drones):
 			if not moving[i]:
 				continue
 			corr = (1.0 - scale[i]) * np.linalg.norm(delta[i]) / self.max_speed
-			self.drones_pos[i] += delta[i] * scale[i]
+			self.drones_pos[i] += eff[i]
 			if corr > 1e-3:
 				self.blocked[i] += 1
 				w_rew[i] -= 0.1 * corr      # 잘려나간 변위에 비례
 				self._blocked_corr += corr
 
 		# 명령 대비 실현 변위 비율을 EMA로 추적한다. 상위가 교착을 인지하는 신호가 된다.
-		cmd = np.linalg.norm(delta, axis=1)
 		realized = np.where(cmd > 1e-6, scale, 1.0)
 		self.move_ema = self.stuck_decay * self.move_ema + (1 - self.stuck_decay) * realized
 		team_ratio = float(np.sum(cmd * scale) / max(1e-6, np.sum(cmd))) if cmd.sum() > 1e-6 else 1.0
