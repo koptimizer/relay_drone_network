@@ -138,7 +138,7 @@ def hybrid_manager(learned_fn, k_stall=60, hold=100, max_escapes=0, np_limit=0):
 
 # 휴리스틱(기하 사슬 + 교착 탈출)의 확정 파라미터. 사이클 26의 절제에서 고른 값으로 갱신한다.
 # 모든 평가·비교·시각화 스크립트는 인자 없이 chain_escape_manager()를 불러 이 값을 쓴다.
-ESC_K, ESC_HOLD, ESC_MODE = 60, 40, "shuffle"
+ESC_K, ESC_HOLD, ESC_MODE = 120, 20, "shuffle"
 
 
 def chain_escape_manager(k_stall=None, hold=None, mode=None):
