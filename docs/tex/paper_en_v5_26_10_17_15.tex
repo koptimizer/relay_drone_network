@@ -584,21 +584,25 @@ Both controllers were run without retraining at $R = 250$\,m and $R = 350$\,m
 and the instance generator rescales the reachable region $0.9NR$ with $R$, so both controllers see
 the same instances at each radius. Completion transfers: the learned policy completes every
 instance at both radii, while the heuristic loses 18 of 200 instances on $5/50$ at the shorter
-radius. Speed moves with the radius in the same direction as with fleet size. At $R=250$\,m a
-destination needs more hops, the fleet is effectively scarcer, and the heuristic's margin grows
-($+77$ on $3/30$, $+68$ on $4/50$) while the learned policy's advantage on $5/50$ shrinks to a tie
-($-16$, $p = 0.33$). At $R=350$\,m the fleet is effectively more plentiful and the learned policy
-is faster already with four drones ($-40$ on $4/50$) and keeps its margin with five ($-42$). The
-regime variable is therefore not the number of drones alone but the chain demand, the number of
-hops a destination needs relative to the drones available to supply them; the learned policy wins
-when there is slack in the chain and the heuristic wins when there is none.
+radius. Speed shows two effects. The first is the regime shift seen with fleet size: at
+$R=250$\,m a destination needs more hops, the fleet is effectively scarcer, and every
+configuration moves towards the heuristic ($+77$ on $3/30$, $+68$ on $4/50$, and the $5/50$
+advantage shrinks to a tie at $-16$, $p=0.33$); at $R=350$\,m the fleet is effectively more
+plentiful and the learned policy is faster already with four drones ($-40$ on $4/50$). The second
+is a training-radius effect: on $3/30$ and $5/50$ the learned policy's margin is best at the
+radius it was trained on and worse on both sides ($+30$ at 300\,m against $+77$ and $+52$;
+$-62$ against $-16$ and $-42$), so the normalisation by $R$ transfers completion but not the full
+speed. The regime variable is therefore the chain demand, the hops a destination needs relative
+to the drones available, rather than the fleet size alone, and a deployment at a radius far from
+the training radius should retrain or at least re-evaluate the boundary.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.6\linewidth]{fig_range_v5_26_10_17_15.pdf}
 \caption{Paired median difference against the communication radius without retraining
-(training radius 300\,m). Shorter radii move every configuration towards the heuristic, longer
-radii towards the learned policy.}
+(training radius 300\,m, dotted). A shorter radius moves every configuration towards the
+heuristic; a longer radius helps the learned policy on $4/50$ but not beyond its training-radius
+margin on $3/30$ and $5/50$.}
 \label{fig:range}
 \end{figure}
 

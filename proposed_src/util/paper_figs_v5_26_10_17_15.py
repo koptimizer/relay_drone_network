@@ -189,7 +189,10 @@ def fig_range(tag, files):
 	ax.axhline(0, color="#333", lw=0.8)
 	ax.set_xlabel("communication radius $R$ (m)")
 	ax.set_ylabel("paired median difference\n(learned − heuristic, steps)")
-	ax.legend(frameon=False, fontsize=8)
+	ax.set_xticks(Rs)
+	ax.axvline(300, color="#999", ls=":", lw=0.8)
+	ax.text(301, ax.get_ylim()[1], "training radius", fontsize=7, color="#777", va="top")
+	ax.legend(frameon=False, fontsize=8, loc="center right")
 	fig.tight_layout()
 	out = os.path.join(FIG, f"fig_range_v5_{tag}.pdf")
 	fig.savefig(out); plt.close(fig)
@@ -236,8 +239,13 @@ def main():
 	fig_cdf(A.tag, [(l, p) for l, n, p in sz if l in ("3/30", "4/50", "5/50")])
 	fig_heur(A.tag, F("heur_ablate_v5_26_10_17_15_*.csv"))
 	fig_milp(A.tag, F("toy_compare_v5_26_10_17_15.csv"))
-	fig_range(A.tag, [(R, lab, F(f"paired_R{R}_{lab.replace('/', '')}_SWa_v5_26_10_17_15.csv"))
-	                  for R in (250, 300, 350) for lab in ("3/30", "4/50", "5/50")])
+	lp = {l: p for l, n, p in sz}
+	base = {"3/30": lp["3/30"], "4/50": lp["4/50"], "5/50": lp["5/50"]}
+	rf = []
+	for lab in ("3/30", "4/50", "5/50"):
+		for R in (250, 300, 350):
+			rf.append((R, lab, base[lab] if R == 300 else F(f"paired_R{R}_{lab.replace('/', '')}_SWa_v5_26_10_17_15.csv")))
+	fig_range(A.tag, rf)
 	fig_latency(A.tag)
 
 
