@@ -435,20 +435,15 @@ the lattice and the policy is not.
 
 \begin{table}[t]
 \centering
-\caption{Lattice MILP reference plans versus the proposed controllers on small instances with
-three drones. \pending{To be filled from the batch.}}
+\caption{Lattice MILP reference plans versus the proposed controllers on instances with three
+drones (means over instances; makespan in steps). ``Solved'' counts instances for which the solver
+returned a feasible plan within the time limit; the gap is Gurobi's remaining optimality gap on
+the lattice model. The learned column gives the mean of per-instance medians over 30 samples and
+the overall min--max. The ratio column divides the heuristic and the learned median by the
+replayed MILP plan on solved instances.}
 \label{tab:milp}
 \small
-\begin{tabular}{rrrrrrr}
-\toprule
-$M$ & inst. & MILP plan (gap, time) & heuristic & learned median (range) & learned complete \\
-\midrule
-4 & \pending{10} & \pending{} & \pending{} & \pending{} & \pending{} \\
-6 & \pending{10} & \pending{} & \pending{} & \pending{} & \pending{} \\
-8 & \pending{10} & \pending{} & \pending{} & \pending{} & \pending{} \\
-10 & \pending{4} & \pending{} & \pending{} & \pending{} & \pending{} \\
-\bottomrule
-\end{tabular}
+\input{tab_milp_v5_26_10_17_15}
 \end{table}
 
 \subsection{RQ3: Performance across environments}
@@ -469,20 +464,7 @@ steps at five drones to 170 at ten. The boundary therefore lies at four drones.
 is slower than the heuristic. $p$ from the Wilcoxon signed-rank test on both-completed pairs.}
 \label{tab:paired}
 \small
-\begin{tabular}{lrrrrrr}
-\toprule
-$N/M$ & rollouts & median heuristic / learned & paired median & win--loss & $p$ \\
-\midrule
-3/20 & 80 & 366 / 422 & $+36$ & 20--60 & $<10^{-4}$ \\
-3/30 & 200 & 572 / 617 & $+40$ & 73--127 & $<10^{-4}$ \\
-4/50 (standard) & 480 & 868 / 872 & $+0$ & 236--236 & 0.88 \\
-4/80 & 80 & 1{,}109 / 1{,}048 & $-24$ & 49--30 & 0.026 \\
-5/50 & 200 & 570 / 532 & $-54$ & 141--45 & $<10^{-4}$ \\
-6/80 & 80 & 732 / 606 & $-126$ & 70--9 & $<10^{-4}$ \\
-8/150 & 80 & 916 / 740 & $-148$ & 75--5 & $<10^{-4}$ \\
-10/300 & 80 & 1{,}201 / 1{,}022 & $-170$ & 76--4 & $<10^{-4}$ \\
-\bottomrule
-\end{tabular}
+\input{tab_paired_v5_26_10_17_15}
 \end{table}
 
 \begin{figure}[t]
@@ -580,6 +562,16 @@ three-drone deficit is a property of how the constraint is enforced rather than 
 measured on $3/30$, $4/50$ and $5/50$; the learned policy normalises distances by $R$ and the
 instance generator rescales the reachable region with $R$, so both see the same instances.}
 
+\begin{table}[t]
+\centering
+\caption{Transfer to other communication radii without retraining. Cells give completions
+(heuristic/learned) and the paired median difference with win--loss and $p$; $R=300$\,m is the
+training radius.}
+\label{tab:range}
+\small
+\input{tab_range_v5_26_10_17_15}
+\end{table}
+
 \subsection{RQ4: Are the components necessary?}
 \label{sec:rq4}
 
@@ -594,19 +586,12 @@ completes 0--65\%.
 
 \begin{table}[t]
 \centering
-\caption{Heuristic ablation on tuning seeds (completion and median makespan over completed
-instances). \pending{To be filled.}}
+\caption{Heuristic ablation on tuning seeds disjoint from the evaluation seeds (40 instances per
+configuration). Cells give completed instances and the median makespan over completed instances;
+the last column sums completions over the three configurations.}
 \label{tab:heur-ablation}
 \small
-\begin{tabular}{llrrrr}
-\toprule
-mode & $k_{\mathrm{stall}}$ / $h_{\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & total completion \\
-\midrule
-none & --- & \pending{} & \pending{} & \pending{} & \pending{} \\
-lead swap & 60 / 40 & \pending{} & \pending{} & \pending{} & \pending{} \\
-\multicolumn{6}{l}{\pending{selected rows}} \\
-\bottomrule
-\end{tabular}
+\input{tab_heur_v5_26_10_17_15}
 \end{table}
 
 \paragraph{Learned policy}

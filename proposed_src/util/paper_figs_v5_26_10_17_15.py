@@ -224,9 +224,9 @@ def main():
 		      ("5/50", 5, F(f"paired_d5_SWa_{A.suffix}.csv")), ("6/80", 6, F(f"paired_d6m80_SWa_{A.suffix}.csv")),
 		      ("8/150", 8, F(f"paired_d8m150_SWa_{A.suffix}.csv")), ("10/300", 10, F(f"paired_d10m300_SWa_{A.suffix}.csv"))]
 	else:
-		sz = [("3/20", 3, F("paired_size_d3_m20_v5_26_10_02_11.csv")), ("3/30", 3, F("paired200_d3_SWa_v5_26_09_27_08.csv")),
+		sz = [("3/20", 3, F("paired_size_d3_m20_v5_26_10_02_11.csv")), ("3/30", 3, F("paired_d3_rep5_v5_26_09_27_11.csv")),
 		      ("4/50", 4, F("paired_std480_SWa_v5_26_10_02_12.csv")), ("4/80", 4, F("paired_size_d4_m80_v5_26_10_02_11.csv")),
-		      ("5/50", 5, F("paired200_d5_SWa_v5_26_09_27_08.csv")), ("6/80", 6, F("paired_size_d6_m80_v5_26_10_02_11.csv")),
+		      ("5/50", 5, F("paired_d5_rep5_v5_26_09_27_11.csv")), ("6/80", 6, F("paired_size_d6_m80_v5_26_10_02_11.csv")),
 		      ("8/150", 8, F("paired_size_d8_m150_v5_26_10_02_11.csv")), ("10/300", 10, F("paired_size_d10_m300_v5_26_10_02_11.csv"))]
 	fig_regime(A.tag, sz)
 	fig_cdf(A.tag, [(l, p) for l, n, p in sz if l in ("3/30", "4/50", "5/50")])
