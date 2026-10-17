@@ -277,9 +277,9 @@ replaced by the next-farthest drone with cargo and the former lead returns to th
 $n$-th escape of an episode the $n$-th farthest drone becomes the lead, so that repeated escapes
 cycle through the fleet. An alternative escape mode, in which every drone except the lead retreats
 towards the centre to slacken the chain, is also implemented. The values
-$k_{\mathrm{stall}}$, $h_{\mathrm{hold}}$ and the mode are selected in
-Section~\ref{sec:rq4-heuristic} on seeds disjoint from the evaluation seeds; the selected setting
-is used in every comparison in this paper.
+$k_{\mathrm{stall}} = 120$, $h_{\mathrm{hold}} = 20$ and the lead-swap mode are selected in
+Section~\ref{sec:rq4-heuristic} on seeds disjoint from the evaluation seeds; this setting is used
+in every comparison in this paper.
 
 \subsection{Fleet-size-agnostic learned policy}
 \label{sec:learned}
@@ -577,12 +577,18 @@ training radius.}
 
 \paragraph{Heuristic}
 \label{sec:rq4-heuristic}
-\pending{Table~\ref{tab:heur-ablation}: grid over $k_{\mathrm{stall}} \in \{30,60,90,120\}$,
-$h_{\mathrm{hold}} \in \{20,40,80\}$, mode $\in$ \{lead swap, retreat\} and no escape, on
-$3/30$, $4/50$ and $5/50$ with 40 tuning seeds each; the selected setting is fixed for the whole
-paper.} The escape mechanism is necessary: without it the rule completes 61.7\% of standard
-instances and 95\% of $3/30$. The adaptive relay count is necessary: fixing one or two relays
-completes 0--65\%.
+Table~\ref{tab:heur-ablation} grids $k_{\mathrm{stall}} \in \{30,60,90,120\}$,
+$h_{\mathrm{hold}} \in \{20,40,80\}$ and the two escape modes, plus no escape, on $3/30$,
+$4/50$ and $5/50$ with 40 tuning seeds each, and ranks settings by total completions first and
+the sum of median makespans second; this criterion was fixed before the measurement. The escape
+mechanism is necessary: without it the rule completes 26 of 40 standard instances. The mode
+matters more than the timing: every lead-swap setting completes 117--120 of 120 instances, while
+retreat settings complete 100--117 because slackening the chain does not change the assignment
+that caused the stall. Within the lead-swap family the medians differ by at most 40 steps summed
+over three configurations, which is within the noise of 40 instances; the selected setting
+($k_{\mathrm{stall}}=120$, $h_{\mathrm{hold}}=20$) is the only one that completes all 120 and
+also has the lowest median sum. The adaptive relay count is necessary as well: fixing one or two
+relays completes 0--65\% (Table~\ref{tab:completion}).
 
 \begin{table}[t]
 \centering

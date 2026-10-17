@@ -53,7 +53,10 @@ def tab_heur(tag):
 			cells.append(f"{r['complete']}/{r['n']} \\,/\\, {r['median'] or '---'}")
 		mode = {"none": "none", "shuffle": "lead swap", "retreat": "retreat"}[k[0]]
 		par = "---" if k[0] == "none" else f"{k[1]} / {k[2]}"
-		lines.append(f"{mode} & {par} & " + " & ".join(cells) + f" & {cs}/120 \\\\")
+		line = f"{mode} & {par} & " + " & ".join(cells) + f" & {cs}/120 \\\\"
+		if k == ("shuffle", 120, 20):
+			line = "\\textbf{" + mode + "} & \\textbf{" + par + "} & " + " & ".join(cells) + f" & \\textbf{{{cs}/120}} \\\\"
+		lines.append(line)
 	with open(os.path.join(TEX, f"tab_heur_v5_{tag}.tex"), "w") as f:
 		f.write("\\begin{tabular}{llrrrr}\n\\toprule\nmode & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & completions \\\\\n\\midrule\n"
 		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
