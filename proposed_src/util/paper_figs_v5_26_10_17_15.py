@@ -152,18 +152,19 @@ def fig_milp(tag, csv_path):
 		milp = [float(r["replay"]) if r["replay"] else np.nan for r in sel]
 		heur = [float(r["heuristic"]) if r["heuristic"] else np.nan for r in sel]
 		lm = [float(r["learned_median"]) if r["learned_median"] else np.nan for r in sel]
-		lo = [float(r["learned_min"]) if r["learned_min"] else np.nan for r in sel]
-		hi = [float(r["learned_max"]) if r["learned_max"] else np.nan for r in sel]
+		lo = [float(r["learned_q1"]) if r.get("learned_q1") else np.nan for r in sel]
+		hi = [float(r["learned_q3"]) if r.get("learned_q3") else np.nan for r in sel]
 		ax.plot(x, milp, "s", color="#444", ms=4, label="MILP plan (replayed)")
 		ax.plot(x, heur, "o", color=C_H, ms=4, label="heuristic")
 		ax.errorbar(x, lm, yerr=[np.array(lm) - np.array(lo), np.array(hi) - np.array(lm)], fmt="^", color=C_L,
-		            ms=4, elinewidth=0.6, capsize=1.5, label="learned median (min–max)")
+		            ms=4, elinewidth=0.6, capsize=1.5, label="learned median (IQR of 30 samples)")
 		ax.set_title(f"$M={M}$", fontsize=9)
 		ax.set_xlabel("instance")
 		ax.set_xticks(x); ax.set_xticklabels([r["seed"] for r in sel], fontsize=6, rotation=90)
 	axes[0].set_ylabel("makespan (steps)")
-	axes[0].legend(frameon=False, fontsize=6.5, loc="upper left")
-	fig.tight_layout()
+	h, l = axes[0].get_legend_handles_labels()
+	fig.legend(h, l, frameon=False, fontsize=7, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.02))
+	fig.tight_layout(rect=(0, 0, 1, 0.93))
 	out = os.path.join(FIG, f"fig_milp_v5_{tag}.pdf")
 	fig.savefig(out); plt.close(fig)
 	print("저장:", out)

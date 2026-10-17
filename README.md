@@ -58,6 +58,7 @@ python3 proposed_src/pipeline/eval_v5_26_09_15_23.py --n 40 --arch set --autoreg
     --num-drones 5 --num-dests 50 --random-cc --manager weights/v5_26_09_23_18_SWa/best_manager.pth
 
 # MILP 참조 모형 (작은 인스턴스, Gurobi 필요. 수식은 docs/tex/legacy/milp_en_v5_26_09_21_03.pdf)
+# 논문: docs/tex/paper_en_v5_26_10_17_15.tex (pdflatex), 한글본 paper_ko_v5_26_10_17_15.tex (lualatex)
 python3 proposed_src/pipeline/milp_v5_26_09_21_03.py --num-drones 3 --num-dests 6 \
     --kappa 10 --time-limit 1800 --norel 150
 

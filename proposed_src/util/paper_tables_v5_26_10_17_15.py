@@ -20,13 +20,13 @@ TEX = os.path.join(ROOT, "docs", "tex")
 LANG = "en"
 H = {
 	"en": dict(heur="mode & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & completions",
-	           milp="$M$ & inst. & MILP plan & heuristic & learned median (range) & learned complete & ratio h / l",
+	           milp="$M$ & inst. & plan / replayed / optimal & gap & min & MILP replay & heuristic & learned median (range) & ratio h / l",
 	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
 	           paired="$N/M$ & rollouts & complete h/l & median heuristic / learned & paired median & win--loss & $p$",
 	           modes={"none": "none", "shuffle": "lead swap", "retreat": "retreat"},
 	           solved="solved", none="none", tried="tried"),
 	"ko": dict(heur="방식 & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & 완주 합",
-	           milp="$M$ & 인스턴스 & MILP 계획 & 휴리스틱 & 학습 중앙값 (범위) & 학습 완주 & 비율 h / l",
+	           milp="$M$ & 인스턴스 & 계획 / 재생 / 최적 & 갭 & 분 & MILP 재생 & 휴리스틱 & 학습 중앙값 (범위) & 비율 h / l",
 	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
 	           paired="$N/M$ & 롤아웃 & 완주 h/l & 중앙값 휴리스틱 / 학습 & 쌍별 중앙 & 승--패 & $p$",
 	           modes={"none": "없음", "shuffle": "선두 교대", "retreat": "후퇴"},
@@ -83,39 +83,36 @@ def tab_heur(tag):
 
 
 def tab_milp(tag):
+	"""M별 요약: 계획 수/재생 성공 수, 재생 MILP 평균, 휴리스틱·학습 평균과 MILP 대비 비율, 풀이 시간."""
 	p = os.path.join(FIG, "toy_compare_v5_26_10_17_15.csv")
 	if not os.path.exists(p):
 		return
 	rows = list(csv.DictReader(open(p, encoding="utf-8")))
+	h = H[LANG]
 	lines = []
 	for M in sorted(set(int(r["dests"]) for r in rows)):
 		sel = [r for r in rows if int(r["dests"]) == M]
-		solved = [r for r in sel if r["replay"]]
-		gaps = [float(r["milp_gap"]) for r in solved if r["milp_gap"] not in ("", "None")]
+		plan = [r for r in sel if r["milp"] not in ("", "None")]
+		rep = [r for r in plan if r["replay"]]
+		opt = [r for r in plan if r["milp_gap"] not in ("", "None") and float(r["milp_gap"]) == 0.0]
 		secs = [float(r["milp_sec"]) for r in sel if r["milp_sec"] not in ("", "None")]
-		mp = [float(r["replay"]) for r in solved]
-		he = [float(r["heuristic"]) for r in sel if r["heuristic"]]
-		lm = [float(r["learned_median"]) for r in sel if r["learned_median"]]
-		lmin = [float(r["learned_min"]) for r in sel if r["learned_min"]]
-		lmax = [float(r["learned_max"]) for r in sel if r["learned_max"]]
-		comp = [r["learned_complete"] for r in sel]
-		# 완주 분수 합
-		num = sum(int(c.split("/")[0]) for c in comp); den = sum(int(c.split("/")[1]) for c in comp)
-		h = H[LANG]
-		milp_cell = (f"{np.mean(mp):.0f} ({len(solved)}/{len(sel)} {h['solved']}; gap {100*np.mean(gaps):.0f}\\%; "
-		             f"{np.mean(secs)/60:.0f}\\,min)" if solved else f"{h['none']} ({len(sel)} {h['tried']}; {np.mean(secs)/60:.0f}\\,min)")
-		he_cell = f"{np.mean(he):.0f}" if he else "---"
-		lm_cell = f"{np.mean(lm):.0f} ({np.min(lmin):.0f}--{np.max(lmax):.0f})" if lm else "---"
-		# 휴리스틱·학습 대비 MILP 비율 (풀린 인스턴스만)
-		if solved:
-			rh = np.mean([float(r["heuristic"]) / float(r["replay"]) for r in solved if r["heuristic"]])
-			rl = np.mean([float(r["learned_median"]) / float(r["replay"]) for r in solved if r["learned_median"]])
+		he = [float(r["heuristic"]) for r in sel]
+		lm = [float(r["learned_median"]) for r in sel]
+		lmin = min(float(r["learned_min"]) for r in sel); lmax = max(float(r["learned_max"]) for r in sel)
+		if rep:
+			mp = np.mean([float(r["replay"]) for r in rep])
+			rh = np.mean([float(r["heuristic"]) / float(r["replay"]) for r in rep])
+			rl = np.mean([float(r["learned_median"]) / float(r["replay"]) for r in rep])
+			milp_cell = f"{mp:.0f}"
 			ratio = f"{rh:.2f} / {rl:.2f}"
 		else:
-			ratio = "---"
-		lines.append(f"{M} & {len(sel)} & {milp_cell} & {he_cell} & {lm_cell} & {num}/{den} & {ratio} \\\\")
+			milp_cell, ratio = "---", "---"
+		gaps = [float(r["milp_gap"]) for r in plan if r["milp_gap"] not in ("", "None")]
+		gap_cell = f"{100*np.mean(gaps):.0f}\\%" if gaps else "---"
+		lines.append(f"{M} & {len(sel)} & {len(plan)} / {len(rep)} / {len(opt)} & {gap_cell} & {np.mean(secs)/60:.0f} & "
+		             f"{milp_cell} & {np.mean(he):.0f} & {np.mean(lm):.0f} ({lmin:.0f}--{lmax:.0f}) & {ratio} \\\\")
 	with open(os.path.join(TEX, f"tab_milp_v5_{suffix(tag)}.tex"), "w") as f:
-		f.write("\\begin{tabular}{rrlrrrr}\n\\toprule\n" + H[LANG]["milp"] + " \\\\\n\\midrule\n"
+		f.write("\\begin{tabular}{rrcrrrrrr}\n\\toprule\n" + h["milp"] + " \\\\\n\\midrule\n"
 		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
 	print("tab_milp:", len(lines), "행")
 

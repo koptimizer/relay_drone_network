@@ -66,6 +66,7 @@ def main():
 		                 milp=d["milp_steps"], milp_gap=d["gap"], milp_bound=d["bound_steps"], milp_sec=d["solve_sec"],
 		                 replay=(d["replay"] or {}).get("makespan") if d.get("replay") else "",
 		                 heuristic=h, learned_median=int(np.median(lv)) if lv else "",
+		                 learned_q1=int(np.percentile(lv, 25)) if lv else "", learned_q3=int(np.percentile(lv, 75)) if lv else "",
 		                 learned_mean=round(float(np.mean(lv)), 1) if lv else "",
 		                 learned_min=min(lv) if lv else "", learned_max=max(lv) if lv else "",
 		                 learned_complete=f"{len(lv)}/{A.reps}"))

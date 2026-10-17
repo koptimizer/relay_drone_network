@@ -1,0 +1,21 @@
+{
+ "drones": 3,
+ "dests": 8,
+ "seed": 910,
+ "kappa": 10,
+ "spacing": 98.2,
+ "nodes": 105,
+ "horizon": 20,
+ "binaries": 7155,
+ "variables": 57259,
+ "rows": 67328,
+ "status": 9,
+ "gap": null,
+ "milp_periods": null,
+ "milp_steps": null,
+ "bound_steps": 100.0,
+ "solve_sec": 7200.0,
+ "rule_makespan": 160,
+ "rule_delivered": 8,
+ "replay": null
+}

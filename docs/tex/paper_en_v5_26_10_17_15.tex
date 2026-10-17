@@ -388,13 +388,14 @@ is not needed still gets stationed and stalls. Without the escape mechanism the 
 pulls the fleet apart, and fixed relay counts are wrong for most instances because the number of
 relays a destination needs varies with its distance.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Completion within the 10{,}000-step budget. Learning-free baselines on 120 (standard)
 or 40 (unseen) rollouts; the two proposed controllers on the paired rollout counts of
 Section~\ref{sec:setup}.}
 \label{tab:completion}
-\small
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{lrrr}
 \toprule
 Method & $4/50$ standard & $3/30$ & $5/50$ \\
@@ -402,49 +403,70 @@ Method & $4/50$ standard & $3/30$ & $5/50$ \\
 Greedy, no relay & 0\% & 0\% & 25\% \\
 One fixed relay & 0\% & 2.5\% & 40\% \\
 Two fixed relays & 3.3\% & 52.5\% & 65\% \\
-Geometric rule, no escape & 61.7\% & 95\% & 92.5\% \\
-Geometric rule + escape (proposed) & 473/480 & 200/200 & 191/200 \\
-Learned policy (proposed) & \textbf{480/480} & \textbf{200/200} & \textbf{200/200} \\
+Rule, no escape & 61.7\% & 95\% & 92.5\% \\
+Rule + escape (proposed) & 473/480 & 200/200 & 191/200 \\
+Learned (proposed) & \textbf{480/480} & \textbf{200/200} & \textbf{200/200} \\
 \midrule
  & $3/20$ & $4/80$ & $6/80$ \\
-Geometric rule + escape (proposed) & 80/80 & 80/80 & 79/80 \\
-Learned policy (proposed) & \textbf{80/80} & \textbf{80/80} & \textbf{80/80} \\
+Rule + escape (proposed) & 80/80 & 80/80 & 79/80 \\
+Learned (proposed) & \textbf{80/80} & \textbf{80/80} & \textbf{80/80} \\
 \midrule
  & $8/150$ & $10/300$ & \\
-Geometric rule + escape (proposed) & 80/80 & 80/80 & \\
-Learned policy (proposed) & \textbf{80/80} & \textbf{80/80} & \\
+Rule + escape (proposed) & 80/80 & 80/80 & \\
+Learned (proposed) & \textbf{80/80} & \textbf{80/80} & \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \subsection{RQ2: Distance to the lattice reference plan}
 \label{sec:rq2}
 
-\pending{Table~\ref{tab:milp} is being filled from the batch described in
-Section~\ref{sec:setup}: ten instances each for $M \in \{4,6,8\}$ and four for $M=10$ with three
-drones, time limits of 30 to 120 minutes.} On the instance solved in the earlier study the
-reference plan for four destinations is 138 steps after 600 seconds with a 42\% optimality gap
-remaining; the heuristic takes 145 and the learned policy a median of 134 over 30 samples
-(range 114--287). For six destinations the plan is 176 steps, the heuristic 185 and the learned
-median 168 (range 146--484). For ten destinations no feasible plan was found in 90 minutes; the
-heuristic takes 244 and the learned median 301. Two points carry over to the full batch. The
-heuristic is within 5\% of the reference plan where one exists, so the comparison in RQ3 is
-against a strong controller rather than a weak one. The learned policy's median is below the
-reference plan on the smallest instances, which is not a contradiction: the plan is restricted to
-the lattice and the policy is not.
+Table~\ref{tab:milp} and Figure~\ref{fig:milp} compare the two controllers with the lattice
+reference on 34 instances with three drones: ten each for $M \in \{4, 6, 8\}$ and four for
+$M = 10$, with time limits of 30, 60, 120 and 120 minutes and six solver threads. Every plan the
+solver returns is replayed in the continuous simulator, and the replayed makespan is the number
+we compare against; one plan for $M=8$ delivered only seven of eight destinations on replay and
+is counted as found but not replayed.
+
+Three observations follow. First, the solver's reach ends between six and eight destinations:
+it returns plans for 9 of 10 instances with four destinations (four of them certified optimal on
+the lattice), 8 of 10 with six, 3 of 10 with eight, and none of the four with ten within two
+hours. The bottleneck is feasibility rather than optimality; the remaining gaps on returned plans
+are 12--36\%. Second, where a replayed plan exists both controllers are close to it: the
+heuristic's makespan averages 1.00, 1.07 and 1.07 times the plan for four, six and eight
+destinations, and the learned policy's per-instance median averages 0.94, 0.99 and 0.91 times
+the plan. Both are sometimes faster than the plan, including on instances where the lattice
+optimum is certified, which is not a contradiction: the lattice restricts where a drone may be,
+so its optimum is an upper bound on the continuous optimum and a continuous controller can beat
+it. Third, the learned policy's samples are wide. Its median is at or below the heuristic on most
+instances, but its range over 30 samples spans up to a factor of five on a single instance
+(1{,}142 against a median of 206 on one $M=8$ instance), which is the same tail behaviour as in
+Section~\ref{sec:rq3}. The comparison in RQ3 is therefore against a heuristic that is within a few
+percent of the best plan an exact method can produce at this scale, and the reference stops being
+available exactly where the controllers are needed.
 
 \begin{table*}[t]
 \centering
-\caption{Lattice MILP reference plans versus the proposed controllers on instances with three
-drones (means over instances; makespan in steps). ``Solved'' counts instances for which the solver
-returned a feasible plan within the time limit; the gap is Gurobi's remaining optimality gap on
-the lattice model. The learned column gives the mean of per-instance medians over 30 samples and
-the overall min--max. The ratio column divides the heuristic and the learned median by the
-replayed MILP plan on solved instances.}
+\caption{Lattice MILP reference versus the proposed controllers on instances with three drones
+(makespan in steps, means over instances). ``plan / replayed / optimal'' counts instances where the
+solver returned a plan, where that plan replayed to completion in the simulator, and where the
+lattice optimum was certified (gap 0); ``gap'' is the mean remaining optimality gap on returned
+plans and ``min'' the mean solver time. The learned column gives the mean of per-instance medians
+over 30 samples and the overall min--max. The ratio column divides the heuristic and the learned
+median by the replayed plan, averaged over replayed instances.}
 \label{tab:milp}
 \small
 \input{tab_milp_v5_26_10_17_15}
 \end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_milp_v5_26_10_17_15.pdf}
+\caption{Per-instance makespan on the reference instances with three drones: replayed MILP plan
+(square, absent where no plan was returned or the replay did not complete), heuristic (circle),
+and the learned policy's median with the interquartile range of 30 samples (triangle).}
+\label{fig:milp}
+\end{figure*}
 
 \subsection{RQ3: Performance across environments}
 \label{sec:rq3}
