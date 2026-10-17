@@ -89,10 +89,11 @@ def fig_cdf(tag, files):
 		axes[1, j].hist(dc, bins=np.linspace(-lim, lim, 33), color="#777", alpha=0.85)
 		axes[1, j].axvline(0, color="#333", lw=0.8)
 		axes[1, j].axvline(np.median(d), color="#000", ls="--", lw=0.9)
-		axes[1, j].set_xlabel("learned − heuristic (steps, clipped ±400)")
+		axes[1, j].set_xlabel("learned − heuristic (steps)")
 		over = int((np.abs(d) > lim).sum())
-		axes[1, j].text(0.98, 0.95, f"median {np.median(d):+.0f}\n{over} pairs beyond ±400", transform=axes[1, j].transAxes,
-		                ha="right", va="top", fontsize=7)
+		right = np.median(d) <= 0
+		axes[1, j].text(0.98 if right else 0.02, 0.95, f"median {np.median(d):+.0f}\n{over} pairs beyond ±400",
+		                transform=axes[1, j].transAxes, ha="right" if right else "left", va="top", fontsize=7)
 		if j == 0:
 			axes[1, j].set_ylabel("pairs")
 	fig.tight_layout()
