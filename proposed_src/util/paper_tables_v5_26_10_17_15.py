@@ -17,6 +17,25 @@ from scipy import stats
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FIG = os.path.join(ROOT, "figures")
 TEX = os.path.join(ROOT, "docs", "tex")
+LANG = "en"
+H = {
+	"en": dict(heur="mode & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & completions",
+	           milp="$M$ & inst. & MILP plan & heuristic & learned median (range) & learned complete & ratio h / l",
+	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
+	           paired="$N/M$ & rollouts & complete h/l & median heuristic / learned & paired median & win--loss & $p$",
+	           modes={"none": "none", "shuffle": "lead swap", "retreat": "retreat"},
+	           solved="solved", none="none", tried="tried"),
+	"ko": dict(heur="방식 & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & 완주 합",
+	           milp="$M$ & 인스턴스 & MILP 계획 & 휴리스틱 & 학습 중앙값 (범위) & 학습 완주 & 비율 h / l",
+	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
+	           paired="$N/M$ & 롤아웃 & 완주 h/l & 중앙값 휴리스틱 / 학습 & 쌍별 중앙 & 승--패 & $p$",
+	           modes={"none": "없음", "shuffle": "선두 교대", "retreat": "후퇴"},
+	           solved="해 있음", none="해 없음", tried="시도"),
+}
+
+
+def suffix(tag):
+	return f"{tag}" if LANG == "en" else f"ko_{tag}"
 
 
 def paired(path):
@@ -51,14 +70,14 @@ def tab_heur(tag):
 				cells.append("---"); continue
 			r = sel[0]; cs += int(r["complete"])
 			cells.append(f"{r['complete']}/{r['n']} \\,/\\, {r['median'] or '---'}")
-		mode = {"none": "none", "shuffle": "lead swap", "retreat": "retreat"}[k[0]]
+		mode = H[LANG]["modes"][k[0]]
 		par = "---" if k[0] == "none" else f"{k[1]} / {k[2]}"
 		line = f"{mode} & {par} & " + " & ".join(cells) + f" & {cs}/120 \\\\"
 		if k == ("shuffle", 120, 20):
 			line = "\\textbf{" + mode + "} & \\textbf{" + par + "} & " + " & ".join(cells) + f" & \\textbf{{{cs}/120}} \\\\"
 		lines.append(line)
-	with open(os.path.join(TEX, f"tab_heur_v5_{tag}.tex"), "w") as f:
-		f.write("\\begin{tabular}{llrrrr}\n\\toprule\nmode & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & completions \\\\\n\\midrule\n"
+	with open(os.path.join(TEX, f"tab_heur_v5_{suffix(tag)}.tex"), "w") as f:
+		f.write("\\begin{tabular}{llrrrr}\n\\toprule\n" + H[LANG]["heur"] + " \\\\\n\\midrule\n"
 		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
 	print("tab_heur:", len(lines), "행")
 
@@ -82,8 +101,9 @@ def tab_milp(tag):
 		comp = [r["learned_complete"] for r in sel]
 		# 완주 분수 합
 		num = sum(int(c.split("/")[0]) for c in comp); den = sum(int(c.split("/")[1]) for c in comp)
-		milp_cell = (f"{np.mean(mp):.0f} ({len(solved)}/{len(sel)} solved; gap {100*np.mean(gaps):.0f}\\%; "
-		             f"{np.mean(secs)/60:.0f}\\,min)" if solved else f"none ({len(sel)} tried; {np.mean(secs)/60:.0f}\\,min)")
+		h = H[LANG]
+		milp_cell = (f"{np.mean(mp):.0f} ({len(solved)}/{len(sel)} {h['solved']}; gap {100*np.mean(gaps):.0f}\\%; "
+		             f"{np.mean(secs)/60:.0f}\\,min)" if solved else f"{h['none']} ({len(sel)} {h['tried']}; {np.mean(secs)/60:.0f}\\,min)")
 		he_cell = f"{np.mean(he):.0f}" if he else "---"
 		lm_cell = f"{np.mean(lm):.0f} ({np.min(lmin):.0f}--{np.max(lmax):.0f})" if lm else "---"
 		# 휴리스틱·학습 대비 MILP 비율 (풀린 인스턴스만)
@@ -94,8 +114,8 @@ def tab_milp(tag):
 		else:
 			ratio = "---"
 		lines.append(f"{M} & {len(sel)} & {milp_cell} & {he_cell} & {lm_cell} & {num}/{den} & {ratio} \\\\")
-	with open(os.path.join(TEX, f"tab_milp_v5_{tag}.tex"), "w") as f:
-		f.write("\\begin{tabular}{rrlrrrr}\n\\toprule\n$M$ & inst. & MILP plan & heuristic & learned median (range) & learned complete & ratio h / l \\\\\n\\midrule\n"
+	with open(os.path.join(TEX, f"tab_milp_v5_{suffix(tag)}.tex"), "w") as f:
+		f.write("\\begin{tabular}{rrlrrrr}\n\\toprule\n" + H[LANG]["milp"] + " \\\\\n\\midrule\n"
 		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
 	print("tab_milp:", len(lines), "행")
 
@@ -113,8 +133,8 @@ def tab_range(tag, base):
 			cells.append(f"{int((~np.isnan(a)).sum())}/{int((~np.isnan(b)).sum())} \\,/\\, ${np.median(d):+.0f}$ "
 			             f"({(d<0).sum()}--{(d>0).sum()}, {pstr(stats.wilcoxon(d).pvalue)})")
 		lines.append(f"{lab} & " + " & ".join(cells) + " \\\\")
-	with open(os.path.join(TEX, f"tab_range_v5_{tag}.tex"), "w") as f:
-		f.write("\\begin{tabular}{lrrr}\n\\toprule\n$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m \\\\\n\\midrule\n"
+	with open(os.path.join(TEX, f"tab_range_v5_{suffix(tag)}.tex"), "w") as f:
+		f.write("\\begin{tabular}{lrrr}\n\\toprule\n" + H[LANG]["range"] + " \\\\\n\\midrule\n"
 		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
 	print("tab_range:", len(lines), "행")
 
@@ -128,8 +148,8 @@ def tab_paired(tag, files):
 		lines.append(f"{lab} & {len(a)} & {int((~np.isnan(a)).sum())}/{int((~np.isnan(b)).sum())} & "
 		             f"{np.nanmedian(a):,.0f} / {np.nanmedian(b):,.0f} & ${np.median(d):+.0f}$ & "
 		             f"{(d<0).sum()}--{(d>0).sum()} & {pstr(stats.wilcoxon(d).pvalue)} \\\\")
-	with open(os.path.join(TEX, f"tab_paired_v5_{tag}.tex"), "w") as f:
-		f.write("\\begin{tabular}{lrrrrrr}\n\\toprule\n$N/M$ & rollouts & complete h/l & median heuristic / learned & paired median & win--loss & $p$ \\\\\n\\midrule\n"
+	with open(os.path.join(TEX, f"tab_paired_v5_{suffix(tag)}.tex"), "w") as f:
+		f.write("\\begin{tabular}{lrrrrrr}\n\\toprule\n" + H[LANG]["paired"] + " \\\\\n\\midrule\n"
 		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
 	print("tab_paired:", len(lines), "행")
 
@@ -138,11 +158,14 @@ def main():
 	p = argparse.ArgumentParser()
 	p.add_argument("--tag", default="26_10_17_15")
 	p.add_argument("--suffix", default="", help="재측정 쌍별 CSV 접미 (예: v5_26_10_17_15)")
+	p.add_argument("--lang", default="en", choices=["en", "ko"], help="표 머리글 언어 (ko면 tab_*_ko_*.tex)")
 	A = p.parse_args()
+	global LANG
+	LANG = A.lang
 	F = lambda n: os.path.join(FIG, n)
 	if A.suffix:
 		sz = [("3/20", F(f"paired_d3m20_SWa_{A.suffix}.csv")), ("3/30", F(f"paired_d3_SWa_{A.suffix}.csv")),
-		      ("4/50 (standard)", F(f"paired_std_SWa_{A.suffix}.csv")), ("4/80", F(f"paired_d4m80_SWa_{A.suffix}.csv")),
+		      ("4/50 (standard)" if A.lang == "en" else "4/50 (표준)", F(f"paired_std_SWa_{A.suffix}.csv")), ("4/80", F(f"paired_d4m80_SWa_{A.suffix}.csv")),
 		      ("5/50", F(f"paired_d5_SWa_{A.suffix}.csv")), ("6/80", F(f"paired_d6m80_SWa_{A.suffix}.csv")),
 		      ("8/150", F(f"paired_d8m150_SWa_{A.suffix}.csv")), ("10/300", F(f"paired_d10m300_SWa_{A.suffix}.csv"))]
 	else:
@@ -152,7 +175,8 @@ def main():
 		      ("8/150", F("paired_size_d8_m150_v5_26_10_02_11.csv")), ("10/300", F("paired_size_d10_m300_v5_26_10_02_11.csv"))]
 	tab_heur(A.tag)
 	tab_milp(A.tag)
-	tab_range(A.tag, {"3/30": dict(sz)["3/30"], "4/50": dict(sz)["4/50 (standard)"], "5/50": dict(sz)["5/50"]})
+	d = dict(sz)
+	tab_range(A.tag, {"3/30": d["3/30"], "4/50": d.get("4/50 (standard)", d.get("4/50 (표준)")), "5/50": d["5/50"]})
 	tab_paired(A.tag, sz)
 
 

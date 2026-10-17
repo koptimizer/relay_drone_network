@@ -57,7 +57,7 @@ python3 proposed_src/pipeline/eval_v5_26_09_15_23.py --n 40 --arch set --autoreg
     --no-progress-limit 1000000000 --deadlock-limit 1000000000 \
     --num-drones 5 --num-dests 50 --random-cc --manager weights/v5_26_09_23_18_SWa/best_manager.pth
 
-# MILP 참조 모형 (작은 인스턴스, Gurobi 필요. 수식은 docs/tex/milp_en_v5_26_09_21_03.pdf)
+# MILP 참조 모형 (작은 인스턴스, Gurobi 필요. 수식은 docs/tex/legacy/milp_en_v5_26_09_21_03.pdf)
 python3 proposed_src/pipeline/milp_v5_26_09_21_03.py --num-drones 3 --num-dests 6 \
     --kappa 10 --time-limit 1800 --norel 150
 
@@ -153,7 +153,7 @@ python3 proposed_src/util/viz_single_v5_26_09_27_05.py --policy learned --arch s
 절제된 정책조차 5/50에서는 규칙+탈출을 완주와 속도 모두에서 앞선다.
 
 작은 인스턴스에서는 시공간 격자 MILP 참조 모형과도 비교한다(드론 3·목적지 4-6에서 최적 계획을
-찾아 시뮬레이터로 재생 검증). 모형과 수식은 [`docs/tex/milp_en_v5_26_09_21_03.pdf`](docs/tex/milp_en_v5_26_09_21_03.pdf)에 있다.
+찾아 시뮬레이터로 재생 검증). 모형과 수식은 [`docs/tex/legacy/milp_en_v5_26_09_21_03.pdf`](docs/tex/legacy/milp_en_v5_26_09_21_03.pdf)에 있다.
 
 이력과 규명 과정은 [`docs/VERSIONS.md`](docs/VERSIONS.md)를 참조한다.
 

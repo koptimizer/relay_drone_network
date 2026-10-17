@@ -1,4 +1,4 @@
-\documentclass[preprint,12pt]{elsarticle}
+\documentclass[final,5p,times,twocolumn]{elsarticle}
 
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
@@ -229,7 +229,7 @@ return to the centre, and relay. Relay slots lie on the segment from the centre 
 at multiples of $0.9R$ and are assigned by the environment, so a controller decides only
 \emph{whether} a drone relays.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_overview_v5_26_10_17_15.pdf}
 \caption{(a) An instance with three drones after 220 steps under the heuristic: the lead drone
@@ -238,7 +238,7 @@ centre, and one returns to reload; shaded discs are communication ranges and the
 the reachable region $0.9NR$. (b) The two controllers emit the same per-drone options and share
 the straight-line low-level controller and the connectivity projection.}
 \label{fig:overview}
-\end{figure}
+\end{figure*}
 
 \subsection{Connectivity-preserving projection}
 \label{sec:projection}
@@ -388,7 +388,7 @@ is not needed still gets stationed and stalls. Without the escape mechanism the 
 pulls the fleet apart, and fixed relay counts are wrong for most instances because the number of
 relays a destination needs varies with its distance.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Completion within the 10{,}000-step budget. Learning-free baselines on 120 (standard)
 or 40 (unseen) rollouts; the two proposed controllers on the paired rollout counts of
@@ -415,7 +415,7 @@ Geometric rule + escape (proposed) & 80/80 & 80/80 & \\
 Learned policy (proposed) & \textbf{80/80} & \textbf{80/80} & \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{RQ2: Distance to the lattice reference plan}
 \label{sec:rq2}
@@ -433,7 +433,7 @@ against a strong controller rather than a weak one. The learned policy's median 
 reference plan on the smallest instances, which is not a contradiction: the plan is restricted to
 the lattice and the policy is not.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Lattice MILP reference plans versus the proposed controllers on instances with three
 drones (means over instances; makespan in steps). ``Solved'' counts instances for which the solver
@@ -444,7 +444,7 @@ replayed MILP plan on solved instances.}
 \label{tab:milp}
 \small
 \input{tab_milp_v5_26_10_17_15}
-\end{table}
+\end{table*}
 
 \subsection{RQ3: Performance across environments}
 \label{sec:rq3}
@@ -460,18 +460,18 @@ drones to 178 at ten. The boundary therefore lies at four drones. An earlier mea
 the heuristic's pre-tuning escape parameters gave the same picture ($+40$, $+0$, $-54$, $-170$ on
 $3/30$, $4/50$, $5/50$ and $10/300$), so the boundary does not depend on the tuning.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Paired comparison on identical instances. Positive differences mean the learned policy
 is slower than the heuristic. $p$ from the Wilcoxon signed-rank test on both-completed pairs.}
 \label{tab:paired}
 \small
 \input{tab_paired_v5_26_10_17_15}
-\end{table}
+\end{table*}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.8\linewidth]{fig_regime_v5_26_10_17_15.pdf}
+\includegraphics[width=\linewidth]{fig_regime_v5_26_10_17_15.pdf}
 \caption{Paired median makespan difference (learned minus heuristic) by configuration, with the
 interquartile range of the paired differences as error bars and the learned policy's wins--losses
 under each label. Negative values favour the learned policy; the boundary lies at four drones.}
@@ -482,14 +482,14 @@ Figure~\ref{fig:cdf} shows the full distributions on the three main configuratio
 drones the heuristic's curve lies to the left, with four the curves coincide, and with five the
 learned policy's curve lies to the left and reaches completion earlier.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_cdf_v5_26_10_17_15.pdf}
 \caption{Top: cumulative distribution of makespan on $3/30$, $4/50$ and $5/50$ (dotted lines
 mark medians; axes cut at the 98th percentile). Bottom: distribution of the paired difference on
 both-completed instances, clipped to $\pm400$ steps with the number of clipped pairs noted.}
 \label{fig:cdf}
-\end{figure}
+\end{figure*}
 
 \paragraph{Tails follow the same split}
 Where drones are scarce the learned policy's worst case is three to four times the heuristic's
@@ -531,7 +531,7 @@ bottleneck destination's estimated arrival makes the policy reduce the \emph{ave
 the maximum. We conclude that, within this policy structure and objective, under-relaying is the
 learner's fixed point, not an artefact of credit, information or initialisation.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Interventions that did not remove the scarce-fleet deficit. Paired median against the
 heuristic (positive is slower); the proposed recipe is the reference row. These runs were
@@ -558,7 +558,7 @@ Behaviour-cloning initialisation & $+42$ to $+69$ & $-42$ to $-20$ & $-4$ to $+4
 Bottleneck-arrival penalty & $+105$ & $-8$ & $+81$ & reduces the mean, not the maximum \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \paragraph{Sensitivity to the connectivity enforcement model}
 \label{sec:sensitivity}
@@ -598,7 +598,7 @@ the training radius should retrain or at least re-evaluate the boundary.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.6\linewidth]{fig_range_v5_26_10_17_15.pdf}
+\includegraphics[width=\linewidth]{fig_range_v5_26_10_17_15.pdf}
 \caption{Paired median difference against the communication radius without retraining
 (training radius 300\,m, dotted). A shorter radius moves every configuration towards the
 heuristic; a longer radius helps the learned policy on $4/50$ but not beyond its training-radius
@@ -606,7 +606,7 @@ margin on $3/30$ and $5/50$.}
 \label{fig:range}
 \end{figure}
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Transfer to other communication radii without retraining. Cells give completions
 (heuristic/learned) and the paired median difference with win--loss and $p$; $R=300$\,m is the
@@ -614,7 +614,7 @@ training radius.}
 \label{tab:range}
 \small
 \input{tab_range_v5_26_10_17_15}
-\end{table}
+\end{table*}
 
 \subsection{RQ4: Are the components necessary?}
 \label{sec:rq4}
@@ -634,7 +634,7 @@ over three configurations, which is within the noise of 40 instances; the select
 also has the lowest median sum. The adaptive relay count is necessary as well: fixing one or two
 relays completes 0--65\% (Table~\ref{tab:completion}).
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Heuristic ablation on tuning seeds disjoint from the evaluation seeds (40 instances per
 configuration). Cells give completed instances and the median makespan over completed instances;
@@ -642,7 +642,7 @@ the last column sums completions over the three configurations.}
 \label{tab:heur-ablation}
 \small
 \input{tab_heur_v5_26_10_17_15}
-\end{table}
+\end{table*}
 
 \paragraph{Learned policy}
 Table~\ref{tab:ablation} removes one ingredient at a time, retrains two seeds and evaluates on the
@@ -684,7 +684,7 @@ growing linearly with the fleet because each drone is a sequential network call.
 episode the learned policy's cumulative decision time is 0.16\,s. The lattice MILP takes 600 to
 5{,}400 seconds on instances with four to ten destinations and does not return a plan for ten.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Latency of one manager decision (milliseconds, CPU) and the cumulative decision time of
 a 900-step episode.}
@@ -699,7 +699,7 @@ Learned, independent decisions & 1.27 & 1.52 & 1.94 & 2.45 & 0.069\,s \\
 Learned, autoregressive (proposed) & 2.70 & 3.52 & 5.32 & 7.35 & 0.158\,s \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 % =====================================================================================
 \section{Discussion}
