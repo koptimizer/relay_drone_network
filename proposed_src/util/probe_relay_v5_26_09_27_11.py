@@ -56,7 +56,7 @@ env=DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, 
                           deadlock_limit=10**9, no_progress_limit=10**9, num_drones=3, num_dests=30)
 env.reset()
 lf=learned_fn('weights/v5_26_09_23_18_SWa/best_manager.pth', dev, True)
-pol=(('학습 그대로', lf), ('중계만 규칙', overlay(lf,'force')), ('규칙+탈출', chain_escape_manager(60,40,'shuffle')))
+pol=(('학습 그대로', lf), ('중계만 규칙', overlay(lf,'force')), ('규칙+탈출', chain_escape_manager()))
 res={}
 for nm,mf in pol:
 	out=[run(env,mf,s) for s in range(501,541)]

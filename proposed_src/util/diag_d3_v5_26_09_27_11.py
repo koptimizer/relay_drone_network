@@ -45,7 +45,7 @@ env.reset()
 # 인자로 가중치를 주면 그것을 재고, 없으면 확정 제안(SWa)을 잰다
 CK=sys.argv[1] if len(sys.argv)>1 else 'weights/v5_26_09_23_18_SWa/best_manager.pth'
 NM=sys.argv[2] if len(sys.argv)>2 else 'SWa'
-pol=(('규칙+탈출', chain_escape_manager(60,40,'shuffle')),
+pol=(('규칙+탈출', chain_escape_manager()),
      (f'학습 {NM}', learned(CK, dev, True)))
 print(f"{'정책':<12}{'makespan':>9}{'중계대수':>9}{'복귀':>7}{'배송':>7}{'막힘':>8}{'정체율':>8}{'2홉+':>7}{'재적재':>7}{'목표변경':>9}")
 for nm,mf in pol:

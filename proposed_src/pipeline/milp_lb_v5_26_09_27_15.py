@@ -182,7 +182,7 @@ def heuristic_makespan(cc, dests, num_drones, comm_range):
 	env.reset()
 	env.cc_pos, env.dests_pos = np.asarray(cc, dtype=float), np.asarray(dests, dtype=float)
 	env.reset()
-	mf = chain_escape_manager(60, 40, "shuffle")
+	mf = chain_escape_manager()
 	env.set_goals(mf(env))
 	done, t = False, 0
 	while not done and t < env.max_steps:

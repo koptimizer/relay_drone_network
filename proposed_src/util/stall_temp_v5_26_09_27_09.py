@@ -95,7 +95,7 @@ def main():
 		hits[name] = hit["n"]
 		print(f"  {name}: 완주 {sum(1 for x in res[name] if x)}/{len(seeds)} 개입 {hit['n']}회", flush=True)
 	if args.rule:
-		res["규칙+탈출"] = [run(env, chain_escape_manager(60, 40, "shuffle"), 20, s, cc) for _r, s in seeds]
+		res["규칙+탈출"] = [run(env, chain_escape_manager(), 20, s, cc) for _r, s in seeds]
 		print(f"  규칙+탈출: 완주 {sum(1 for x in res['규칙+탈출'] if x)}/{len(seeds)}", flush=True)
 
 	base = np.array([x if x else np.nan for x in res[pol[0][0]]], dtype=float)

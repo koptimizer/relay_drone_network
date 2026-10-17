@@ -69,7 +69,7 @@ def main():
 	                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=3, num_dests=30)
 	env.reset()
 	seeds = [s for _r in range(args.reps) for s in range(args.seed0, args.seed0 + args.n)]
-	rl = [run(env, chain_escape_manager(60, 40, "shuffle"), s) for s in seeds]
+	rl = [run(env, chain_escape_manager(), s) for s in seeds]
 	v = np.array([x for x in rl if x], dtype=float)
 	print(f"규칙+탈출: 완주 {len(v)}/{len(seeds)} 중앙 {np.median(v):.0f} 절단평균 {stats.trim_mean(v,.1):.0f}", flush=True)
 	for t in args.tags:

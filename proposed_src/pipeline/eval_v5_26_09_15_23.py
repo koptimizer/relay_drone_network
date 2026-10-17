@@ -147,7 +147,7 @@ def main():
 		("기하 중계 규칙 (무학습)", straight_worker, chain_manager),
 		# 규칙의 교착은 결정론적 반복이 원인이라, 선두를 바꿔 배정을 흔드는 것만으로 대부분 풀린다.
 		# 표준 40시드에서 완주 26/40 -> 39/40. 학습 정책이 넘어야 할 진짜 베이스라인이다.
-		("기하 중계 규칙 + 교착 탈출 (무학습)", straight_worker, chain_escape_manager(60, 40, "shuffle")),
+		("기하 중계 규칙 + 교착 탈출 (무학습)", straight_worker, chain_escape_manager()),
 		("규칙상위 + 직진 (중계1대 고정)", straight_worker, lambda e: hold_relay_manager(e, 1)),
 		("규칙상위 + 직진 (중계2대 고정)", straight_worker, lambda e: hold_relay_manager(e, 2)),
 	]

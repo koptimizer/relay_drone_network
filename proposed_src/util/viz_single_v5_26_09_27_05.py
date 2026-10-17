@@ -101,7 +101,7 @@ def main():
 	if args.policy == "rule":
 		wf, mf = straight_worker, chain_manager
 	elif args.policy == "escape":
-		wf, mf = straight_worker, chain_escape_manager(60, 40, "shuffle")
+		wf, mf = straight_worker, chain_escape_manager()
 	elif args.policy == "hybrid":
 		_wf, lf = learned(args, env, dev)
 		wf, mf = straight_worker, hybrid_manager(lf, 60, 100, 0, 300)

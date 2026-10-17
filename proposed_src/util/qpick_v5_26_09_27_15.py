@@ -132,7 +132,7 @@ def main():
 	       ("actor 최빈", actor_fn(src, dev, args.autoregressive, True)),
 	       ("critic 탐욕", critic_seq_fn(f"{args.dir}/latest.pth", dev, n_act) if args.seq_decision
 	        else critic_fn(f"{args.dir}/latest.pth", dev, n_act, args.mix_critic)),
-	       ("규칙+탈출", chain_escape_manager(60, 40, "shuffle")))
+	       ("규칙+탈출", chain_escape_manager()))
 	seeds = [(r, s) for r in range(args.reps) for s in range(args.seed0, args.seed0 + args.n)]
 	res = {}
 	for nm, mf in pol:

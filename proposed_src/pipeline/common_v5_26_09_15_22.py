@@ -136,13 +136,21 @@ def hybrid_manager(learned_fn, k_stall=60, hold=100, max_escapes=0, np_limit=0):
 	return fn
 
 
-def chain_escape_manager(k_stall=60, hold=40, mode="retreat"):
+# 휴리스틱(기하 사슬 + 교착 탈출)의 확정 파라미터. 사이클 26의 절제에서 고른 값으로 갱신한다.
+# 모든 평가·비교·시각화 스크립트는 인자 없이 chain_escape_manager()를 불러 이 값을 쓴다.
+ESC_K, ESC_HOLD, ESC_MODE = 60, 40, "shuffle"
+
+
+def chain_escape_manager(k_stall=None, hold=None, mode=None):
 	"""기하 규칙 + 교착 탈출: 부분 교착이 k_stall스텝 이어지면 hold스텝 동안 탈출 기동을 한다.
 
 	retreat: 선두(적재 있고 CC에서 가장 먼 드론)를 제외한 전원이 제어 센터 쪽으로 물러나 사슬을 느슨하게 한다.
 	shuffle: 선두를 바꿔 다른 드론이 먼 목적지를 맡고 나머지가 중계로 재배치된다.
 	교착의 원인이 결정론적 반복이므로, 배정을 한 번 흔드는 것만으로 대부분 풀린다.
 	"""
+	k_stall = ESC_K if k_stall is None else k_stall
+	hold = ESC_HOLD if hold is None else hold
+	mode = ESC_MODE if mode is None else mode
 	st = {"esc": 0, "n": 0}
 
 	def fn(env):

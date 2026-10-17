@@ -82,7 +82,7 @@ env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False
 env.reset()
 fn = load('weights/v5_26_09_23_18_SWa/best_manager.pth', dev, True)
 pols = (('학습 그대로', policy(fn, 'plain')), ('대수만 맞춤', policy(fn, 'count')),
-        ('중계 드론도 규칙', policy(fn, 'who')), ('규칙+탈출', chain_escape_manager(60, 40, 'shuffle')))
+        ('중계 드론도 규칙', policy(fn, 'who')), ('규칙+탈출', chain_escape_manager()))
 seeds = [(rep, s) for rep in range(3) for s in range(501, 541)]
 res = {}
 for nm, mf in pols:

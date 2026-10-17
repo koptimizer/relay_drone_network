@@ -130,7 +130,7 @@ def main():
 	for ep in range(1, a.episodes + 1):
 		cc, d = sample_instance(a.num_dests, seed=a.seed0 + ep - 1, num_drones=a.num_drones,
 		                        comm_range=a.comm_range, cc_pos="random" if a.random_cc else None)
-		rule = chain_escape_manager(60, 40, "shuffle") if a.escape else chain_manager
+		rule = chain_escape_manager() if a.escape else chain_manager
 		pols = [rule, learned if a.right == "learned" else hybrid_manager(learned, *a.hybrid)]
 		for e, mf in zip(envs, pols):
 			e.cc_pos, e.dests_pos = cc.copy(), d.copy()

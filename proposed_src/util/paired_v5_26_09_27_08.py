@@ -60,6 +60,7 @@ def main():
 	p.add_argument("--autoregressive", action="store_true")
 	p.add_argument("--ar-near", action="store_true", help="가까운 드론부터 결정하도록 학습한 가중치")
 	p.add_argument("--slide", action="store_true", help="연결성 투영을 경계 당김(접선 보존)으로 (사이클 25)")
+	p.add_argument("--comm-range", type=float, default=300.0, help="통신 반경 (RQ3 전이 시험용, 학습은 300)")
 	p.add_argument("--stall-redecide", type=int, default=0, help="학습 정책에만 적용하는 정체 재결정 스텝 (학습과 같은 값)")
 	p.add_argument("--n", type=int, default=60)
 	p.add_argument("--reps", type=int, default=2)
@@ -74,12 +75,12 @@ def main():
 
 	torch.set_num_threads(2)
 	dev = torch.device("cpu")
-	env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=args.max_steps,
+	env = DisasterRelayDroneEnv(map_path="", comm_range=args.comm_range, cluster_penalty=False, max_steps=args.max_steps,
 	                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9,
 	                            num_drones=args.num_drones, num_dests=args.num_dests, slide=args.slide)
 	env.reset()
 	cc = "random" if args.random_cc else None
-	pol = (("규칙+탈출", chain_escape_manager(60, 40, "shuffle")), ("학습", learned(args.manager, dev, args.autoregressive, args.ar_near)))
+	pol = (("규칙+탈출", chain_escape_manager()), ("학습", learned(args.manager, dev, args.autoregressive, args.ar_near)))
 	rec = []
 	for rep in range(args.reps):
 		for s in range(args.seed0, args.seed0 + args.n):

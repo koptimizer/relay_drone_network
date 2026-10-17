@@ -79,7 +79,7 @@ def main():
 
 	torch.set_num_threads(2)
 	dev = torch.device(args.device)
-	pol = (("기하 규칙 + 탈출", lambda: chain_escape_manager(60, 40, "shuffle"), None),
+	pol = (("기하 규칙 + 탈출", lambda: chain_escape_manager(), None),
 	       ("간소 (자기회귀 없음)", lambda: learned(args.plain, dev, False), args.plain),
 	       ("자기회귀", lambda: learned(args.ar, dev, True), args.ar))
 	print(f"장치 {args.device} · 상위 호출 {args.calls}회 평균 · 목적지 {args.num_dests} · hl_every {args.hl_every}")

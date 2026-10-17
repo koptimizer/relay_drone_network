@@ -56,7 +56,7 @@ def collect(A, dev):
 			                            no_progress_limit=10 ** 9, num_drones=n, num_dests=m)
 		env.cc_pos, env.dests_pos = cc, d
 		env.reset()
-		mf = chain_escape_manager(60, 40, "shuffle")
+		mf = chain_escape_manager()
 		# 탐색 상태도 섞는다. 규칙 궤적만 보면 학습 초기에 벗어난 상태에서 무너진다
 		eps_mix = A.explore
 		a = mf(env)
