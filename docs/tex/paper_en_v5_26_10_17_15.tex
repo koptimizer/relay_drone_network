@@ -579,9 +579,28 @@ projection as the primary model and report this as a sensitivity result: about h
 three-drone deficit is a property of how the constraint is enforced rather than of the learner.
 
 \paragraph{Communication radius}
-\pending{The transfer of both controllers to $R \in \{250, 350\}$\,m without retraining is being
-measured on $3/30$, $4/50$ and $5/50$; the learned policy normalises distances by $R$ and the
-instance generator rescales the reachable region with $R$, so both see the same instances.}
+Both controllers were run without retraining at $R = 250$\,m and $R = 350$\,m
+(Table~\ref{tab:range}, Figure~\ref{fig:range}); the learned policy normalises distances by $R$,
+and the instance generator rescales the reachable region $0.9NR$ with $R$, so both controllers see
+the same instances at each radius. Completion transfers: the learned policy completes every
+instance at both radii, while the heuristic loses 18 of 200 instances on $5/50$ at the shorter
+radius. Speed moves with the radius in the same direction as with fleet size. At $R=250$\,m a
+destination needs more hops, the fleet is effectively scarcer, and the heuristic's margin grows
+($+77$ on $3/30$, $+68$ on $4/50$) while the learned policy's advantage on $5/50$ shrinks to a tie
+($-16$, $p = 0.33$). At $R=350$\,m the fleet is effectively more plentiful and the learned policy
+is faster already with four drones ($-40$ on $4/50$) and keeps its margin with five ($-42$). The
+regime variable is therefore not the number of drones alone but the chain demand, the number of
+hops a destination needs relative to the drones available to supply them; the learned policy wins
+when there is slack in the chain and the heuristic wins when there is none.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\linewidth]{fig_range_v5_26_10_17_15.pdf}
+\caption{Paired median difference against the communication radius without retraining
+(training radius 300\,m). Shorter radii move every configuration towards the heuristic, longer
+radii towards the learned policy.}
+\label{fig:range}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -697,8 +716,9 @@ more training or a better critic would fix. For a practitioner the actionable co
 one above: pick the controller by regime.
 
 \paragraph{Limitations}
-The learned policy was trained at a single communication radius; its transfer to other radii is
-reported in Section~\ref{sec:rq3} \pending{once measured}. The environment is planar, ignores
+The learned policy was trained at a single communication radius; it transfers to radii of 250 and
+350\,m in completion but its speed ranking against the heuristic shifts with the radius
+(Section~\ref{sec:rq3}), and radii outside this range were not tested. The environment is planar, ignores
 wind, battery and collisions, and uses a disc communication model; real links are not discs. The
 MILP reference is a lattice restriction with a remaining optimality gap, not an exact optimum. The
 heuristic's novelty lies in the escape mechanism and the adaptive relay count rather than in the
