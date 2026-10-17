@@ -1,0 +1,30 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+d5m50r none       0   0 | 완주 36/40 중앙 613 평균 664.9 p90 740 최대 2352
+d5m50r shuffle   30  20 | 완주 40/40 중앙 630 평균 654.1 p90 857 최대 1017
+d5m50r shuffle   30  40 | 완주 40/40 중앙 625 평균 670.5 p90 766 최대 2435
+d5m50r shuffle   30  80 | 완주 38/40 중앙 628 평균 659.8 p90 816 최대 1206
+d5m50r shuffle   60  20 | 완주 39/40 중앙 631 평균 637.4 p90 752 최대 1026
+d5m50r shuffle   60  40 | 완주 40/40 중앙 624 평균 647.1 p90 810 최대 1020
+d5m50r shuffle   60  80 | 완주 40/40 중앙 636 평균 690.5 p90 820 최대 2575
+d5m50r shuffle   90  20 | 완주 40/40 중앙 624 평균 616.7 p90 737 최대 807
+d5m50r shuffle   90  40 | 완주 38/40 중앙 594 평균 621.3 p90 734 최대 1009
+d5m50r shuffle   90  80 | 완주 40/40 중앙 637 평균 745.3 p90 857 최대 2715
+d5m50r shuffle  120  20 | 완주 40/40 중앙 603 평균 644.2 p90 814 최대 1063
+d5m50r shuffle  120  40 | 완주 39/40 중앙 614 평균 669.0 p90 856 최대 1813
+d5m50r shuffle  120  80 | 완주 40/40 중앙 621 평균 663.2 p90 747 최대 2286
+d5m50r retreat   30  20 | 완주 37/40 중앙 605 평균 612.3 p90 735 최대 874
+d5m50r retreat   30  40 | 완주 38/40 중앙 637 평균 638.1 p90 773 최대 1018
+d5m50r retreat   30  80 | 완주 38/40 중앙 608 평균 645.8 p90 894 최대 1112
+d5m50r retreat   60  20 | 완주 40/40 중앙 622 평균 630.0 p90 731 최대 1154
+d5m50r retreat   60  40 | 완주 39/40 중앙 613 평균 622.9 p90 772 최대 944
+d5m50r retreat   60  80 | 완주 36/40 중앙 634 평균 615.1 p90 722 최대 834
+d5m50r retreat   90  20 | 완주 39/40 중앙 606 평균 613.4 p90 724 최대 846
+d5m50r retreat   90  40 | 완주 39/40 중앙 616 평균 638.1 p90 741 최대 1519
+d5m50r retreat   90  80 | 완주 40/40 중앙 641 평균 656.9 p90 834 최대 1588
+d5m50r retreat  120  20 | 완주 38/40 중앙 626 평균 629.2 p90 749 최대 942
+d5m50r retreat  120  40 | 완주 38/40 중앙 608 평균 644.5 p90 757 최대 1342
+d5m50r retreat  120  80 | 완주 40/40 중앙 616 평균 653.3 p90 960 최대 1160
+저장: /home/kopt/drone/figures/heur_ablate_v5_26_10_17_15_d5m50r.csv

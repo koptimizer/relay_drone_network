@@ -1,0 +1,17 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[규칙+탈출] 배송 6/6 makespan 152 스텝
+[격자] 기간 10스텝(10초) 이동거리 138.9m 간격 98.2m 노드 76개 (목적지 6, 격자 69) 지평선 19기간
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Academic license 2561211 - for non-commercial use only - registered to ko___@korea.ac.kr
+[모형] 변수 36237 (이진 4959) 제약 42986 생성 0초
+
+=== 결과 ===
+MILP makespan 150 스텝 (하한 95, 갭 36.9%) 풀이 3600초
+환경 재생: 배송 6/6 makespan 147 막힘 51 통신단절 0
+규칙+탈출: makespan 152
+저장: /home/kopt/drone/figures/milp_n3m6s902_26_10_17_15.json
