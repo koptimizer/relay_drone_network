@@ -84,6 +84,14 @@ R=350이면 4/50에서 학습이 −40으로 앞선다. (2) 학습 반경 효과
 좋고 양쪽(250·350) 모두에서 나빠진다 — R 정규화는 완주를 전이시키지만 속도까지 온전히 전이시키지는
 않는다. 논문에는 두 효과를 모두 적었다.
 
+### 레이아웃·한글본·정리 (26-10-17 23:40)
+
+- 영문본을 elsarticle `final,5p,times,twocolumn`으로 바꿨다(10쪽, overfull 0). 넓은 표·그림은 `table*`/`figure*`.
+- 한글본 `docs/tex/paper_ko_v5_26_10_17_15.tex`를 같은 구조로 썼다. kotex 미설치라 lualatex + fontspec +
+  Noto Sans KR로 조판한다(9쪽). 표 조각은 `paper_tables --lang ko`가 한글 머리글로 따로 만든다.
+- 이전 논문·보고서(v3 영문/한글 초안, v5 10-01 초안, MILP 문서)는 `docs/tex/legacy/`로 옮겼다.
+- 컴파일: 영문 `pdflatex` ×2 + bibtex, 한글 `lualatex` ×2 + bibtex (docs/tex 에서).
+
 ### 진행 중 (26-10-17 16:23 시작)
 
 - 쌍별 재측정 8구성 → RQ3 통신 반경 250·350 m 영 샷 → MILP 배치 종료 후 토이 비교.
