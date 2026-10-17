@@ -51,14 +51,11 @@ def fig_regime(tag, files):
 	ax.errorbar(x, med, yerr=err, fmt="none", ecolor="#333", elinewidth=0.8, capsize=2)
 	ax.axhline(0, color="#333", lw=0.8)
 	ax.set_xticks(x)
-	ax.set_xticklabels([r[0] for r in rows])
+	ax.set_xticklabels([f"{r[0]}\n{r[5]}–{r[6]}" for r in rows], fontsize=8)
 	ax.set_ylabel("paired median makespan difference\n(learned − heuristic, steps)")
-	ax.set_xlabel("drones / destinations")
-	for i, r in enumerate(rows):
-		ax.annotate(f"{r[5]}–{r[6]}", (i, r[4] if r[2] >= 0 else r[3]),
-		            textcoords="offset points", xytext=(0, 4 if r[2] >= 0 else -10), ha="center", fontsize=7, color="#555")
-	ax.text(0.01, 0.97, "heuristic faster ↑", transform=ax.transAxes, va="top", fontsize=8, color=C_H)
-	ax.text(0.01, 0.03, "learned faster ↓", transform=ax.transAxes, va="bottom", fontsize=8, color=C_L)
+	ax.set_xlabel("drones / destinations  (wins–losses for the learned policy)")
+	ax.text(0.99, 0.97, "heuristic faster ↑", transform=ax.transAxes, va="top", ha="right", fontsize=8, color=C_H)
+	ax.text(0.99, 0.03, "learned faster ↓", transform=ax.transAxes, va="bottom", ha="right", fontsize=8, color=C_L)
 	fig.tight_layout()
 	out = os.path.join(FIG, f"fig_regime_v5_{tag}.pdf")
 	fig.savefig(out); plt.close(fig)
@@ -73,23 +70,29 @@ def fig_cdf(tag, files):
 		axes = axes.reshape(2, 1)
 	for j, (lab, p) in enumerate(files):
 		a, b = paired(p)
+		allv = np.concatenate([a[~np.isnan(a)], b[~np.isnan(b)]])
+		xmax = float(np.percentile(allv, 98))
 		for arr, col, nm in ((a, C_H, "heuristic"), (b, C_L, "learned")):
 			v = np.sort(arr[~np.isnan(arr)])
 			axes[0, j].step(v, np.arange(1, len(v) + 1) / len(arr), where="post", color=col, lw=1.2, label=nm)
 			axes[0, j].axvline(np.median(v), color=col, ls=":", lw=0.8)
+		axes[0, j].set_xlim(float(allv.min()) * 0.9, xmax)
 		axes[0, j].set_title(lab, fontsize=9)
-		axes[0, j].set_xlabel("makespan (steps)")
+		axes[0, j].set_xlabel("makespan (steps, to 98th pct.)")
 		if j == 0:
 			axes[0, j].set_ylabel("fraction of rollouts")
 			axes[0, j].legend(frameon=False, fontsize=7, loc="lower right")
 		both = ~np.isnan(a) & ~np.isnan(b)
 		d = b[both] - a[both]
-		axes[1, j].hist(d, bins=30, color="#777", alpha=0.85)
+		lim = 400.0
+		dc = np.clip(d, -lim, lim)
+		axes[1, j].hist(dc, bins=np.linspace(-lim, lim, 33), color="#777", alpha=0.85)
 		axes[1, j].axvline(0, color="#333", lw=0.8)
 		axes[1, j].axvline(np.median(d), color="#000", ls="--", lw=0.9)
-		axes[1, j].set_xlabel("learned − heuristic (steps)")
-		axes[1, j].text(0.98, 0.95, f"median {np.median(d):+.0f}", transform=axes[1, j].transAxes,
-		                ha="right", va="top", fontsize=8)
+		axes[1, j].set_xlabel("learned − heuristic (steps, clipped ±400)")
+		over = int((np.abs(d) > lim).sum())
+		axes[1, j].text(0.98, 0.95, f"median {np.median(d):+.0f}\n{over} pairs beyond ±400", transform=axes[1, j].transAxes,
+		                ha="right", va="top", fontsize=7)
 		if j == 0:
 			axes[1, j].set_ylabel("pairs")
 	fig.tight_layout()

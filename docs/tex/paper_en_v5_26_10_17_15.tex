@@ -472,10 +472,23 @@ is slower than the heuristic. $p$ from the Wilcoxon signed-rank test on both-com
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.8\linewidth]{fig_regime_v5_26_10_17_15.pdf}
-\caption{Paired median makespan difference (learned minus heuristic) against fleet size. Negative
-values favour the learned policy. Bars show the 80--480 rollouts per configuration; the boundary
-lies at four drones.}
+\caption{Paired median makespan difference (learned minus heuristic) by configuration, with the
+interquartile range of the paired differences as error bars and the learned policy's wins--losses
+under each label. Negative values favour the learned policy; the boundary lies at four drones.}
 \label{fig:regime}
+\end{figure}
+
+Figure~\ref{fig:cdf} shows the full distributions on the three main configurations: with three
+drones the heuristic's curve lies to the left, with four the curves coincide, and with five the
+learned policy's curve lies to the left and reaches completion earlier.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_cdf_v5_26_10_17_15.pdf}
+\caption{Top: cumulative distribution of makespan on $3/30$, $4/50$ and $5/50$ (dotted lines
+mark medians; axes cut at the 98th percentile). Bottom: distribution of the paired difference on
+both-completed instances, clipped to $\pm400$ steps with the number of clipped pairs noted.}
+\label{fig:cdf}
 \end{figure}
 
 \paragraph{Tails follow the same split}
