@@ -41,14 +41,14 @@ either deliver or relay, and connectivity is a hard constraint enforced at every
 propose two controllers that share the same connectivity-preserving projection: a geometric
 chain-relay heuristic with a deadlock-escape mechanism, and a fleet-size-agnostic policy learned
 once with discrete soft actor-critic over a set-based, autoregressive manager. Both are compared
-on identical instances with a paired protocol across fleets of 3 to 10 drones and 20 to 300
+on identical instances with a paired protocol across fleets of 3 to 12 drones and 20 to 400
 destinations, against four learning-free baselines and a time-expanded mixed-integer reference
 model on small instances. The learned policy completes every instance in every configuration;
 the heuristic completes 98--100\% with the escape mechanism and 62\% without it. The two
 controllers divide the configuration space: with three drones the heuristic is 30--39 steps
 faster in paired median, with four drones the two tie over 480 rollouts, and with five
-or more drones the learned policy is faster by 38 to 178 steps, the margin growing with fleet
-size. The three-drone deficit is localised to a single decision, which drone relays, and ten
+or more drones the learned policy is faster by 38 to 178 steps; the policy is trained only on
+three and four drones and generalises to every larger fleet without retraining. The three-drone deficit is localised to a single decision, which drone relays, and ten
 policy-side interventions covering information, credit assignment, decision structure,
 initialisation and reward shaping all fail to remove it; half of it disappears when the
 connectivity projection is changed from radial shrinking to tangential sliding, showing that the
@@ -101,8 +101,7 @@ from 62\% to 98\%.
 seven discrete options every twenty steps; it encodes the drones, candidate destinations and relay
 slot as a set, pools them with attention, and decides autoregressively so that a formation of one
 lead and $k$ relays can be composed deliberately. It is trained once with discrete soft
-actor-critic on fleets of three and four drones and then run without retraining on fleets of up
-to ten.
+actor-critic on fleets of three and four drones and then run without retraining on fleets of up to twelve.
 \end{enumerate}
 Both controllers act through the same connectivity-preserving projection: each commanded move is
 scaled by the largest factor that keeps the fleet connected. Connectivity is therefore guaranteed
@@ -129,8 +128,8 @@ completes 98--100\% with the escape mechanism (RQ1). On instances small enough f
 model, both controllers are within a few percent of the reference plan, and the reference plan
 itself is a restriction rather than a bound of the continuous problem (RQ2). The two controllers
 divide the configuration space by fleet size: the heuristic is faster with three drones, the two
-tie with four, and the learned policy is faster with five or more, the margin growing to 178
-steps at ten drones; the three-drone deficit is a single decision, which drone relays, and it
+tie with four, and the learned policy is faster with five or more, by 62 to 178 steps up to ten drones and 76 at
+twelve, although it never saw more than four drones in training; the three-drone deficit is a single decision, which drone relays, and it
 resists ten policy-side interventions but shrinks by half when the connectivity projection is
 changed (RQ3). Removing rule regularisation, configuration randomisation or entropy annealing from
 the learned policy costs hundreds of steps or completion, and removing the escape mechanism from
@@ -416,8 +415,8 @@ hours on a single RTX~5080 when four runs share the GPU.
 Instances are generated from integer seeds; a seed, $N$, $M$ and the depot mode determine the
 instance exactly, so two controllers can be run on identical instances. Evaluation seeds are
 disjoint from the seeds used for training, for checkpoint selection and for tuning the heuristic.
-We evaluate on the standard configuration ($N=4$, $M=50$, fixed depot) and on seven unseen
-configurations with random depots: $N/M \in \{3/20, 3/30, 4/80, 5/50, 6/80, 8/150, 10/300\}$.
+We evaluate on the standard configuration ($N=4$, $M=50$, fixed depot) and on eight unseen
+configurations with random depots: $N/M \in \{3/20, 3/30, 4/80, 5/50, 6/80, 8/150, 10/300, 12/400\}$.
 
 \paragraph{Baselines}
 Besides the two proposed controllers we run a greedy assignment with no relays, two fixed-relay
@@ -541,13 +540,14 @@ and the learned policy's median with the interquartile range of 30 samples (tria
 \label{sec:rq3}
 
 \paragraph{Fleet size divides the configuration space}
-Table~\ref{tab:paired} and Figure~\ref{fig:regime} give the paired comparison across the eight
+Table~\ref{tab:paired} and Figure~\ref{fig:regime} give the paired comparison across the nine
 configurations. With three drones the heuristic is faster by 39 and 30 steps in paired median with 20 and
 30 destinations. With four drones the two controllers tie: on the standard configuration the
 median paired difference over 480 rollouts is $+2$ steps with 234 wins against 239
 ($p = 0.52$), and on $4/80$ the learned policy is 38 steps faster. With five or more drones the
-learned policy is faster and the margin grows monotonically with the fleet, from 62 steps at five
-drones to 178 at ten. The boundary therefore lies at four drones. An earlier measurement against
+learned policy is faster, by 62 steps at five drones growing to 178 at ten and 76 at twelve
+(70 wins against 10). The boundary therefore lies at four drones, and the advantage persists
+beyond the largest fleet we measured with the monotone growth stopping between ten and twelve. An earlier measurement against
 the heuristic's pre-tuning escape parameters gave the same picture ($+40$, $+0$, $-54$, $-170$ on
 $3/30$, $4/50$, $5/50$ and $10/300$), so the boundary does not depend on the tuning.
 
@@ -581,6 +581,34 @@ mark medians; axes cut at the 98th percentile). Bottom: distribution of the pair
 both-completed instances, clipped to $\pm400$ steps with the number of clipped pairs noted.}
 \label{fig:cdf}
 \end{figure*}
+
+\paragraph{Generalisation from small fleets}
+The learned policy never saw more than four drones or more than 80 destinations in training,
+yet it completes every instance with 5 to 12 drones and 50 to 400 destinations and is faster
+than the heuristic on all of them. Two properties carry this. The set-based encoder has no
+parameter that depends on $N$ or $M$, so larger fleets are simply larger sets; and training
+samples the fleet size and depot afresh every episode. Table~\ref{tab:gen} separates the two by
+running the ablation policy that was trained on the fixed $4/50$ configuration alone (no
+configuration randomisation) on the same large-fleet instances without retraining. That policy
+also completes every instance from 5 to 10 drones, so completion generalises through the
+architecture alone; but it is slower than the randomised policy on every configuration (a tie
+against the heuristic at $5/50$ against $-62$, and $-51$ to $-174$ against $-122$ to $-178$ beyond),
+so speed on large fleets is learned from the variety of small ones. The same ablation loses 646
+steps on $3/30$ (Table~\ref{tab:ablation}), so randomisation is what makes the small-fleet side
+usable at all. Both policies were trained with at most four drones; the hop-depth and slot
+features are normalised by a constant of eight, so fleets of ten and twelve drones also take the
+encoder outside its training range of feature values, and the policy still completes them.
+
+\begin{table*}[t]
+\centering
+\caption{Generalisation to fleets larger than any seen in training, without retraining. Cells
+give the learned policy's completions and the paired median difference against the heuristic.
+The proposed policy is trained on $N \in \{3,4\}$ with random depots; the comparison policy is
+the ablation trained on the fixed $4/50$ configuration only (two seeds).}
+\label{tab:gen}
+\small
+\input{tab_gen_v5_26_10_17_15}
+\end{table*}
 
 \paragraph{Tails follow the same split}
 Where drones are scarce the learned policy's worst case is three to four times the heuristic's
@@ -832,8 +860,8 @@ metric from the final judgement will pass interventions that the final judgement
 We proposed two controllers for connectivity-constrained drone delivery, a geometric chain-relay
 heuristic with deadlock escape and a fleet-size-agnostic learned policy, both acting through a
 projection that keeps the fleet connected at every step. Under a paired protocol across fleets of
-three to ten drones the learned policy completes every instance and is faster by 38 to 178 steps
-once more than four drones are available, while the heuristic is faster by 30--39 steps with
+three to twelve drones the learned policy completes every instance and is faster by 38 to 178
+steps once more than four drones are available, although it was trained on three and four, while the heuristic is faster by 30--39 steps with
 three. The scarce-fleet deficit is one decision, which drone relays; it resists ten policy-side
 interventions and halves when the enforcement model is changed. Both controllers are three orders
 of magnitude faster than exact optimisation on a lattice, which stops returning plans at ten

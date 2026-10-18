@@ -24,13 +24,15 @@ H = {
 	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
 	           paired="$N/M$ & rollouts & complete h/l & median heuristic / learned & paired median & win--loss & $p$",
 	           modes={"none": "none", "shuffle": "lead swap", "retreat": "retreat"},
-	           solved="solved", none="none", tried="tried"),
+	           solved="solved", none="none", tried="tried",
+	           gen="$N/M$ & trained on $N\\in\\{3,4\\}$, $M\\in[20,80]$ & trained on $4/50$ only, seed 1 & seed 2"),
 	"ko": dict(heur="방식 & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & 완주 합",
 	           milp="$M$ & 인스턴스 & 계획 / 재생 / 최적 & 갭 & 분 & MILP 재생 & 휴리스틱 & 학습 중앙값 (범위) & 비율 h / l",
 	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
 	           paired="$N/M$ & 롤아웃 & 완주 h/l & 중앙값 휴리스틱 / 학습 & 쌍별 중앙 & 승--패 & $p$",
 	           modes={"none": "없음", "shuffle": "선두 교대", "retreat": "후퇴"},
-	           solved="해 있음", none="해 없음", tried="시도"),
+	           solved="해 있음", none="해 없음", tried="시도",
+	           gen="$N/M$ & $N\\in\\{3,4\\}$, $M\\in[20,80]$ 학습 & $4/50$만 학습, 시드 1 & 시드 2"),
 }
 
 
@@ -136,6 +138,32 @@ def tab_range(tag, base):
 	print("tab_range:", len(lines), "행")
 
 
+def tab_gen(tag):
+	"""일반화: 3-4대로 학습한 SWa 대 4/50 고정으로만 학습한 A4 (두 시드)의 큰 편대 영 샷."""
+	h = H[LANG]
+	cfgs = [("5/50", "d5", os.path.join(FIG, "paired_d5_SWa_v5_26_10_17_15.csv")),
+	        ("6/80", "d6m80", os.path.join(FIG, "paired_d6m80_SWa_v5_26_10_17_15.csv")),
+	        ("8/150", "d8m150", os.path.join(FIG, "paired_d8m150_SWa_v5_26_10_17_15.csv")),
+	        ("10/300", "d10m300", os.path.join(FIG, "paired_d10m300_SWa_v5_26_10_17_15.csv"))]
+	lines = []
+	for lab, key, swa in cfgs:
+		if not os.path.exists(swa):
+			continue
+		a, b = paired(swa); both = ~np.isnan(a) & ~np.isnan(b); d = b[both] - a[both]
+		cells = [f"{int((~np.isnan(b)).sum())}/{len(b)} \\,/\\, ${np.median(d):+.0f}$"]
+		for sd in (1, 2):
+			f = os.path.join(FIG, f"paired_gen_{key}_A4s{sd}_v5_26_10_18_06.csv")
+			if not os.path.exists(f):
+				cells.append("---"); continue
+			a2, b2 = paired(f); both2 = ~np.isnan(a2) & ~np.isnan(b2); d2 = b2[both2] - a2[both2]
+			cells.append(f"{int((~np.isnan(b2)).sum())}/{len(b2)} \\,/\\, ${np.median(d2):+.0f}$" if both2.sum() > 5 else f"{int((~np.isnan(b2)).sum())}/{len(b2)} \\,/\\, ---")
+		lines.append(f"{lab} & " + " & ".join(cells) + " \\\\")
+	with open(os.path.join(TEX, f"tab_gen_v5_{suffix(tag)}.tex"), "w") as f:
+		f.write("\\begin{tabular}{lrrr}\n\\toprule\n" + h["gen"] + " \\\\\n\\midrule\n"
+		        + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
+	print("tab_gen:", len(lines), "행")
+
+
 def tab_paired(tag, files):
 	lines = []
 	for lab, p in files:
@@ -164,7 +192,8 @@ def main():
 		sz = [("3/20", F(f"paired_d3m20_SWa_{A.suffix}.csv")), ("3/30", F(f"paired_d3_SWa_{A.suffix}.csv")),
 		      ("4/50 (standard)" if A.lang == "en" else "4/50 (표준)", F(f"paired_std_SWa_{A.suffix}.csv")), ("4/80", F(f"paired_d4m80_SWa_{A.suffix}.csv")),
 		      ("5/50", F(f"paired_d5_SWa_{A.suffix}.csv")), ("6/80", F(f"paired_d6m80_SWa_{A.suffix}.csv")),
-		      ("8/150", F(f"paired_d8m150_SWa_{A.suffix}.csv")), ("10/300", F(f"paired_d10m300_SWa_{A.suffix}.csv"))]
+		      ("8/150", F(f"paired_d8m150_SWa_{A.suffix}.csv")), ("10/300", F(f"paired_d10m300_SWa_{A.suffix}.csv")),
+		      ("12/400", F("paired_d12m400_SWa_v5_26_10_18_06.csv"))]
 	else:
 		sz = [("3/20", F("paired_size_d3_m20_v5_26_10_02_11.csv")), ("3/30", F("paired_d3_rep5_v5_26_09_27_11.csv")),
 		      ("4/50 (standard)", F("paired_std480_SWa_v5_26_10_02_12.csv")), ("4/80", F("paired_size_d4_m80_v5_26_10_02_11.csv")),
@@ -175,6 +204,7 @@ def main():
 	d = dict(sz)
 	tab_range(A.tag, {"3/30": d["3/30"], "4/50": d.get("4/50 (standard)", d.get("4/50 (표준)")), "5/50": d["5/50"]})
 	tab_paired(A.tag, sz)
+	tab_gen(A.tag)
 
 
 if __name__ == "__main__":

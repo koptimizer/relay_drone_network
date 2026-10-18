@@ -230,7 +230,8 @@ def main():
 		sz = [("3/20", 3, F(f"paired_d3m20_SWa_{A.suffix}.csv")), ("3/30", 3, F(f"paired_d3_SWa_{A.suffix}.csv")),
 		      ("4/50", 4, F(f"paired_std_SWa_{A.suffix}.csv")), ("4/80", 4, F(f"paired_d4m80_SWa_{A.suffix}.csv")),
 		      ("5/50", 5, F(f"paired_d5_SWa_{A.suffix}.csv")), ("6/80", 6, F(f"paired_d6m80_SWa_{A.suffix}.csv")),
-		      ("8/150", 8, F(f"paired_d8m150_SWa_{A.suffix}.csv")), ("10/300", 10, F(f"paired_d10m300_SWa_{A.suffix}.csv"))]
+		      ("8/150", 8, F(f"paired_d8m150_SWa_{A.suffix}.csv")), ("10/300", 10, F(f"paired_d10m300_SWa_{A.suffix}.csv")),
+		      ("12/400", 12, F("paired_d12m400_SWa_v5_26_10_18_06.csv"))]
 	else:
 		sz = [("3/20", 3, F("paired_size_d3_m20_v5_26_10_02_11.csv")), ("3/30", 3, F("paired_d3_rep5_v5_26_09_27_11.csv")),
 		      ("4/50", 4, F("paired_std480_SWa_v5_26_10_02_12.csv")), ("4/80", 4, F("paired_size_d4_m80_v5_26_10_02_11.csv")),
