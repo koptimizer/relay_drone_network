@@ -118,7 +118,8 @@ is enforced at every step, and when they do not, why not?
 obtained by exact optimisation of a lattice model?
 \item[\textbf{RQ3}] How does the performance of the two controllers differ across environments,
 in particular across fleet size, number of destinations, depot position and communication
-radius, and where do the differences come from?
+radius; does a policy trained on small fleets generalise to larger ones; and where do the
+differences come from?
 \item[\textbf{RQ4}] Are the components of each controller necessary?
 \end{itemize}
 
@@ -213,6 +214,80 @@ A configuration is a triple of fleet size $N$, number of destinations $M$ and de
 (fixed at the map centre, or uniformly random). The \emph{standard} configuration is $N=4$,
 $M=50$ with the fixed depot. The learned policy is trained with $N \in \{3,4\}$, $M \in [20,80]$
 and a random depot; all other configurations are unseen by it. The heuristic has no training.
+
+
+\subsection{Exact reference: a time-expanded lattice model}
+\label{sec:milp-model}
+
+For small instances we also formulate the problem as a mixed-integer program so that the two
+controllers can be compared with a plan obtained by exact optimisation. The continuous problem
+is not directly tractable, so we discretise time and space and keep the connectivity requirement
+exact on the discretisation.
+
+\paragraph{Discretisation}
+A period is $\kappa = S = 10$ steps, so a service occupies exactly one period and a manager
+decision of the learned policy spans two; the per-period flight range is $\ell = v\kappa$. Space
+is a square lattice $G$ of spacing $h = \ell/\sqrt{2} = 98.2$\,m over the bounding box of the
+instance, from which nodes farther than $0.9NR$ from the centre are deleted; the centre and
+every destination are added as exact nodes, so the node set is $N_{\mathrm{v}} = \{0\} \cup D \cup G$
+with the centre indexed $0$ and $D$ the destinations. With this spacing all eight king moves
+are feasible in one period. The move set and the communication set are
+\begin{equation}
+A(i) = \{ j : \|p_i - p_j\| \le \ell \} \ni i, \qquad
+E = \{ (i,j) : i \ne j,\ \|p_i - p_j\| \le R \}.
+\end{equation}
+Axis-aligned moves cover $h$ rather than $\ell$ per period, so the lattice slows a drone by up
+to 29\% in those directions; this discretisation error always acts against the model.
+
+\paragraph{Variables}
+For drones $k \in K$ and periods $t \in T = \{0,\dots,\bar T\}$: $y_{ikt} \in \{0,1\}$ is one
+if drone $k$ is at node $i$ at the boundary of period $t$; $s_{jkt} \in \{0,1\}$ if drone $k$
+delivers to destination $j$ during period $t$; $r_{kt} \in \{0,1\}$ if it reloads at the centre
+during period $t$; $q_{kt} \in \{0,\dots,Q\}$ is its cargo at the boundary of period $t$ and
+$\rho_{kt} \in [0,Q]$ the cargo taken on during the period; $g_{ijt} \ge 0$ is a connectivity
+flow on arc $(i,j) \in E$ in period $t$; and $C$ is the makespan in periods. The horizon
+$\bar T$ is set from the heuristic's makespan with 15\% slack.
+
+\paragraph{Model}
+{\small
+\begin{align}
+\min\;\; & C + \varepsilon \textstyle\sum_{i \ne 0} \sum_{k} \sum_{t} y_{ikt} \label{eq:m-obj}\\
+\text{s.t.}\;\; & \textstyle\sum_{i} y_{ikt} = 1,\;\; y_{0k0} = 1 \qquad\; {\scriptstyle \forall k, t} \label{eq:m-one}\\
+& y_{i,k,t+1} \le \textstyle\sum_{j \in A(i)} y_{jkt} \qquad\; {\scriptstyle \forall i, k,\, t < \bar T} \label{eq:m-move}\\
+& \textstyle\sum_{k} \sum_{t < \bar T} s_{jkt} = 1 \qquad\; {\scriptstyle \forall j \in D} \label{eq:m-serve}\\
+& s_{jkt} \le y_{jkt},\;\; s_{jkt} \le y_{j,k,t+1} \qquad\; {\scriptstyle \forall j \in D, k, t} \label{eq:m-sat}\\
+& r_{kt} \le y_{0kt},\;\; r_{kt} \le y_{0,k,t+1} \qquad\; {\scriptstyle \forall k, t} \label{eq:m-rat}\\
+& \textstyle\sum_{j \in D} s_{jkt} + r_{kt} \le 1,\;\; \sum_{j \in D} s_{jkt} \le q_{kt} \qquad\; {\scriptstyle \forall k, t} \label{eq:m-busy}\\
+& q_{k,t+1} = q_{kt} - \textstyle\sum_{j \in D} s_{jkt} + \rho_{kt},\;\; q_{k0} = Q \qquad\; {\scriptstyle \forall k, t} \label{eq:m-bal}\\
+& \rho_{kt} \le Q\, r_{kt},\;\; q_{k,t+1} \ge Q\, r_{kt} \qquad\; {\scriptstyle \forall k, t} \label{eq:m-full}\\
+& \textstyle\sum_{j:(i,j)\in E} g_{ijt} - \sum_{j:(j,i)\in E} g_{jit} = u_{it} \qquad\; {\scriptstyle \forall i \ne 0, t} \label{eq:m-flow}\\
+& g_{ijt} \le |K|\, u_{it} \qquad\; {\scriptstyle \forall (i,j) \in E, t} \label{eq:m-cap}\\
+& C \ge t\, s_{jkt} \qquad\; {\scriptstyle \forall j \in D, k,\, t < \bar T} \label{eq:m-mk}\\
+& s_{jkt} = 0 \qquad\; {\scriptstyle \forall k,\ j \in D:\ \mathrm{idx}(j) < k,\ t < \bar T} \label{eq:m-sym}
+\end{align}}
+where $u_{it} = \sum_k y_{ikt}$ is the occupancy of node $i$ with $u_{0t} := 1$, and
+$\varepsilon = 10^{-5}$ is a tie-break that prefers keeping idle drones at the centre and cannot
+change the optimal makespan. Constraints~\eqref{eq:m-one}--\eqref{eq:m-move} place every drone
+at exactly one node per period boundary, starting at the centre, and allow a move only to a node
+within one period's range. Constraints~\eqref{eq:m-serve}--\eqref{eq:m-full} serve each
+destination once, require the serving drone to be at the destination for the whole period (the
+service freeze), make reloading fill the drone completely, and track cargo.
+Constraints~\eqref{eq:m-flow}--\eqref{eq:m-cap} encode connectivity as a single-commodity flow
+in every period: each occupied node ships one unit towards the centre, the only sink, and an arc
+may carry flow only if it leaves an occupied node. This system is feasible if and only if every
+occupied node is joined to the centre by a path of occupied nodes whose consecutive distances are
+at most $R$, which is exactly the simulator's multi-hop test; the symmetric head-capacity rows
+are redundant and omitted, halving the dominant row count. Constraint~\eqref{eq:m-mk} defines
+the makespan and~\eqref{eq:m-sym} is a valid symmetry-breaking cut for identical drones.
+
+\paragraph{What the optimum means}
+Because drones are confined to lattice nodes and axis moves are shortened, the model's optimum
+is an \emph{upper bound} on the continuous optimum, and its dual bound is a bound on the lattice
+problem only. A certified lower bound through a cell relaxation, in which a lattice node stands
+for its cell and communication is tested by the minimum distance between cells, was attempted and
+abandoned: it inflates a three-hop chain's reach from 900\,m to 1{,}317\,m and returns bounds
+below the trivial analytic bound. We therefore call the solver's value a \emph{reference plan},
+replay every plan in the continuous simulator, and report the replayed makespan.
 
 % =====================================================================================
 \section{Proposed Controllers}
@@ -350,15 +425,9 @@ policies that permanently dedicate one or two drones, and the geometric rule wit
 mechanism. These establish that the problem is not solved by naive assignment.
 
 \paragraph{Reference model}
-For small instances we solve a time-expanded network model with Gurobi~13 \cite{gurobi}: periods
-of 10 steps, a lattice with 98.2-metre spacing so that every eight-neighbour move takes one
-period, destination and centre nodes added exactly, single-commodity flow for connectivity in
-every period and a symmetry-breaking cut. The formulation and its proofs are in a companion
-document. Because the lattice restricts where drones may be, the model's optimum is an upper
-bound on the continuous optimum and its dual bound is not a bound on the continuous problem; a
-certified lower bound through a cell relaxation was attempted and abandoned because the relaxation
-inflates a three-hop chain's reach from 900\,m to 1{,}317\,m and returns bounds below the trivial
-analytic bound. We therefore call the MILP value a \emph{reference plan}.
+Small instances are solved with the lattice model of Section~\ref{sec:milp-model} using
+Gurobi~13 \cite{gurobi} with six threads; the time limits are given with the results in
+Section~\ref{sec:rq2}. Every returned plan is replayed in the continuous simulator.
 
 \paragraph{Paired protocol}
 Averaging only the episodes each method completes favours the method that gives up on hard

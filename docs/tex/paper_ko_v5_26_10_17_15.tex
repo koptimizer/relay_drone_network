@@ -105,7 +105,7 @@
 \item[\textbf{RQ2}] 작은 인스턴스에서 제안 제어기들은 격자 모형의 정확 최적화로 얻은 참조 계획에
 얼마나 가까운가?
 \item[\textbf{RQ3}] 두 제어기의 성능은 편대 크기·목적지 수·거점 위치·통신 반경에 따라 어떻게
-다르고, 그 차이는 어디서 오는가?
+다르고, 작은 편대로 학습한 정책이 큰 편대로 일반화되는가, 그 차이는 어디서 오는가?
 \item[\textbf{RQ4}] 각 제어기의 구성 요소는 필수적인가?
 \end{itemize}
 
@@ -186,6 +186,73 @@ makespan 은 마지막 목적지가 배송되는 스텝이다. 제어기가 10{,
 구성은 편대 크기 $N$, 목적지 수 $M$, 거점 배치(지도 중앙 고정 또는 균일 무작위)의 세 쌍이다.
 \emph{표준} 구성은 고정 거점의 $N=4$, $M=50$이다. 학습 정책은 $N \in \{3,4\}$, $M \in [20,80]$,
 무작위 거점으로 학습하며 그 외 구성은 본 적이 없다. 휴리스틱에는 학습이 없다.
+
+
+\subsection{정확 참조: 시간 확장 격자 모형}
+\label{sec:milp-model}
+
+작은 인스턴스에서는 두 제어기를 정확 최적화로 얻은 계획과 비교할 수 있도록 문제를 혼합정수계획으로도
+정식화한다. 연속 문제는 그대로 풀 수 없으므로 시간과 공간을 이산화하되 연결성 요구는 이산화 위에서
+정확히 유지한다.
+
+\paragraph{이산화}
+한 기간은 $\kappa = S = 10$스텝이다. 서비스 한 번이 정확히 한 기간이고 학습 정책의 상위 결정 한
+번은 두 기간이다. 기간당 비행 거리는 $\ell = v\kappa$다. 공간은 인스턴스의 경계 상자 위에 간격
+$h = \ell/\sqrt{2} = 98.2$\,m로 놓은 정사각 격자 $G$에서 센터로부터 $0.9NR$보다 먼 노드를 지운
+것이며, 센터와 모든 목적지는 정확한 노드로 추가한다. 따라서 노드 집합은
+$N_{\mathrm{v}} = \{0\} \cup D \cup G$이고 센터는 $0$, $D$는 목적지다. 이 간격에서 여덟 방향 이동이
+모두 한 기간에 가능하다. 이동 집합과 통신 집합은
+\begin{equation}
+A(i) = \{ j : \|p_i - p_j\| \le \ell \} \ni i, \qquad
+E = \{ (i,j) : i \ne j,\ \|p_i - p_j\| \le R \}
+\end{equation}
+이다. 축 방향 이동은 기간당 $\ell$이 아니라 $h$만 가므로 격자는 그 방향에서 드론을 최대 29\%
+늦춘다. 이 이산화 오차는 항상 모형에 불리하게 작용한다.
+
+\paragraph{변수}
+드론 $k \in K$, 기간 $t \in T = \{0,\dots,\bar T\}$에 대해 $y_{ikt} \in \{0,1\}$은 드론 $k$가 기간
+$t$의 경계에 노드 $i$에 있으면 1, $s_{jkt} \in \{0,1\}$은 드론 $k$가 기간 $t$에 목적지 $j$에
+배송하면 1, $r_{kt} \in \{0,1\}$은 기간 $t$에 센터에서 재적재하면 1, $q_{kt} \in \{0,\dots,Q\}$는
+기간 $t$ 경계의 적재량, $\rho_{kt} \in [0,Q]$는 그 기간에 실은 양, $g_{ijt} \ge 0$은 기간 $t$에
+간선 $(i,j) \in E$ 위의 연결성 흐름, $C$는 기간 단위의 makespan 이다. 지평 $\bar T$는 휴리스틱의
+makespan 에 15\%의 여유를 두어 정한다.
+
+\paragraph{모형}
+{\small
+\begin{align}
+\min\;\; & C + \varepsilon \textstyle\sum_{i \ne 0} \sum_{k} \sum_{t} y_{ikt} \label{eq:m-obj}\\
+\text{s.t.}\;\; & \textstyle\sum_{i} y_{ikt} = 1,\;\; y_{0k0} = 1 \qquad\; {\scriptstyle \forall k, t} \label{eq:m-one}\\
+& y_{i,k,t+1} \le \textstyle\sum_{j \in A(i)} y_{jkt} \qquad\; {\scriptstyle \forall i, k,\, t < \bar T} \label{eq:m-move}\\
+& \textstyle\sum_{k} \sum_{t < \bar T} s_{jkt} = 1 \qquad\; {\scriptstyle \forall j \in D} \label{eq:m-serve}\\
+& s_{jkt} \le y_{jkt},\;\; s_{jkt} \le y_{j,k,t+1} \qquad\; {\scriptstyle \forall j \in D, k, t} \label{eq:m-sat}\\
+& r_{kt} \le y_{0kt},\;\; r_{kt} \le y_{0,k,t+1} \qquad\; {\scriptstyle \forall k, t} \label{eq:m-rat}\\
+& \textstyle\sum_{j \in D} s_{jkt} + r_{kt} \le 1,\;\; \sum_{j \in D} s_{jkt} \le q_{kt} \qquad\; {\scriptstyle \forall k, t} \label{eq:m-busy}\\
+& q_{k,t+1} = q_{kt} - \textstyle\sum_{j \in D} s_{jkt} + \rho_{kt},\;\; q_{k0} = Q \qquad\; {\scriptstyle \forall k, t} \label{eq:m-bal}\\
+& \rho_{kt} \le Q\, r_{kt},\;\; q_{k,t+1} \ge Q\, r_{kt} \qquad\; {\scriptstyle \forall k, t} \label{eq:m-full}\\
+& \textstyle\sum_{j:(i,j)\in E} g_{ijt} - \sum_{j:(j,i)\in E} g_{jit} = u_{it} \qquad\; {\scriptstyle \forall i \ne 0, t} \label{eq:m-flow}\\
+& g_{ijt} \le |K|\, u_{it} \qquad\; {\scriptstyle \forall (i,j) \in E, t} \label{eq:m-cap}\\
+& C \ge t\, s_{jkt} \qquad\; {\scriptstyle \forall j \in D, k,\, t < \bar T} \label{eq:m-mk}\\
+& s_{jkt} = 0 \qquad\; {\scriptstyle \forall k,\ j \in D:\ \mathrm{idx}(j) < k,\ t < \bar T} \label{eq:m-sym}
+\end{align}}
+여기서 $u_{it} = \sum_k y_{ikt}$는 노드 $i$의 점유이고 $u_{0t} := 1$이며,
+$\varepsilon = 10^{-5}$는 놀고 있는 드론을 센터에 두는 쪽을 선호하되 최적 makespan 을 바꾸지 못하는
+동점 처리 항이다. 제약~\eqref{eq:m-one}--\eqref{eq:m-move}는 모든 드론을 매 기간 경계에 정확히 한
+노드에 두고 센터에서 출발시키며 한 기간 범위 안의 노드로만 이동을 허용한다.
+제약~\eqref{eq:m-serve}--\eqref{eq:m-full}은 각 목적지를 한 번 배송하고, 배송 드론이 그 기간 내내
+목적지에 머물게 하며(서비스 정지), 재적재가 드론을 가득 채우게 하고, 적재량을 추적한다.
+제약~\eqref{eq:m-flow}--\eqref{eq:m-cap}은 연결성을 매 기간의 단일 상품 흐름으로 부호화한다. 점유된
+노드마다 한 단위를 유일한 흡수원인 센터로 보내고, 간선은 점유된 노드에서 나갈 때만 흐름을 실을 수
+있다. 이 체계는 모든 점유 노드가 연속 거리 $R$ 이하의 점유 노드 경로로 센터와 이어질 때, 그리고 그때만
+실행 가능하며 이는 시뮬레이터의 다중 홉 판정과 정확히 같다. 대칭인 머리 용량 행은 중복이라 생략해
+지배적인 행 수를 절반으로 줄였다. 제약~\eqref{eq:m-mk}는 makespan 을 정의하고 \eqref{eq:m-sym}은
+동일한 드론에 대한 유효한 대칭 제거 절단이다.
+
+\paragraph{최적값의 뜻}
+드론이 격자 노드에 묶이고 축 방향 이동이 짧아지므로 모형의 최적값은 연속 최적값의 \emph{상한}이며,
+쌍대 하한은 격자 문제에 대한 하한일 뿐이다. 격자 노드를 칸으로 보고 칸 사이 최소 거리로 통신을
+판정하는 칸 완화를 통한 증명된 하한은 시도했다가 포기했다. 3홉 사슬의 도달 거리를 900\,m에서
+1{,}317\,m로 부풀려 자명한 해석적 하한보다 낮은 값을 내기 때문이다. 따라서 솔버의 값을 \emph{참조
+계획}이라 부르고, 모든 계획을 연속 시뮬레이터에서 재생해 재생된 makespan 을 보고한다.
 
 % =====================================================================================
 \section{제안 제어기}
@@ -300,13 +367,8 @@ $N/M \in \{3/20, 3/30, 4/80, 5/50, 6/80, 8/150, 10/300\}$에서 평가한다.
 그리고 탈출 장치 없는 기하 규칙을 돌린다. 이들은 문제가 단순 배정으로 풀리지 않음을 보인다.
 
 \paragraph{참조 모형}
-작은 인스턴스는 Gurobi~13 \cite{gurobi}으로 시간 확장 네트워크 모형을 푼다. 기간 10스텝, 여덟
-이웃 이동이 모두 한 기간이 되도록 98.2 m 간격의 격자, 목적지와 센터 노드를 정확히 추가, 매 기간
-연결성을 위한 단일 상품 흐름, 대칭 제거 절단. 정식화와 증명은 별도 문서에 있다. 격자가 드론의
-위치를 제한하므로 모형의 최적값은 연속 최적값의 상한이고 쌍대 하한은 연속 문제의 하한이 아니다.
-칸 완화를 통한 증명된 하한을 시도했으나, 완화가 3홉 사슬의 도달 거리를 900 m에서 1{,}317 m로
-부풀려 자명한 해석적 하한보다 낮은 값을 내어 포기했다. 따라서 MILP 값을 \emph{참조 계획}이라
-부른다.
+작은 인스턴스는 \ref{sec:milp-model}절의 격자 모형을 Gurobi~13 \cite{gurobi}, 스레드 6개로 푼다.
+시간 제한은 \ref{sec:rq2}절의 결과와 함께 적는다. 돌려준 모든 계획은 연속 시뮬레이터에서 재생한다.
 
 \paragraph{쌍별 규약}
 각 방법이 완주한 에피소드만 평균하면 어려운 인스턴스를 포기하는 쪽이 유리해지고, 긴 정체 한 건이
