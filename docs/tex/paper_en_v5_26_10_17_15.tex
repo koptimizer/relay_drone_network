@@ -58,9 +58,10 @@ speed. The three-drone deficit is localised to a single decision, which drone re
 policy-side interventions covering information, credit assignment, decision structure,
 initialisation and reward shaping all fail to remove it; half of it disappears when the
 connectivity projection is changed from radial shrinking to tangential sliding, showing that the
-deficit is partly a property of how the constraint is enforced rather than of the learner. Both
-controllers run in milliseconds per decision, three orders of magnitude below exact optimisation,
-which does not return a plan for ten demand points within ninety minutes.
+deficit is partly a property of how the constraint is enforced rather than of the learner. On small instances solved to proven optimality, the learned policy is within 2--17\% and the
+heuristic within 11--23\% of the optimum of the space--time model on its finest lattice. Both
+controllers run in milliseconds per decision, three to six orders of magnitude below exact
+optimisation, which no longer proves optimality once reloading is needed.
 \end{abstract}
 
 \begin{keyword}
@@ -97,10 +98,11 @@ assignment that sends every drone to its nearest demand point completes none of 
 instances in our study, because the fleet pulls itself apart until no drone can move. Relaying
 competes directly with throughput, so the right number and identity of relays changes with the
 geometry of the remaining demand points and with how many drones are left with cargo. And exact
-optimisation does not scale: a time-expanded mixed-integer model \cite{ford1962,skutella2009} on a
-98-metre lattice returns feasible solutions for four and six demand points but none for ten within
-ninety minutes, whereas drone-routing models without a connectivity constraint are solved exactly
-for tens of customers \cite{roberti2021}.
+optimisation does not scale: a space--time network model \cite{ford1962,skutella2009} on a
+98-metre lattice is solved to proven optimality in seconds while no reloading is needed, but once
+drones must reload the mixed-integer solver proves optimality on few instances within an hour and
+returns no feasible solution on some, whereas drone-routing models without a connectivity
+constraint are solved exactly for tens of customers \cite{roberti2021}.
 
 \paragraph{Proposal}
 We propose two controllers for this problem and study them side by side.
@@ -142,9 +144,10 @@ upward to larger fleets and larger instances without retraining, and what carrie
 
 \paragraph{Findings}
 The learned policy completes every instance in every configuration tested; the heuristic
-completes 98--100\% with the recovery mechanism (RQ1). On instances small enough for the lattice
-model, both controllers are within a few percent of the reference plan, and the reference plan
-itself is a restriction rather than a bound of the continuous problem (RQ2). The two controllers
+completes 98--100\% with the recovery mechanism (RQ1). On instances small enough to solve to proven optimality, the learned policy is within 2--17\%
+and the heuristic within 11--23\% of the optimum of the space--time model on its finest lattice,
+and refining the lattice lowers that optimum by 7--9\%, confirming that it bounds the continuous
+optimum from above (RQ2). The two controllers
 divide the configuration space by fleet size: the heuristic is faster with three drones, the two
 are statistically indistinguishable with four, and the learned policy is faster with five or more,
 by 62 to 178 steps up to ten drones and 76 at twelve; the three-drone deficit is a single
@@ -734,9 +737,10 @@ the others; the relay count is fixed in advance instead of adapting to the lead'
 deterministic except for the random tie-breaking of the projection.
 
 \paragraph{Reference model}
-Small instances are solved with the lattice model of Section~\ref{sec:milp-model} using
-Gurobi~13 \cite{gurobi} with six threads; the time limits are given with the results in
-Section~\ref{sec:rq2}. Every returned plan is replayed in the continuous simulator.
+Instances with $M \le 5$ demand points are solved to proven optimality with the breadth-first
+search of Section~\ref{sec:rq2} on the hull-pruned lattice; instances with $M \ge 6$ are solved
+with the space--time MILP in Gurobi~13 \cite{gurobi}, four threads and one hour per instance.
+Every optimal or best-found plan is replayed in the continuous simulator.
 
 \paragraph{Paired protocol}
 Averaging only the episodes each method completes favours the method that gives up on hard
@@ -797,58 +801,92 @@ Learned (prop.) & \textbf{80/80} & & \textbf{80/80} & & \textbf{80/80} & \\
 \end{tabular}
 \end{table}
 
-\subsection{RQ2: Distance to the lattice reference plan}
+\subsection{RQ2: Distance to the exact optimum of the space--time model}
 \label{sec:rq2}
 
-Table~\ref{tab:milp} and Figure~\ref{fig:milp} compare the two controllers with the lattice
-reference on 34 instances with three drones: ten each for $M \in \{4, 6, 8\}$ and four for
-$M = 10$, with time limits of 30, 60, 120 and 120 minutes and six solver threads. Three counts describe what the solver achieved on each instance. A \emph{plan} is a feasible
-solution of the lattice model returned within the time limit; such a plan is then \emph{replayed}
-in the continuous simulator by issuing its node sequence as goals, and we count it as replayed
-only if the replay serves every demand point (one plan for $M=8$ delivered seven of eight
-demand points on replay, because the continuous projection and the lattice's one-period moves do
-not coincide exactly, and is counted as found but not replayed); a plan is \emph{optimal} if the
-solver closed the optimality gap on the lattice model. The replayed makespan is the number we
-compare against.
+\paragraph{Exact solutions}
+For instances in which no reload is needed ($M \le Q = 5$) we solve the space--time model of
+Section~\ref{sec:milp-model} to proven optimality by breadth-first search over its state space:
+a state is the multiset of the three drones' nodes together with the set of served demand points,
+the fleet is identical so states are kept up to permutation, and the search expands all node
+triples reachable in one period that satisfy the multi-hop connectivity test, period by period,
+until every demand point is served. Because every transition is exactly a feasible column of the
+MILP, the first period at which the full set appears is the optimal makespan of the model. On the
+hull-pruned lattice this takes 0--10 seconds per instance at $h = 98$\,m, which we verified against
+Gurobi on the instance it could certify (seed 902, ten periods, 1{,}242\,s with the solver, 1\,s
+with the search), and the pruned and unpruned lattices gave the same optimum on every instance we
+checked. The search also lets us refine the lattice: Table~\ref{tab:exact} reports the optimum at
+spacings $h = 98$, $69$ and $49$\,m on ten instances each for $M = 3, 4, 5$; at $49$\,m one
+instance takes up to 52 minutes.
 
-Three observations follow. First, the solver's reach ends between six and eight demand points:
-it returns plans for 9 of 10 instances with four demand points (four of them certified optimal on
-the lattice), 8 of 10 with six, 3 of 10 with eight, and none of the four with ten within two
-hours. The bottleneck is feasibility rather than optimality; the remaining gaps on returned plans
-are 12--36\%. Second, where a replayed plan exists both controllers are close to it: the
-heuristic's makespan averages 1.00, 1.07 and 1.07 times the plan for four, six and eight
-demand points, and the learned policy's per-instance median averages 0.94, 0.99 and 0.91 times
-the plan. Both are sometimes faster than the plan, including on instances where the lattice
-optimum is certified, which is not a contradiction: the lattice restricts where a drone may be,
-so its optimum is an upper bound on the continuous optimum and a continuous controller can beat
-it. Third, the learned policy's samples are wide. Its median is at or below the heuristic on most
-instances, but its range over 30 samples spans up to a factor of five on a single instance
-(1{,}142 against a median of 206 on one $M=8$ instance), which is the same tail behaviour as in
-Section~\ref{sec:rq3}. The comparison in RQ3 is therefore against a heuristic that is within a few
-percent of the best plan an exact method can produce at this scale, and the reference stops being
-available exactly where the controllers are needed.
+\paragraph{Result}
+Three observations follow (Table~\ref{tab:exact}, Figure~\ref{fig:exact}). First, the lattice
+optimum is an upper bound on the continuous optimum that decreases as the lattice is refined: the
+mean optimum falls by 7--9\% from $h=98$ to $h=49$\,m (89 to 82, 110 to 103 and 121 to 110 steps
+for $M = 3, 4, 5$). It is not monotone on every instance, because lattices of different spacing
+are not nested, but the finest lattice is the tightest reference we have and all ratios below
+are taken against it. Second, at $h = 49$\,m the learned policy's median is 1.7\%, 4.7\% and
+16.7\% above the lattice optimum for $M = 3, 4, 5$, and the heuristic 12.6\%, 10.7\% and 22.7\%;
+the learned policy is faster than the heuristic on the same instances for $M = 3$ and $4$
+(Wilcoxon $p = 0.016$ and $0.008$ over ten instances) but not significantly for $M = 5$
+($p = 0.36$), where both controllers lose ground because five demand points with three drones
+force a second relay chain. The recovery override of Section~\ref{sec:rq3} changes the learned
+policy's median by at most two percentage points here. Third, a plan that is optimal on the
+lattice is not optimal in the plane: replaying each optimal plan in the continuous simulator gives
+a makespan 2--10 steps below the lattice value on most instances, because the simulator moves
+continuously between the plan's nodes, and one plan ($M = 5$, instance 4) fails to replay because
+the continuous projection and the lattice's one-period moves do not coincide exactly. The
+remaining distance between the controllers and the optimum therefore has three parts: the period
+quantisation of ten steps, the lattice restriction that persists at $49$\,m, and the controllers'
+own suboptimality; the first two can be reduced only at a cost that grows with $M$ (the search
+time rises from seconds at $98$\,m to 25 minutes on average at $49$\,m for $M = 5$).
+
+\paragraph{Instances that need reloading}
+For $M \ge 6$ a drone must return to reload, the state space of the search grows by a cargo
+dimension per drone, and we fall back to the MILP with the hull-pruned lattice at $h = 98$\,m,
+one hour per instance and four solver threads (Table~\ref{tab:solver}). Here the solver's reach
+ends: it proves optimality on few instances, returns feasible solutions with optimality gaps of
+tens of percent on the rest, and returns nothing on some. The numbers in Table~\ref{tab:solver}
+compare the controllers with the best solution the solver found, which is an upper bound on the
+lattice optimum and no longer a reference of known quality; both controllers are faster than that
+solution on most of these instances. The comparison in RQ3 is therefore between two controllers
+that, where an exact optimum is available, are within 2--17\% (learned) and 11--23\% (heuristic)
+of it, and the exact reference stops being available exactly where the controllers are needed.
 
 \begin{table*}[t]
 \centering
-\caption{Lattice MILP reference versus the proposed controllers on instances with three drones
-(makespan in steps, means over instances). ``plan / replayed / optimal'' counts instances where the
-solver returned a plan, where that plan replayed to completion in the simulator, and where the
-lattice optimum was certified (gap 0); ``gap'' is the mean remaining optimality gap on returned
-plans and ``min'' the mean solver time. The learned column gives the mean of per-instance medians
-over 30 samples and the overall min--max. The ratio column divides the heuristic and the learned
-median by the replayed plan, averaged over replayed instances.}
-\label{tab:milp}
+\caption{Exact optimum of the space--time model versus the proposed controllers on instances with
+three drones and $M \le 5$ demand points, ten instances per $M$. Columns $h$ give the mean lattice
+optimum (steps) at three lattice spacings; the ratio columns divide each controller's makespan on
+the continuous simulator (heuristic: deterministic; learned: median of 30 runs; learned +
+recovery: median of 30 runs with the deadlock-recovery override) by the optimum at $h = 49$\,m,
+averaged over instances; $p$ is a Wilcoxon signed-rank test of heuristic against learned median
+across the ten instances.}
+\label{tab:exact}
 \small
-\input{tab_milp_v5_26_10_17_15}
+\input{tab_exact_v5_en_26_10_19_22}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Instances that need reloading ($M \ge 6$): space--time MILP with the hull-pruned lattice
+($h = 98$\,m), one hour per instance. ``feasible'' counts instances with a feasible solution,
+``optimal'' those with a proven optimum, ``mean gap'' the mean optimality gap over feasible
+solutions and ``mean time'' the mean solver time. The ratio columns divide the controllers'
+makespans by the best solution found, averaged over feasible instances.}
+\label{tab:solver}
+\small
+\input{tab_solver_v5_en_26_10_19_22}
 \end{table*}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\linewidth]{fig_milp_v5_26_10_17_15.pdf}
-\caption{Per-instance makespan on the reference instances with three drones: replayed MILP plan
-(square, absent where no plan was returned or the replay did not complete), heuristic (circle),
-and the learned policy's median with the interquartile range of 30 samples (triangle).}
-\label{fig:milp}
+\includegraphics[width=\linewidth]{fig_exact_v5_26_10_19_22.pdf}
+\caption{Per-instance makespan on the exactly solved instances with three drones: lattice optimum
+at three spacings (squares, darker is finer), heuristic (circle), learned policy median with the
+interquartile range of 30 runs (upward triangle) and learned policy with the recovery override
+(downward triangle).}
+\label{fig:exact}
 \end{figure*}
 
 \subsection{RQ3: Comparative performance across operating conditions}
@@ -1142,8 +1180,9 @@ the same instances (positive: the removed element was needed) and the Wilcoxon s
 Table~\ref{tab:latency} gives the latency of one manager decision on a CPU. The heuristic costs
 0.05--0.12\,ms; the learned policy 1.3--2.5\,ms without autoregression and 2.7--7.4\,ms with it,
 growing linearly with the fleet because each drone is a sequential network call. Over a 900-step
-episode the learned policy's cumulative decision time is 0.16\,s. The lattice MILP takes 600 to
-5{,}400 seconds on instances with four to ten demand points and does not return a plan for ten.
+episode the learned policy's cumulative decision time is 0.16\,s. The exact search takes seconds to
+52 minutes on instances with three to five demand points, and the MILP for larger instances uses
+its full hour.
 
 \begin{table*}[t]
 \centering
@@ -1185,7 +1224,9 @@ The learned policy was trained at a single communication radius; it transfers to
 350\,m in completion but its speed ranking against the heuristic shifts with the radius
 (Section~\ref{sec:rq3}), and radii outside this range were not tested. The environment is planar, ignores
 wind, battery and collisions, and uses a disc communication model; real links are not discs. The
-MILP reference is a lattice restriction with a remaining optimality gap, not an exact optimum. The
+exact optimum is that of a discretised model: its lattice spacing and ten-step periods leave a
+quantisation that the finest lattice we could afford does not remove, and for instances that need
+reloading only solver incumbents with a remaining optimality gap are available. The
 heuristic's novelty lies in the recovery mechanism and the adaptive relay count rather than in the
 chain geometry itself.
 
@@ -1205,9 +1246,9 @@ projection that keeps the fleet connected at every step. Under a paired protocol
 three to twelve drones the learned policy completes every instance and is faster by 38 to 178
 steps once more than four drones are available, although it was trained on three and four, while the heuristic is faster by 30--39 steps with
 three. The relay-limited deficit is one decision, which drone relays; it resists eleven policy-side
-interventions and halves when the enforcement model is changed. Both controllers are three orders
-of magnitude faster than exact optimisation on a lattice, which stops returning plans at ten
-demand points. The natural next step is a policy whose output is a team assignment rather than a
+interventions and halves when the enforcement model is changed. Where an exact optimum of the space--time model is available, the learned policy is within
+2--17\% of it and the heuristic within 11--23\%, and both decide three to six orders of magnitude
+faster than the exact methods, which stop proving optimality once reloading is needed. The natural next step is a policy whose output is a team assignment rather than a
 set of per-drone options, so that the relay identity becomes a coordinate the critic can value
 directly.
 
