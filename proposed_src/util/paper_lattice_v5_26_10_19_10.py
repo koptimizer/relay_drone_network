@@ -10,12 +10,12 @@ import sys
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, Polygon
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
-from pipeline.milp_v5_26_09_21_03 import build_nodes
+from pipeline.milp_v5_26_09_21_03 import build_nodes, convex_hull
 from util.instance_generator_v5_26_09_15_22 import reach_limit, sample_instance
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,14 +29,23 @@ def main():
 	env0 = DisasterRelayDroneEnv(num_drones=N, num_dests=M)
 	ell = env0.max_speed * 10                   # 한 기간(10스텝)의 비행 거리
 	h = ell / np.sqrt(2.0)
-	pos, nd = build_nodes(cc, dests, ell, h, R, N)
+	pos_all, nd = build_nodes(cc, dests, ell, h, R, N)              # 가지치기 전 (도달 한계만)
+	pos, _ = build_nodes(cc, dests, ell, h, R, N, hull_margin=h / np.sqrt(2.0))   # 볼록 껍질 가지치기 후
 	lim = reach_limit(N, R, 0.9)
 	grid = pos[1 + nd:]
-	fig, ax = plt.subplots(figsize=(4.6, 4.9))
+	kept = {tuple(np.round(q, 3)) for q in grid}
+	removed = np.array([q for q in pos_all[1 + nd:] if tuple(np.round(q, 3)) not in kept])
+	hull = convex_hull([cc] + list(dests))
+	fig, ax = plt.subplots(figsize=(4.8, 5.3))
 	ax.set_aspect("equal")
 	# 도달 한계와 격자
-	ax.add_patch(Circle(cc, lim, fill=False, ls=":", lw=0.9, color="#888", label="reach limit $0.9NR$ (nodes beyond are deleted)"))
-	ax.scatter(grid[:, 0], grid[:, 1], s=6, color="#9aa6b0", label=f"lattice node (spacing $h$ = {h:.1f} m)")
+	ax.add_patch(Circle(cc, lim, fill=False, ls=":", lw=0.9, color="#888", label="reach limit $0.9NR$"))
+	ax.add_patch(Polygon(hull, closed=True, fill=True, fc="#f3efe3", ec="#8a7a3a", lw=1.0, ls="-", alpha=0.9, zorder=0,
+	                     label="convex hull of depot and demand points"))
+	if len(removed):
+		ax.scatter(removed[:, 0], removed[:, 1], s=6, marker="x", color="#c9ced3", lw=0.6,
+		           label=f"pruned node (> $h/\\sqrt{{2}}$ from hull), {len(removed)}")
+	ax.scatter(grid[:, 0], grid[:, 1], s=7, color="#5a6670", label=f"kept node ($h$ = {h:.1f} m), {len(grid)}")
 	# 예시 노드 i: 격자 중 센터에서 약 400 m 떨어진 노드
 	d = np.linalg.norm(grid - cc, axis=1)
 	i = int(np.argmin(np.abs(d - 400.0)))
@@ -45,7 +54,7 @@ def main():
 	dA = np.linalg.norm(pos - pi, axis=1)
 	A = pos[(dA <= ell + 1e-6)]
 	ax.scatter(A[:, 0], A[:, 1], s=26, facecolor="none", edgecolor="#1d6d9c", lw=1.0,
-	           label="move set $A(i)$: reachable in one period ($\\ell$ = %.0f m)" % ell)
+	           label="move set $A(i)$ ($\\ell$ = %.0f m)" % ell)
 	ax.add_patch(Circle(pi, ell, fill=False, ls="-", lw=0.8, color="#1d6d9c", alpha=0.6))
 	# 통신 집합 E: R 안의 노드
 	ax.add_patch(Circle(pi, R, fill=True, alpha=0.07, color="#b04236", lw=0))
@@ -57,12 +66,12 @@ def main():
 	ax.scatter(dests[:, 0], dests[:, 1], s=50, marker="x", color="#222", lw=1.5, zorder=6, label="demand point nodes $D$")
 	ax.set_xlim(pos[:, 0].min() - 120, pos[:, 0].max() + 120); ax.set_ylim(pos[:, 1].min() - 80, pos[:, 1].max() + 230)
 	ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
-	ax.legend(frameon=False, fontsize=6.3, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=2)
-	ax.set_title(f"space–time network nodes: $N_v$ = {len(pos)} (3 drones, 4 demand points)", fontsize=8.5)
+	ax.legend(frameon=False, fontsize=6.3, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, columnspacing=0.8, handletextpad=0.4)
+	ax.set_title(f"nodes after pruning: $N_v$ = {len(pos)} of {len(pos_all)}  (3 drones, 4 demand points)", fontsize=8.5)
 	fig.tight_layout()
 	out = os.path.join(FIG, "fig_lattice_v5_26_10_19_10.pdf")
 	fig.savefig(out); fig.savefig(out.replace(".pdf", ".png"), dpi=160); plt.close(fig)
-	print("저장:", out, "| 노드", len(pos), "격자", len(grid), "h", round(h, 1), "ell", round(ell, 1))
+	print("저장:", out, "| 노드", len(pos), "/", len(pos_all), "격자", len(grid), "h", round(h, 1), "ell", round(ell, 1))
 
 
 if __name__ == "__main__":

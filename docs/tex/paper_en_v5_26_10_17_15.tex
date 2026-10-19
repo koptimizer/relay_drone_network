@@ -345,14 +345,30 @@ intermediate drones placed within the chain's slack $NR - d$, which requires rou
 $h \lesssim (NR - d_{\max})/(N-1)$; a 196\,m lattice makes the reference instances infeasible
 although they are feasible in the plane, and 98\,m does not.
 
+\paragraph{Node pruning by the convex hull}
+Most lattice nodes inside the reach limit are never useful. Let $H$ be the convex hull of the
+depot and the demand points. For any configuration of the fleet, projecting every drone that lies
+outside $H$ onto $H$ does not increase any pairwise distance, because projection onto a convex
+set is non-expansive; hence it preserves every communication link, every one-period move and
+every service, and the projected plan has the same makespan. The continuous problem therefore
+always has an optimal plan inside $H$, and relay positions outside the hull can be discarded
+without loss. On the lattice we keep the nodes within $h/\sqrt{2}$ of $H$, the half-diagonal of
+a cell, so that every point of $H$ still has a kept node within one lattice step; this margin
+guards against the case in which the projection of a lattice node is not itself a lattice node.
+The pruning removes 45\% of the nodes of the 34 reference instances on average (from 2{,}881 to
+1{,}594 in total) and, on the instances where we can check, leaves the lattice optimum
+unchanged (Section~\ref{sec:rq2}). Figure~\ref{fig:lattice} shows the pruned and kept nodes.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_lattice_v5_26_10_19_10.pdf}
 \caption{Nodes of the space--time network for a reference instance with three drones and four
 demand points: the depot (node 0), the demand-point nodes $D$, and the lattice $G$ of spacing
-$h = 98.2$\,m clipped to the reach limit $0.9NR$. For one example node $i$ the figure marks its
-move set $A(i)$ (the nodes reachable in one period, $\ell = 138.9$\,m) and its communication
-disc of radius $R$, which defines its arcs in $E$.}
+$h = 98.2$\,m clipped to the reach limit $0.9NR$ (dotted). The shaded polygon is the convex hull
+of the depot and the demand points; lattice nodes farther than $h/\sqrt{2}$ from it are pruned
+(crosses) and the rest are kept (dots), leaving 29 of 68 nodes. For one example node $i$ the
+figure marks its move set $A(i)$ (the nodes reachable in one period, $\ell = 138.9$\,m) and its
+communication disc of radius $R$, which defines its arcs in $E$.}
 \label{fig:lattice}
 \end{figure}
 
