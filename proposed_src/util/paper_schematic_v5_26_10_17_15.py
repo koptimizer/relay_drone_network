@@ -31,10 +31,19 @@ def panel_geometry(ax):
 	env.reset()
 	mf = chain_escape_manager()
 	env.set_goals(mf(env))
-	for t in range(1, 221):
+	# 배송·복귀·중계 세 역할이 동시에 보이는 첫 시점(150스텝 이후)에서 멈춘다
+	for t in range(1, 1200):
 		env.step(straight_worker(env))
 		if t % 20 == 0 or env.goal_invalid().any():
 			env.set_goals(mf(env))
+		kinds = set(int(k) for k in env.goal_kind)
+		if t >= 150 and {0, 1, 3} <= kinds:
+			reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+			pd = min(np.linalg.norm(env.drones_pos[a] - env.drones_pos[b]) for a in range(3) for b in range(a + 1, 3))
+			# 선두가 1.5R 너머에 있고 드론끼리 120 m 이상 떨어진, 사슬이 보이는 장면만 고른다
+			if reach.max() > 1.5 * env.comm_range and pd > 120.0:
+				break
+	print("개요 그림 시점:", t, "역할", sorted(set(int(k) for k in env.goal_kind)))
 	R = env.comm_range
 	cc = env.cc_pos
 	ax.set_aspect("equal")
@@ -59,18 +68,19 @@ def panel_geometry(ax):
 				ax.plot([a[0], b[0]], [a[1], b[1]], color=C_L, lw=1.2)
 	# 제어 센터·드론
 	ax.scatter([cc[0]], [cc[1]], s=90, marker="s", color=C_CC, zorder=5, label="control centre")
-	kinds = {0: ("deliver", "o"), 1: ("return", "v"), 2: ("hold", "d"), 3: ("relay", "^")}
+	kinds = {0: ("deliver", "o"), 1: ("return to reload", "v"), 2: ("hold", "d"), 3: ("relay", "^")}
 	seen = set()
 	for i in range(3):
 		k = int(env.goal_kind[i]); nm, mk = kinds.get(k, ("drone", "o"))
 		lab = f"drone: {nm}" if nm not in seen else None; seen.add(nm)
+		col = C_H if nm == "relay" else ("#2d7a5c" if nm.startswith("return") else C_L)
 		ax.scatter([env.drones_pos[i, 0]], [env.drones_pos[i, 1]], s=60, marker=mk,
-		           color=C_H if nm == "relay" else C_L, edgecolor="k", lw=0.5, zorder=6, label=lab)
+		           color=col, edgecolor="k", lw=0.5, zorder=6, label=lab)
 		g = env.goal_pos[i]
 		ax.add_patch(FancyArrowPatch(env.drones_pos[i], g, arrowstyle="-|>", mutation_scale=8, lw=0.8,
 		                             color="#333", alpha=0.7, zorder=4))
 	ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=6, loc="lower left", markerscale=0.8)
-	ax.set_title("(a) problem: deliver under a multi-hop relay chain", fontsize=8.5, loc="left")
+	ax.set_title(f"(a) a multi-hop relay chain (step {t})", fontsize=8.5, loc="left")
 
 
 def box(ax, x, y, w, h, text, fc="#f4f6f8", ec="#555", fs=7):

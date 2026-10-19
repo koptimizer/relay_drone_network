@@ -137,6 +137,10 @@ A.~Y. Ng, D.~Harada, S.~Russell, Policy invariance under reward
   transformations: Theory and application to reward shaping, in: Proceedings of
   the 16th International Conference on Machine Learning, 1999, pp. 278--287.
 
+\bibitem{ford1962}
+L.~R. Ford, D.~R. Fulkerson, Flows in Networks, Princeton University Press,
+  Princeton, NJ, 1962.
+
 \bibitem{gurobi}
 {Gurobi Optimization, LLC}, Gurobi optimizer reference manual, version 13,
   \url{https://www.gurobi.com} (2026).

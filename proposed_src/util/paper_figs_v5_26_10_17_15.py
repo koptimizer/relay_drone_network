@@ -160,7 +160,7 @@ def fig_milp(tag, csv_path):
 		            ms=4, elinewidth=0.6, capsize=1.5, label="learned median (IQR of 30 samples)")
 		ax.set_title(f"$M={M}$", fontsize=9)
 		ax.set_xlabel("instance")
-		ax.set_xticks(x); ax.set_xticklabels([r["seed"] for r in sel], fontsize=6, rotation=90)
+		ax.set_xticks(x); ax.set_xticklabels([str(k + 1) for k in range(len(sel))], fontsize=6)
 	axes[0].set_ylabel("makespan (steps)")
 	h, l = axes[0].get_legend_handles_labels()
 	fig.legend(h, l, frameon=False, fontsize=7, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.02))
