@@ -550,8 +550,8 @@ destinations unserved, time, its realised-movement ratio, two stall indicators, 
 and whether it is a cut vertex of $G_t$); its five candidate destinations (6 features each:
 distance, direction, whether a teammate already targets it, distance from the centre, hops
 required); its peers ($N-1$ entities of 9 features: relative position, cargo, hop depth and a
-one-hot of the peer's current role); and its relay slot (4 features: distance, direction, slot
-index). Each entity type passes through a two-layer MLP of width 128. The drone's own embedding is
+one-hot of the peer's current role); and its relay slot (4 features: distance, the two components of the unit direction vector,
+and the number of slots in the current chain). Each entity type passes through a two-layer MLP of width 128. The drone's own embedding is
 the query of two multi-head attention layers (4 heads) that pool the peer set and the candidate
 set into one vector each; the four vectors are concatenated and fused by a further MLP into the
 drone's embedding $h_i$. A \emph{pointer head} scores each candidate from $[h_i;\, e_{\mathrm{cand}}]$
