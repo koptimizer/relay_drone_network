@@ -198,11 +198,15 @@ def fig_range(tag, files):
 			ymin, ymax = min(ymin, q1), max(ymax, q3)
 		ax.axhline(0, color="#333", lw=0.8)
 		ax.axvspan(284, 316, color="#ddd", alpha=0.5, lw=0, zorder=0)
-		ax.set_xticks(Rs); ax.set_xticklabels([f"{r}\n{comp.get(r, '')}" for r in Rs], fontsize=6.5)
+		ax.set_xticks(Rs); ax.set_xticklabels([str(r) for r in Rs], fontsize=7)
+		import matplotlib.transforms as mtr
+		tr = mtr.blended_transform_factory(ax.transData, ax.transAxes)
+		for r in Rs:
+			ax.text(r, -0.16, comp.get(r, ""), transform=tr, ha="center", va="top", fontsize=5.3, color="#555")
 		ax.set_xlim(Rs[0] - 35, Rs[-1] + 35)
 		ax.set_title(f"$N/M$ = {lab}", fontsize=8)
 		ax.tick_params(axis="y", labelsize=7)
-		ax.set_xlabel("$R$ (m)\ncompletions heuristic/learned", fontsize=6.5)
+		ax.set_xlabel("$R$ (m)", fontsize=7, labelpad=13)
 	axes[0].set_ylabel("paired median difference (steps)\nlearned − heuristic", fontsize=7)
 	pad = 0.22 * (ymax - ymin)
 	axes[0].set_ylim(ymin - pad, ymax + pad)
@@ -211,9 +215,9 @@ def fig_range(tag, files):
 		ax.text(0.02, 0.03, "learned faster", transform=ax.transAxes, fontsize=5.8, color=C_L, va="bottom")
 	from matplotlib.patches import Patch
 	fig.legend(handles=[Patch(color="#ddd", label="training radius 300 m"),
-	                    plt.Line2D([], [], color="#333", lw=0.9, label="interquartile range; label = wins–losses of the learned policy")],
-	           loc="lower center", ncol=2, frameon=False, fontsize=6.3, bbox_to_anchor=(0.5, -0.02))
-	fig.tight_layout(rect=(0, 0.05, 1, 1))
+	                    plt.Line2D([], [], color="#333", lw=0.9, label="interquartile range; label = wins–losses of the learned policy;\nsmall numbers = completions heuristic/learned")],
+	           loc="lower center", ncol=2, frameon=False, fontsize=6.3, bbox_to_anchor=(0.5, -0.03))
+	fig.tight_layout(rect=(0, 0.08, 1, 1))
 	out = os.path.join(FIG, f"fig_range_v5_{tag}.pdf")
 	fig.savefig(out); fig.savefig(out.replace(".pdf", ".png"), dpi=160); plt.close(fig)
 	print("저장:", out)
