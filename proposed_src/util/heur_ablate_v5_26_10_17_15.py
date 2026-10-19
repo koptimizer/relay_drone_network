@@ -61,12 +61,18 @@ def main():
 				grid.append((mode, k, h))
 	tag = f"d{A.num_drones}m{A.num_dests}{'r' if A.random_cc else 'f'}"
 	out = os.path.join(ROOT, "figures", f"{A.out}_{tag}.csv")
+	raw = open(out.replace(".csv", "_seeds.csv"), "w", newline="", encoding="utf-8")   # per-seed makespan (유의성 검정용)
+	rw = csv.writer(raw)
+	rw.writerow(["config", "mode", "k_stall", "hold", "seed", "makespan"])
 	with open(out, "w", newline="", encoding="utf-8") as f:
 		w = csv.writer(f)
 		w.writerow(["config", "mode", "k_stall", "hold", "n", "complete", "median", "mean", "p90", "max"])
 		for mode, k, h in grid:
 			mf = (lambda e: chain_manager(e)) if mode == "none" else chain_escape_manager(k, h, mode)
 			ms = [run(env, mf, s, cc) for s in range(A.seed0, A.seed0 + A.n)]
+			for sd, m in zip(range(A.seed0, A.seed0 + A.n), ms):
+				rw.writerow([tag, mode, k, h, sd, m if m else ""])
+			raw.flush()
 			done = [m for m in ms if m]
 			row = [tag, mode, k, h, A.n, len(done),
 			       int(np.median(done)) if done else "", round(float(np.mean(done)), 1) if done else "",

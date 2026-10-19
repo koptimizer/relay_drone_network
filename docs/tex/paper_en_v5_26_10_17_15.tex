@@ -38,27 +38,29 @@
                  country={Republic of Korea}}
 
 \begin{abstract}
-In disaster relief, delivery drones must stay connected to a control centre through a multi-hop
+In disaster relief, delivery drones must stay connected to a depot through a multi-hop
 relay chain formed by the fleet itself, while carrying supplies with limited capacity and
 returning to reload. We model this as a makespan-minimisation problem in which every drone can
 either deliver or relay, and connectivity is a hard constraint enforced at every time step. We
 propose two controllers that share the same connectivity-preserving projection: a geometric
-chain-relay heuristic with a deadlock-escape mechanism, and a fleet-size-agnostic policy learned
+chain-relay heuristic with a deadlock-recovery mechanism, and a fleet-size-agnostic policy learned
 once with discrete soft actor-critic over a set-based, autoregressive manager. Both are compared
 on identical instances with a paired protocol across fleets of 3 to 12 drones and 20 to 400
-destinations, against four learning-free baselines and a time-expanded mixed-integer reference
+demand points, against four learning-free baselines and a time-expanded mixed-integer reference
 model on small instances. The learned policy completes every instance in every configuration;
-the heuristic completes 98--100\% with the escape mechanism and 62\% without it. The two
+the heuristic completes 98--100\% with the recovery mechanism and 62\% without it. The two
 controllers divide the configuration space: with three drones the heuristic is 30--39 steps
-faster in paired median, with four drones the two tie over 480 rollouts, and with five
-or more drones the learned policy is faster by 38 to 178 steps; the policy is trained only on
-three and four drones and generalises to every larger fleet without retraining. The three-drone deficit is localised to a single decision, which drone relays, and ten
+faster in paired median, with four drones the two are statistically indistinguishable over 480 paired runs, and with
+five or more drones the learned policy is faster by 38 to 178 steps. The policy is trained only
+on three and four drones and transfers without retraining to every larger fleet tested; the
+set-based architecture carries completion and training on randomised configurations carries
+speed. The three-drone deficit is localised to a single decision, which drone relays, and eleven
 policy-side interventions covering information, credit assignment, decision structure,
 initialisation and reward shaping all fail to remove it; half of it disappears when the
 connectivity projection is changed from radial shrinking to tangential sliding, showing that the
 deficit is partly a property of how the constraint is enforced rather than of the learner. Both
 controllers run in milliseconds per decision, three orders of magnitude below exact optimisation,
-which does not return a plan for ten destinations within ninety minutes.
+which does not return a plan for ten demand points within ninety minutes.
 \end{abstract}
 
 \begin{keyword}
@@ -73,39 +75,50 @@ learning \sep heuristic \sep disaster logistics
 \label{sec:intro}
 
 When communication, logistics and road infrastructure are destroyed, a fleet of drones can carry
-emergency supplies from a temporary control centre to many destinations. Two features make this
-different from parcel delivery. First, every drone must be reachable by the control centre at all
+emergency supplies from a temporary depot to many demand points. Drones have been studied
+for last-mile distribution in disaster relief \cite{chowdhury2017,rabta2018,erdelj2017} and for
+medical delivery \cite{kim2017,ghelichi2021}, and the routing of drone fleets has grown into a
+literature of its own since the flying-sidekick travelling salesman problem
+\cite{murray2015,otto2018,macrina2020,chung2020}. Two features make the disaster setting
+different from parcel delivery. First, every drone must be reachable by the depot at all
 times, because loading and unloading are supervised remotely and the delivery status must be
 tracked; with the ground network gone, reachability is provided only by the drones themselves
 acting as radio relays in a multi-hop chain. Second, the fleet is small and each drone carries a
-few units, so drones shuttle between the centre and the destinations and every drone that stands
+few units, so drones shuttle between the depot and the demand points and every drone that stands
 still as a relay is a drone that is not delivering. The operational question is how to assign
-delivery and relay roles over time so that the last destination is served as early as possible
-without ever breaking the chain.
+delivery and relay roles over time so that the last demand point is served as early as possible
+without ever breaking the chain. Aerial relays are well studied in the communications literature
+\cite{zeng2016,mozaffari2019,burdakov2010}, and connectivity maintenance is a classical topic in
+multi-robot control \cite{zavlanos2011,dixon2009}, but in both the relay \emph{is} the mission;
+here relaying competes with the delivery mission for the same vehicles.
 
 Three properties make the problem hard. A hard connectivity constraint creates deadlocks: a greedy
-assignment that sends every drone to its nearest destination completes none of the standard
+assignment that sends every drone to its nearest demand point completes none of the standard
 instances in our study, because the fleet pulls itself apart until no drone can move. Relaying
 competes directly with throughput, so the right number and identity of relays changes with the
-geometry of the remaining destinations and with how many drones are left with cargo. And exact
-optimisation does not scale: a time-expanded mixed-integer model on a 98-metre lattice returns
-plans for four and six destinations but no feasible plan for ten within ninety minutes.
+geometry of the remaining demand points and with how many drones are left with cargo. And exact
+optimisation does not scale: a time-expanded mixed-integer model \cite{ford1962,skutella2009} on a
+98-metre lattice returns feasible solutions for four and six demand points but none for ten within
+ninety minutes, whereas drone-routing models without a connectivity constraint are solved exactly
+for tens of customers \cite{roberti2021}.
 
 \paragraph{Proposal}
 We propose two controllers for this problem and study them side by side.
 \begin{enumerate}
-\item A \emph{geometric chain-relay heuristic}. The drone farthest from the centre with cargo is
+\item A \emph{geometric chain-relay heuristic}. The drone farthest from the depot with cargo is
 the lead; the number of relays is the number of communication hops its target needs; the relays
-are the next-farthest drones, stationed on the segment from the centre to the lead at intervals of
+are the next-farthest drones, stationed on the segment from the depot to the lead at intervals of
 $0.9R$. Because the rule is deterministic it can repeat a deadlocked assignment indefinitely, so
-we add a \emph{deadlock-escape} mechanism that swaps the lead whenever the fleet has stalled for a
-fixed number of steps. The escape mechanism alone lifts completion on the standard configuration
+we add a \emph{deadlock-recovery} mechanism that swaps the lead whenever the fleet has stalled for a
+fixed number of steps. The recovery mechanism alone lifts completion on the standard configuration
 from 62\% to 98\%.
 \item A \emph{learned policy} that is agnostic to fleet size. A manager assigns each drone one of
-seven discrete options every twenty steps; it encodes the drones, candidate destinations and relay
+seven discrete options every twenty steps; it encodes the drones, candidate demand points and relay
 slot as a set, pools them with attention, and decides autoregressively so that a formation of one
 lead and $k$ relays can be composed deliberately. It is trained once with discrete soft
-actor-critic on fleets of three and four drones and then run without retraining on fleets of up to twelve.
+actor-critic \cite{haarnoja2018} on fleets of three and four drones and then run without
+retraining on fleets of up to twelve, in the spirit of size-agnostic learned solvers for routing
+\cite{kool2019,park2023}.
 \end{enumerate}
 Both controllers act through the same connectivity-preserving projection: each commanded move is
 scaled by the largest factor that keeps the fleet connected. Connectivity is therefore guaranteed
@@ -113,110 +126,177 @@ by construction for both, and the empirical question is whether a controller mak
 the constraint rather than whether it violates it.
 
 \paragraph{Research questions}
-We organise the study around four questions.
+We organise the study around five questions.
 \begin{itemize}
 \item[\textbf{RQ1}] Do the proposed controllers always complete the delivery while connectivity
 is enforced at every step, and when they do not, why not?
-\item[\textbf{RQ2}] On small instances, how close are the proposed controllers to a reference plan
-obtained by exact optimisation of a lattice model?
-\item[\textbf{RQ3}] How does the performance of the two controllers differ across environments,
-in particular across fleet size, number of destinations, depot position and communication
-radius; does a policy trained on small fleets generalise to larger ones; and where do the
-differences come from?
-\item[\textbf{RQ4}] Are the components of each controller necessary?
+\item[\textbf{RQ2}] On small instances, how close are the proposed controllers to the optimal
+solution of a space--time network model solved exactly?
+\item[\textbf{RQ3}] How does the performance of the two controllers compare across operating
+conditions, in particular across fleet size, number of demand points, depot position and
+communication radius, and where do the differences come from?
+\item[\textbf{RQ4}] Does the learned policy, trained on fleets of three and four drones, transfer
+upward to larger fleets and larger instances without retraining, and what carries the transfer?
+\item[\textbf{RQ5}] Are the components of each controller necessary?
 \end{itemize}
 
 \paragraph{Findings}
 The learned policy completes every instance in every configuration tested; the heuristic
-completes 98--100\% with the escape mechanism (RQ1). On instances small enough for the lattice
+completes 98--100\% with the recovery mechanism (RQ1). On instances small enough for the lattice
 model, both controllers are within a few percent of the reference plan, and the reference plan
 itself is a restriction rather than a bound of the continuous problem (RQ2). The two controllers
 divide the configuration space by fleet size: the heuristic is faster with three drones, the two
-tie with four, and the learned policy is faster with five or more, by 62 to 178 steps up to ten drones and 76 at
-twelve, although it never saw more than four drones in training; the three-drone deficit is a single decision, which drone relays, and it
-resists ten policy-side interventions but shrinks by half when the connectivity projection is
-changed (RQ3). Removing rule regularisation, configuration randomisation or entropy annealing from
-the learned policy costs hundreds of steps or completion, and removing the escape mechanism from
-the heuristic costs a third of its completions (RQ4).
+are statistically indistinguishable with four, and the learned policy is faster with five or more,
+by 62 to 178 steps up to ten drones and 76 at twelve; the three-drone deficit is a single
+decision, which drone relays, and it resists eleven policy-side interventions but shrinks by half
+when the connectivity projection is changed (RQ3). The learned policy never saw more than four
+drones or 80 demand points in training, yet it completes every instance with up to twelve drones and
+400 demand points; the set-based architecture carries completion and the configuration
+randomisation in training carries speed (RQ4). Removing rule regularisation, configuration
+randomisation or entropy annealing from the learned policy costs hundreds of steps or completion,
+and removing the recovery mechanism from the heuristic costs a third of its completions (RQ5).
 
 \paragraph{Contributions}
-(i) A geometric chain-relay heuristic with deadlock escape and a fleet-size-agnostic learned
+(i) A geometric chain-relay heuristic with deadlock recovery and a fleet-size-agnostic learned
 policy for connectivity-constrained delivery, both built on a projection that makes the
 constraint hold by construction. (ii) A paired evaluation across fleet sizes that shows the two
-controllers are complementary, together with the mechanism behind the boundary. (iii) A set of
-ten documented negative results on closing the scarce-fleet deficit by changing the learner, and a
-sensitivity result showing that half of the deficit is attributable to the enforcement model.
-(iv) A lattice MILP reference with an honest account of what it does and does not bound.
+controllers are complementary, together with the mechanism behind the boundary, and evidence that
+the learned policy transfers upward to fleets three times larger than any it was trained on.
+(iii) A set of eleven documented negative results on closing the relay-limited deficit by changing
+the learner, and a sensitivity result showing that half of the deficit is attributable to the
+enforcement model. (iv) A space--time network model of the problem, solved exactly on small
+instances, with an explicit account of what its optimum does and does not bound.
 
 % =====================================================================================
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{Drone delivery routing}
-Routing with drones has been studied since the flying-sidekick travelling salesman problem
-\cite{murray2015} and its multi-drone extensions \cite{murray2020,agatz2018,dorling2017}. These
-models treat communication as free: a drone is never required to be reachable, and no vehicle
-gives up its delivery role to serve as a relay. Learned solvers for min-max multi-vehicle routing
-\cite{park2023,guo2024} show that set-based policies generalise across problem sizes, which is the
-property we need across fleet sizes, but again without a connectivity constraint. Dual-mission
-fleets in which the same drones deliver and sense \cite{zhu2026} formalise a per-delivery detour
-budget; the secondary task there is sensing, not communication.
+\subsection{Vehicle routing with drones}
+\label{sec:rel-vrp}
+The problem belongs to the family of vehicle routing problems \cite{dantzig1959,toth2014}, with
+a homogeneous capacitated fleet, a single depot, unit demands and a makespan objective; the
+makespan (or min-max) objective, as opposed to total distance, is the standard choice when the
+goal is to finish service as early as possible \cite{park2023,kitjacharoenchai2019}. Drone
+routing began with the flying-sidekick travelling salesman problem, in which a truck and a drone
+cooperate \cite{murray2015}, and was extended to multiple drones \cite{murray2020}, to exact and
+approximate solution methods \cite{agatz2018,ha2018,roberti2021,dell2021}, to vehicle routing
+with drones \cite{poikonen2017,sacramento2019,schermer2019} and to drone-only fleets with
+energy and payload constraints \cite{dorling2017}. The surveys of Otto et~al.\ \cite{otto2018},
+Macrina et~al.\ \cite{macrina2020} and Chung et~al.\ \cite{chung2020} map this literature.
+Across all of it communication is free: a drone is never required to be reachable from the
+depot, and no vehicle gives up its delivery role to serve as a relay. Our problem adds exactly
+that requirement, and the main consequence for modelling is that routes are no longer sufficient
+as decision variables, because the constraint concerns where all vehicles are at every instant
+(Section~\ref{sec:milp-model}). Dynamic vehicle routing \cite{pillac2013} shares the need to
+decide online as the state evolves, which is the mode in which both of our controllers operate.
 
-\paragraph{UAV relays and connectivity maintenance}
-Aerial relay positioning is its own literature \cite{zeng2016,yanmaz2022,ding2022}, and joint
-optimisation of mission and relay UAVs with multi-agent learning exists \cite{mutto2024,maen2024}.
-In these works the relays are the mission, or a dedicated sub-fleet with its own reward; they do
-not carry cargo, do not reload, and do not minimise a delivery makespan. Connectivity maintenance
-for multi-robot navigation has been approached with learned controllers \cite{li2021}. Switching
-between a task role and a relay role is an established idea in multi-robot exploration
-\cite{dehoog2009,cesare2015}, where relay robots land and act as fixed nodes.
+\subsection{Drones in disaster and humanitarian logistics}
+\label{sec:rel-disaster}
+Drones have been proposed for last-mile distribution when ground infrastructure is damaged.
+Chowdhury et~al.\ \cite{chowdhury2017} design a drone-based relief distribution network with a
+continuous approximation model; Rabta et~al.\ \cite{rabta2018} optimise a drone fleet for
+last-mile delivery under payload and range limits; Kim et~al.\ \cite{kim2017} and Ghelichi et~al.\
+\cite{ghelichi2021} plan drone fleets for medical deliveries in rural and urban settings; and
+Erdelj et~al.\ \cite{erdelj2017} survey the roles drones can take in disaster management,
+including that of temporary communication nodes. These works plan at the strategic or tactical
+level (fleet size, depot location, route assignment) and assume that the control link exists.
+Our contribution is at the operational level: given a fleet and a depot, how the drones should
+move so that the link is maintained by the fleet itself while it delivers.
 
-\paragraph{Where this work sits}
-To the best of our knowledge, no prior work combines (i) a homogeneous fleet carrying physical
-cargo to many destinations with capacity and reloading, (ii) a hard requirement that every drone
-be connected to the centre by a multi-hop chain at every step, and (iii) a makespan objective.
-In this setting relay duty competes with cargo throughput and the fleet must return to the depot
-repeatedly, which is what makes role assignment a sequential decision rather than a one-off
-placement.
+\subsection{Aerial relays and connectivity maintenance}
+\label{sec:rel-relay}
+Using UAVs as communication relays is a mature topic in wireless networking: surveys cover flying
+ad-hoc networks \cite{bekmezci2013}, UAV communication issues \cite{gupta2016} and UAV-enabled
+wireless networks \cite{mozaffari2019}; throughput-optimal relay trajectories are derived in
+\cite{zeng2016}; and relay placement for maintaining a link to a surveillance UAV is solved
+exactly in \cite{burdakov2010}. Multi-hop chains of mobile relays are studied in the robotics
+literature as communication chains \cite{dixon2009}, robotic routers \cite{tekdas2010} and
+relay positioning for team missions \cite{yanmaz2022}. Connectivity maintenance for a team of
+mobile robots has a control-theoretic literature based on the algebraic connectivity of the
+communication graph \cite{zavlanos2007,zavlanos2011}, and learned connectivity-preserving
+controllers exist \cite{li2021}. Learning-based relay control has been applied to packet routing
+in UAV networks \cite{ding2022}, to joint trajectory and power control of relay and mission UAVs
+\cite{mutto2024} and to aerial relay networking \cite{maen2024}. In all of these the relays are
+the mission, or a dedicated sub-fleet with its own reward; they do not carry cargo, do not reload
+and do not minimise a delivery makespan. Switching between a task role and a relay role is an
+established idea in multi-robot exploration \cite{dehoog2009,cesare2015}, where the relay robots
+land and act as fixed nodes; our drones switch roles repeatedly and the relay positions move with
+the lead drone.
 
-\paragraph{Learning machinery}
+\subsection{Time-expanded network models and symmetry}
+\label{sec:rel-tenet}
+Our exact model is a time-indexed formulation on a space--time network. Time-expanded networks
+originate with Ford and Fulkerson's flows over time \cite{ford1962}; Skutella \cite{skutella2009}
+surveys the theory. The dependence of such models on the time discretisation is well known, and
+dynamic discretisation discovery \cite{boland2017} refines the time grid where needed; we
+discretise space as well, which is the usual device in MILP trajectory planning for aircraft
+\cite{richards2002}. Connectivity is encoded as a single-commodity flow per period whose
+feasibility is equivalent to the existence of a multi-hop chain (Section~\ref{sec:milp-model}).
+The drones are identical, so the model carries the usual index symmetry, which we break with the
+ordering constraints of Sherali and Smith \cite{sherali2001}; Margot \cite{margot2010} surveys
+symmetry handling in integer programming.
+
+\subsection{Learning for routing and cooperative control}
+\label{sec:rel-learning}
+Neural solvers for routing problems, from pointer networks \cite{vinyals2015} to
+attention-based constructive policies \cite{nazari2018,kool2019}, show that set-based encoders
+with attention generalise across instance sizes; Bengio et~al.\ \cite{bengio2021} and
+Mazyavkina et~al.\ \cite{mazyavkina2021} survey machine learning for combinatorial optimisation.
+Learned solvers for the min-max multiple travelling salesman problem \cite{park2023,guo2024}
+are the closest in objective to ours, and we borrow the size-agnostic set encoding; none of them
+has a connectivity constraint, and none decides online. Dual-mission fleets in which the same
+drones deliver and sense \cite{zhu2026} formalise a per-delivery detour budget, but the secondary
+task there is sensing rather than communication and it does not couple the vehicles' positions.
 On the learning side we build on soft actor-critic \cite{haarnoja2018}, centralised critics for
 decentralised execution \cite{lowe2017,foerster2018}, value decomposition
-\cite{sunehag2018,rashid2018}, options as a semi-Markov decision process \cite{sutton1999},
-invalid-action masking \cite{huang2022} and safe-action projection \cite{dalal2018}. Our negative
-results in Section~\ref{sec:negative} test several of these ideas directly: per-agent credit,
-joint-action critics, monotonic value mixing and potential-style shaping \cite{ng1999} are all
-tried as remedies for the scarce-fleet deficit and none of them removes it.
+\cite{sunehag2018,rashid2018}, cooperative multi-agent policy optimisation \cite{yu2022} (see
+\cite{oroojlooy2023} for a review), temporal abstraction through options
+\cite{sutton1999,bacon2017,vezhnevets2017}, invalid-action masking \cite{huang2022} and
+safe-action projection \cite{dalal2018}. Our negative results in Section~\ref{sec:negative} test
+several of these ideas directly: per-agent credit, joint-action critics, monotonic value mixing
+and potential-style shaping \cite{ng1999} are all tried as remedies for the relay-limited deficit
+and none of them removes it.
+
+\subsection{Position of this work}
+\label{sec:rel-position}
+To the best of our knowledge, no prior work combines (i) a homogeneous fleet carrying physical
+cargo to many demand points with capacity and reloading, (ii) a hard requirement that every drone
+be connected to the depot by a multi-hop chain at every step, and (iii) a makespan objective.
+In this setting relay duty competes with cargo throughput and the fleet must return to the depot
+repeatedly, which is what makes role assignment a sequential decision rather than a one-off
+placement. We contribute an exact space--time network model of this problem, a constructive
+online heuristic with a deadlock-recovery mechanism, and a learned size-agnostic policy, and we
+report where each is preferable.
 
 % =====================================================================================
 \section{Problem Statement}
 \label{sec:problem}
 
-A control centre sits at $c \in [0,1000]^2$ metres and $M$ destinations $d_1,\dots,d_M$ lie
+A depot sits at $c \in [0,1000]^2$ metres and $M$ demand points $d_1,\dots,d_M$ lie
 within $0.9\,N R$ of it, where $N$ is the number of drones and $R = 300$\,m the communication
 range. Each drone flies at $v = 13.89$\,m/s and carries $Q = 5$ units. Every delivery and every
-reload incurs a \emph{service delay}: unloading one unit at a destination takes $S = 10$ steps and
-reloading to $Q$ at the centre takes $S$ steps, and during these steps the drone is stationary.
-A destination or the centre is reached when a drone is within 25\,m of it, and one step is one
-second. The service delays matter for the connectivity constraint below: a stationary drone
+reload incurs a \emph{service time}: unloading one unit at a demand point takes $S = 10$ steps and
+reloading to $Q$ at the depot takes $S$ steps, and during these steps the drone is stationary.
+A demand point or the depot is reached when a drone is within 25\,m of it, and one step is one
+second. The service times matter for the connectivity constraint below: a stationary drone
 cannot move to keep a link alive, so its teammates must keep the chain intact around it. Every
-destination needs exactly one unit. Drones do not collide, are not affected by wind, and battery
+demand point needs exactly one unit. Drones do not collide, are not affected by wind, and battery
 is not modelled.
 
 \paragraph{Connectivity}
-Let $G_t$ be the graph whose vertices are the centre and the $N$ drones and whose edges join
+Let $G_t$ be the graph whose vertices are the depot and the $N$ drones and whose edges join
 vertices within $R$ of each other. The fleet is \emph{connected} at step $t$ if $G_t$ is
-connected, which is the same as saying that every drone has a multi-hop path to the centre. The
+connected, which is the same as saying that every drone has a multi-hop path to the depot. The
 constraint is that $G_t$ is connected at every $t$. It is enforced rather than penalised
 (Section~\ref{sec:shared}).
 
 \paragraph{Objective}
-The makespan is the step at which the last destination is served. A controller \emph{completes}
-an instance if it serves all destinations within a budget of 10{,}000 steps. We report completion
+The makespan is the step at which the last demand point is served. A controller \emph{completes}
+an instance if it serves all demand points within a budget of 10{,}000 steps. We report completion
 rate and, over completed instances, makespan.
 
 \paragraph{Configurations}
-A configuration is a triple of fleet size $N$, number of destinations $M$ and depot placement
+A configuration is a triple of fleet size $N$, number of demand points $M$ and depot placement
 (fixed at the map centre, or uniformly random). The \emph{standard} configuration is $N=4$,
 $M=50$ with the fixed depot. The learned policy is trained with $N \in \{3,4\}$, $M \in [20,80]$
 and a random depot; all other configurations are unseen by it. The heuristic has no training.
@@ -241,7 +321,7 @@ next. Positions in the plane are uncountable, so space is discretised as well, t
 result is a \emph{space--time network} on which drones are unit flows, and a time-indexed MILP on
 this network is exact for the discretised problem. Connectivity is then a property of which
 lattice nodes are occupied in each period, and we encode it with a single-commodity flow per
-period that is feasible exactly when the occupied nodes form a multi-hop chain to the centre. The
+period that is feasible exactly when the occupied nodes form a multi-hop chain to the depot. The
 model is \emph{exact} in the sense that its optimum is the true optimum of the discretised
 problem; its relation to the continuous problem is stated at the end of this section.
 
@@ -249,8 +329,8 @@ problem; its relation to the continuous problem is stated at the end of this sec
 A period is $\kappa = S = 10$ steps, so a service occupies exactly one period and a manager
 decision of the learned policy spans two; the per-period flight range is $\ell = v\kappa =
 138.9$\,m. Space is a square lattice $G$ of spacing $h = \ell/\sqrt{2} = 98.2$\,m over the
-bounding box of the instance, from which nodes farther than $0.9NR$ from the centre are deleted
-because no chain can reach them; the centre and every destination are added as exact nodes, so
+bounding box of the instance, from which nodes farther than $0.9NR$ from the depot are deleted
+because no chain can reach them; the depot and every demand point are added as exact nodes, so
 the interaction test is exact there. Figure~\ref{fig:lattice} shows the resulting node set for a
 reference instance. With this spacing all eight king moves are feasible in one period; the move
 set and the communication set are
@@ -260,7 +340,7 @@ E &= \{ (i,j) \in N_{\mathrm{v}}^2 : i \ne j,\ \|p_i - p_j\| \le R \}. \label{eq
 \end{align}
 Axis-aligned moves cover $h$ rather than $\ell$ per period, so the lattice slows a drone by up
 to 29\% in those directions; this discretisation error always acts against the model. The lattice
-must also be fine enough to hold a relay chain: serving a destination at distance $d$ needs the
+must also be fine enough to hold a relay chain: serving a demand point at distance $d$ needs the
 intermediate drones placed within the chain's slack $NR - d$, which requires roughly
 $h \lesssim (NR - d_{\max})/(N-1)$; a 196\,m lattice makes the reference instances infeasible
 although they are feasible in the plane, and 98\,m does not.
@@ -269,7 +349,7 @@ although they are feasible in the plane, and 98\,m does not.
 \centering
 \includegraphics[width=\linewidth]{fig_lattice_v5_26_10_19_10.pdf}
 \caption{Nodes of the space--time network for a reference instance with three drones and four
-destinations: the centre (node 0), the destination nodes $D$, and the lattice $G$ of spacing
+demand points: the depot (node 0), the demand-point nodes $D$, and the lattice $G$ of spacing
 $h = 98.2$\,m clipped to the reach limit $0.9NR$. For one example node $i$ the figure marks its
 move set $A(i)$ (the nodes reachable in one period, $\ell = 138.9$\,m) and its communication
 disc of radius $R$, which defines its arcs in $E$.}
@@ -291,7 +371,7 @@ the model exploits this. The model is given in~\eqref{eq:m-obj}--\eqref{eq:m-sym
 Symbol & Domain & Meaning \\
 \midrule
 \multicolumn{3}{l}{\emph{Sets}} \\
-$N_{\mathrm{v}} = \{0\} \cup D \cup G$ & & nodes: the control centre (index 0), the destination nodes $D$, the lattice nodes $G$ \\
+$N_{\mathrm{v}} = \{0\} \cup D \cup G$ & & nodes: the depot (index 0), the demand-point nodes $D$, the lattice nodes $G$ \\
 $K$ & $|K| = N$ & drones \\
 $T = \{0, 1, \dots, \bar T\}$ & & period boundaries; period $t$ runs from boundary $t$ to $t+1$ \\
 $A(i) \subseteq N_{\mathrm{v}}$ & & nodes reachable from $i$ within one period, including $i$ (move set) \\
@@ -303,12 +383,12 @@ $R$ & 300\,m & communication range \\
 $\kappa$, $\ell$, $h$ & 10 steps, 138.9\,m, 98.2\,m & period length, flight range per period, lattice spacing \\
 $\bar T$ & & horizon in periods, set to $1.15\times$ the heuristic's makespan \\
 $\varepsilon$ & $10^{-5}$ & tie-breaking weight \\
-$\mathrm{idx}(j)$ & & index of destination $j$ in a fixed ordering of $D$ \\
+$\mathrm{idx}(j)$ & & index of demand point $j$ in a fixed ordering of $D$ \\
 \midrule
 \multicolumn{3}{l}{\emph{Decision variables}} \\
 $y_{ikt}$ & $\{0,1\}$ & 1 if drone $k$ is at node $i$ at boundary $t$ \\
-$s_{jkt}$ & $\{0,1\}$ & 1 if drone $k$ delivers to destination $j$ during period $t$ \\
-$r_{kt}$ & $\{0,1\}$ & 1 if drone $k$ reloads at the centre during period $t$ \\
+$s_{jkt}$ & $\{0,1\}$ & 1 if drone $k$ delivers to demand point $j$ during period $t$ \\
+$r_{kt}$ & $\{0,1\}$ & 1 if drone $k$ reloads at the depot during period $t$ \\
 $q_{kt}$ & $\{0,\dots,Q\}$ & cargo on board drone $k$ at boundary $t$ \\
 $\rho_{kt}$ & $[0,Q]$ & cargo taken on by drone $k$ during period $t$ \\
 $g_{ijt}$ & $[0, N]$ & connectivity flow on arc $(i,j)$ in period $t$ \\
@@ -318,7 +398,8 @@ $C$ & $[0,\bar T]$ & makespan in periods \\
 \end{tabular}
 \end{table*}
 
-\begin{strip}
+\begin{figure*}[!t]
+\small
 \begin{align}
 \min\;\; & C + \varepsilon \sum_{i \in N_{\mathrm{v}} \setminus \{0\}} \sum_{k \in K} \sum_{t \in T} y_{ikt} \label{eq:m-obj}\\
 \text{s.t.}\;\; & \sum_{i \in N_{\mathrm{v}}} y_{ikt} = 1 \qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\quad\;\ && \forall k \in K,\ t \in T \label{eq:m-one}\\
@@ -335,48 +416,48 @@ $C$ & $[0,\bar T]$ & makespan in periods \\
 & C \ge t\, s_{jkt} \qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\quad\ && \forall j \in D,\ k \in K,\ t < \bar T \label{eq:m-mk}\\
 & s_{jkt} = 0 && \forall k \in K,\ j \in D \text{ with } \mathrm{idx}(j) < k,\ t < \bar T \label{eq:m-sym}
 \end{align}
-\end{strip}
+\end{figure*}
 
 \paragraph{Reading the model}
 The objective~\eqref{eq:m-obj} minimises the makespan $C$; the second term is a tie-break with
-weight $\varepsilon \bar T N \ll 1$ that prefers plans keeping idle drones at the centre and
+weight $\varepsilon \bar T N \ll 1$ that prefers plans keeping idle drones at the depot and
 cannot change the optimal makespan.
 
 \emph{Position and movement}, \eqref{eq:m-one}--\eqref{eq:m-move}. Every drone is at exactly one
-node at every period boundary and starts at the centre. A drone may be at node $i$ at boundary
+node at every period boundary and starts at the depot. A drone may be at node $i$ at boundary
 $t+1$ only if at boundary $t$ it was at $i$ itself or at a node from which $i$ is reachable within
 one period. Because every move takes exactly one period, the position of every drone is defined at
 every boundary, which is what the connectivity constraints below need.
 
-\emph{Deliveries, cargo and reloading}, \eqref{eq:m-serve}--\eqref{eq:m-full}. Each destination
+\emph{Deliveries, cargo and reloading}, \eqref{eq:m-serve}--\eqref{eq:m-full}. Each demand point
 is served exactly once~\eqref{eq:m-serve}. A delivery during period $t$ requires the drone to be
-at the destination at both ends of the period~\eqref{eq:m-sat}, which is the service delay of
+at the demand point at both ends of the period~\eqref{eq:m-sat}, which is the service time of
 Section~\ref{sec:problem}: the drone stands still for one period. Reloading is likewise a full
-period at the centre~\eqref{eq:m-rat}. A drone does at most one service per period and can only
+period at the depot~\eqref{eq:m-rat}. A drone does at most one service per period and can only
 deliver what it carries~\eqref{eq:m-busy}; cargo is tracked by~\eqref{eq:m-bal} starting full; and
 a reload fills the drone completely~\eqref{eq:m-full}, because $\rho_{kt}$ can be positive only in
 a reload period and the next cargo must then be $Q$.
 
 \emph{Multi-hop connectivity}, \eqref{eq:m-flow}--\eqref{eq:m-cap}. These two families are the
 part that distinguishes this model from drone-routing models. In every period, every occupied node
-ships one unit of flow, the centre is the only sink, and an arc may carry flow only if it leaves an
-occupied node. The system is feasible if and only if every occupied node is joined to the centre by
+ships one unit of flow, the depot is the only sink, and an arc may carry flow only if it leaves an
+occupied node. The system is feasible if and only if every occupied node is joined to the depot by
 a path whose intermediate nodes are occupied and whose consecutive distances are at most $R$,
 that is, if and only if the simulator's multi-hop connectivity test succeeds at that period
 boundary. The proof is short: if such paths exist, routing each node's unit along its path
 satisfies both families; conversely an unoccupied node $i \ne 0$ has $g_{ijt} = 0$ on all its
 outgoing arcs by~\eqref{eq:m-cap} and therefore no incoming flow by~\eqref{eq:m-flow}, so all
-flow travels inside the occupied set and, since the centre is the only node without a conservation
+flow travels inside the occupied set and, since the depot is the only node without a conservation
 row, a flow decomposition yields the required paths. The mirror-image capacity rows
 $g_{ijt} \le N u_{jt}$ are implied and omitted, which halves the dominant row count. Note what the
 constraint does to the problem: a drone that has nothing to deliver cannot simply wait at the
-centre if a teammate needs it as a hop, and a drone cannot fly to a destination that would leave
+centre if a teammate needs it as a hop, and a drone cannot fly to a demand point that would leave
 it farther than $R$ from every occupied node. Relaying is therefore not a separate task but a
 consequence of where the fleet is.
 
 \emph{Makespan and symmetry}, \eqref{eq:m-mk}--\eqref{eq:m-sym}. The makespan is at least the
 period of every delivery. Because drones are identical, any plan can be relabelled so that drone
-$k$ serves no destination with index below $k$; \eqref{eq:m-sym} imposes this ordering and
+$k$ serves no demand point with index below $k$; \eqref{eq:m-sym} imposes this ordering and
 removes no objective value.
 
 \paragraph{What the optimum means}
@@ -397,7 +478,7 @@ replayed makespan.
 
 Figure~\ref{fig:overview} summarises the setting and the two controllers. Both controllers
 decide at the level of \emph{goals}: at every decision point each drone is given a goal (a
-destination, the centre, or a relay slot) and flies towards it in a straight line at full speed
+demand point, the depot, or a relay slot) and flies towards it in a straight line at full speed
 until the next decision point. The two controllers differ only in how goals are chosen; the
 option set, the low-level flight, the relay-slot geometry and the connectivity projection are
 shared and are described first.
@@ -405,9 +486,9 @@ shared and are described first.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_overview_v5_26_10_17_15.pdf}
-\caption{(a) An instance with three drones under the heuristic at step 497: the lead (blue
-circle) heads for a far destination, one drone relays on the segment to the centre (red
-triangle), and one drone returns to the centre to reload (green triangle); shaded discs are
+\caption{(a) An instance with three drones under the heuristic at step 499: the lead (blue
+circle) heads for a far demand point, one drone relays on the segment to the depot (red
+triangle), and one drone returns to the depot to reload (green triangle); shaded discs are
 communication ranges and the dotted circle is the reachable region $0.9NR$. (b) The two
 controllers emit the same per-drone options and share the straight-line low-level controller
 and the connectivity projection.}
@@ -419,23 +500,23 @@ and the connectivity projection.}
 
 \paragraph{Decision points and options}
 A decision point occurs every 20 steps, and additionally as soon as any drone's goal becomes
-invalid: its destination has been served by another drone, it has run out of cargo while heading
-to a destination, it has become full while heading to the centre, or its relay slot has
+invalid: its demand point has been served by another drone, it has run out of cargo while heading
+to a demand point, it has become full while heading to the depot, or its relay slot has
 disappeared because the chain it belonged to shortened. At a decision point every drone receives
-one of $K = 7$ options: one of its five \emph{candidate destinations}, which are the five
-unserved destinations nearest to it; \emph{return} to the centre; or \emph{relay}. An option is
-\emph{valid} for a drone only if it makes sense at that moment: a destination option requires
+one of $K = 7$ options: one of its five \emph{candidate demand points}, which are the five
+unserved demand points nearest to it; \emph{return} to the depot; or \emph{relay}. An option is
+\emph{valid} for a drone only if it makes sense at that moment: a demand point option requires
 cargo on board and an existing candidate, return requires the drone not to be full, and relay
 requires a free relay slot (defined next) and at least one teammate that is not itself relaying.
 Invalid options are masked for the learned policy and never produced by the heuristic; a drone
-with no valid option returns to the centre.
+with no valid option returns to the depot.
 
 \paragraph{Relay slots}
 The environment, not the controller, decides where a relaying drone stands. For drone $i$ the
-\emph{frontier} $f_i$ is the point farthest from the centre among the delivery goals of the other
+\emph{frontier} $f_i$ is the point farthest from the depot among the delivery goals of the other
 drones and the current positions of the other non-relaying drones (if there is none, the farthest
-unserved destination). A chain to $f_i$ at distance $d$ needs $n = \min(\lceil d/(0.9R)
-\rceil - 1,\ N-1)$ relay slots, placed on the segment from the centre to $f_i$ at the fractions
+unserved demand point). A chain to $f_i$ at distance $d$ needs $n = \min(\lceil d/(0.9R)
+\rceil - 1,\ N-1)$ relay slots, placed on the segment from the depot to $f_i$ at the fractions
 $1/(n+1), \dots, n/(n+1)$ of its length; the factor $0.9$ leaves slack so that a drone standing
 slightly off its slot does not break the link. Drone $i$ takes the free slot nearest to it. A
 drone whose slot disappears holds position until the next decision point. The controllers
@@ -455,16 +536,16 @@ positions are always connected, so zero scaling is a valid fallback and the cons
 construction. A drone whose displacement is scaled below 10\% is \emph{stalled} for that step,
 and a \emph{partial deadlock} is a step in which all but at most one of the moving drones are
 stalled; the number of consecutive partial-deadlock steps, $\delta_t$, is what the heuristic's
-escape mechanism monitors. This projection scales a displacement along its own direction;
+recovery mechanism monitors. This projection scales a displacement along its own direction;
 Section~\ref{sec:sensitivity} studies a variant that keeps the tangential component.
 
-\subsection{Geometric chain-relay heuristic with deadlock escape}
+\subsection{Geometric chain-relay heuristic with deadlock recovery}
 \label{sec:heuristic}
 
 The heuristic is a deterministic rule evaluated at every decision point
 (Procedure~1). It first gives every drone a default: a drone with cargo goes to
-its nearest unserved destination and a drone without cargo returns to the centre. It then selects
-the \emph{lead}, the drone with cargo that is farthest from the centre, computes how many hops the
+its nearest unserved demand point and a drone without cargo returns to the depot. It then selects
+the \emph{lead}, the drone with cargo that is farthest from the depot, computes how many hops the
 lead's target needs, and turns that many of the remaining drones, the farthest ones first, into
 relays. The number of relays is adaptive and the relays are the drones already closest to where
 the chain must stand, which is what makes the rule cheap: it costs $O(N \log N)$ per decision
@@ -472,50 +553,50 @@ and 0.05--0.12\,ms in our implementation.
 
 \begin{figure}[t]
 \footnotesize
-\noindent\textbf{Procedure 1.} Geometric chain-relay heuristic with deadlock escape, run at every
-decision point. State kept between calls: remaining escape length $e$ (initially 0) and escape
+\noindent\textbf{Procedure 1.} Geometric chain-relay heuristic with deadlock recovery, run at every
+decision point. State kept between calls: remaining recovery length $e$ (initially 0) and recovery
 count $m$ (initially 0); both reset at the start of an episode. Parameters:
 $k_{\mathrm{stall}} = 120$, $h_{\mathrm{hold}} = 20$, mode $\in$ \{lead swap, retreat\}.
 \begin{procsteps}
-\item \textbf{Escape trigger.} If the fleet has been in partial deadlock for
+\item \textbf{Recovery trigger.} If the fleet has been in partial deadlock for
 $\delta_t \ge k_{\mathrm{stall}}$ consecutive steps and $e = 0$, set $e \leftarrow
 h_{\mathrm{hold}}$ and $m \leftarrow m + 1$.
 \item \textbf{Default assignment.} For each drone $i$: if it has no cargo, option $\leftarrow$
 return; else if it has no unserved candidate, option $\leftarrow$ relay; else option
-$\leftarrow$ its nearest unserved destination.
-\item \textbf{Lead.} If no destination is unserved, stop. Otherwise let $r_i = \|p_i - c\|$
+$\leftarrow$ its nearest unserved demand point.
+\item \textbf{Lead.} If no demand point is unserved, stop. Otherwise let $r_i = \|p_i - c\|$
 and let the lead be the drone with cargo that maximises $r_i$ (if no drone has cargo, the drone
 maximising $r_i$).
 \item \textbf{Relay count.} Let $d = \max(r_{\mathrm{lead}}, \|d_{\mathrm{goal}} - c\|)$ where
-$d_{\mathrm{goal}}$ is the lead's nearest unserved destination, and
+$d_{\mathrm{goal}}$ is the lead's nearest unserved demand point, and
 $n = \min(\max(1, \lceil d / (0.9R) \rceil) - 1,\ N - 1)$.
 \item \textbf{Relay identity.} Sort the drones other than the lead by $r_i$ in decreasing order
 and set the option of the first $n$ of them to relay.
-\item \textbf{Escape manoeuvre} (only if $e > 0$; then $e \leftarrow e - 1$). \emph{Lead swap}:
+\item \textbf{Recovery manoeuvre} (only if $e > 0$; then $e \leftarrow e - 1$). \emph{Lead swap}:
 sort all drones by $r_i$ in decreasing order, let the new lead be the $\min(m, N-1)$-th drone of
 that order (0-based), set the old lead's option to return and, if the new lead has cargo and an
-unserved candidate, set its option to its nearest unserved destination. \emph{Retreat}: set the
+unserved candidate, set its option to its nearest unserved demand point. \emph{Retreat}: set the
 option of every drone except the lead to return.
 \item Return the options; the environment converts them into goals and assigns relay slots.
 \end{procsteps}
 \label{proc:heur}
 \end{figure}
 
-\paragraph{Deadlock escape}
+\paragraph{Deadlock recovery}
 Because the rule is deterministic, a geometry that stalls the fleet makes it re-issue the same
-assignment at every decision point and the stall persists; without an escape mechanism the rule
-completes 62\% of standard instances. The escape mechanism is a timed override. It \emph{starts}
+assignment at every decision point and the stall persists; without an recovery mechanism the rule
+completes 62\% of standard instances. The recovery mechanism is a timed override. It \emph{starts}
 at the first decision point at which the fleet has been in partial deadlock for at least
-$k_{\mathrm{stall}}$ consecutive steps and no escape is in progress. It \emph{lasts} for
+$k_{\mathrm{stall}}$ consecutive steps and no recovery is in progress. It \emph{lasts} for
 $h_{\mathrm{hold}}$ decision points, that is, roughly $20\,h_{\mathrm{hold}}$ steps, fewer when
 goals become invalid early; during these decision points the rule is evaluated as usual and then
 overridden as in step~6. It \emph{ends} when the count $e$ reaches zero, after which the plain
 rule resumes; if the deadlock persists it can start again at the next decision point. Two modes
-are implemented. In \emph{lead swap} the current lead is sent back to the centre and the role of
-lead passes to another drone; on the $m$-th escape of an episode it passes to the $m$-th farthest
-drone, so that repeated escapes cycle through the fleet rather than swapping the same two drones.
-In \emph{retreat} every drone except the lead returns towards the centre, which slackens the
-chain. Section~\ref{sec:rq4-heuristic} selects the mode and the two parameters on tuning seeds;
+are implemented. In \emph{lead swap} the current lead is sent back to the depot and the role of
+lead passes to another drone; on the $m$-th recovery of an episode it passes to the $m$-th farthest
+drone, so that repeated recoveries cycle through the fleet rather than swapping the same two drones.
+In \emph{retreat} every drone except the lead returns towards the depot, which slackens the
+chain. Section~\ref{sec:rq5-heuristic} selects the mode and the two parameters on tuning seeds;
 lead swap with $k_{\mathrm{stall}} = 120$ and $h_{\mathrm{hold}} = 20$ is used in every comparison.
 
 \subsection{Hierarchical learned policy}
@@ -536,7 +617,7 @@ without learning.
 \caption{The hierarchical learned controller. High level: the set-based manager encodes each
 drone from four kinds of entities, pools the peer and candidate sets with attention queried by
 the drone's own embedding, and scores the five candidates with a pointer head and return/relay
-with a fixed head; drones are decided one at a time, farthest from the centre first, and each
+with a fixed head; drones are decided one at a time, farthest from the depot first, and each
 decision is written into the peer features seen by the next drone. Low level, every step:
 straight-line flight to the assigned goal, the connectivity projection, and the environment step.
 Options are held for 20 steps.}
@@ -545,13 +626,13 @@ Options are held for 20 steps.}
 
 \paragraph{Set-based encoder}
 The manager encodes drone $i$ from four kinds of entities, all distances divided by $R$.
-\emph{Own state}, 10 features: cargo fraction; distance to the centre; hop depth divided by 8;
-fraction of destinations unserved; elapsed time divided by the budget; its realised-movement
+\emph{Own state}, 10 features: cargo fraction; distance to the depot; hop depth divided by 8;
+fraction of demand points unserved; elapsed time divided by the budget; its realised-movement
 ratio (an exponential average of achieved over commanded displacement); whether it could advance
 one full step towards its goal alone without disconnecting the fleet; the fleet-wide
 realised-movement ratio; service timer; and whether it is a cut vertex of $G_t$.
-\emph{Candidate destinations}, five entities of 6 features: distance; the two components of the
-unit direction vector; whether a teammate already targets it; its distance from the centre; and
+\emph{Candidate demand points}, five entities of 6 features: distance; the two components of the
+unit direction vector; whether a teammate already targets it; its distance from the depot; and
 the hops its chain requires, divided by 8. \emph{Peers}, $N-1$ entities of 9 features: distance;
 the two components of the relative position vector; cargo fraction; hop depth divided by 8; and a
 four-way one-hot of the peer's current goal kind (deliver, return, hold, relay). \emph{Relay
@@ -565,7 +646,7 @@ normalised by a softmax. Nothing in the network depends on $N$ or $M$, which is 
 weights runs on fleets it never saw.
 
 \paragraph{Autoregressive decision}
-The $N$ options are not sampled independently. Drones are ordered by distance from the centre,
+The $N$ options are not sampled independently. Drones are ordered by distance from the depot,
 farthest first; the manager samples the first drone's option, writes its new role into the
 role one-hot of the peer features that the remaining drones see, re-encodes, samples the next
 drone, and so on (Procedure~2). A formation of one lead and $k$ relays arises
@@ -578,7 +659,7 @@ decisions; the cost is $N$ sequential network calls per decision point.
 \begin{procsteps}
 \item Build the entity observation of every drone from the fleet state; compute the validity mask
 of the seven options for every drone (Section~\ref{sec:shared}).
-\item Order the drones by distance from the centre, farthest first.
+\item Order the drones by distance from the depot, farthest first.
 \item For each drone $i$ in that order: encode all entities with the current peer roles, compute
 the seven masked logits of drone $i$, sample its option from the softmax (sampling, not argmax,
 is the deployed inference), and write the chosen role (deliver, return or relay) into the peer
@@ -594,21 +675,21 @@ transitions. A transition stores the fleet observation at a decision point, the 
 the option return $\sum_{\tau} \gamma^{\tau} r_{\tau}$ accumulated over the steps until the next
 decision point, the observation at that point, and the discount $\gamma^{\Delta t}$ with
 $\gamma = 0.997$ per step. The team reward is $+10$ per delivery, $+30$ per reload, $-0.01N$
-per step and a residual penalty of $-0.1N$ times the fraction of destinations still unserved.
+per step and a residual penalty of $-0.1N$ times the fraction of demand points still unserved.
 A twin-Q critic with attention across the drone embeddings outputs per-drone action values whose
 mean over drones is regressed on the option return; the actor minimises the standard expectation
 form $\mathbb{E}_{a \sim \pi}[\alpha \log \pi(a) - Q(a)]$ per drone, with teacher forcing of
-the autoregressive order. Three ingredients of the recipe matter and are ablated in
-Section~\ref{sec:rq4}. (i) The entropy target is annealed linearly from $0.6 \log
+the autoregressive order. Three elements of the training configuration matter and are ablated in
+Section~\ref{sec:rq5}. (i) The entropy target is annealed linearly from $0.6 \log
 n_{\mathrm{valid}}$ to $0.25 \log n_{\mathrm{valid}}$ over the first 400 episodes: a high
-target keeps the policy random enough to escape deadlocks early in training, a low one lets it
+target keeps the policy random enough to recovery deadlocks early in training, a low one lets it
 hold a multi-step formation later. (ii) A cross-entropy term with weight 2.0 pulls the policy
-towards the option the heuristic's assignment rule (Procedure~1, steps 2--5, without escape)
+towards the option the heuristic's assignment rule (Procedure~1, steps 2--5, without recovery)
 would take, wherever that option is valid. (iii) Every training episode samples $N \in
 \{3,4\}$, $M \in [20,80]$ and a random depot. Optimisation uses Adam at $3 \times 10^{-4}$,
 batches of 256 transitions from a replay buffer of 60{,}000, one gradient step every 4
 environment steps after a warm-up of 400 transitions, and Polyak averaging of the target critic
-with $\tau = 0.005$. Checkpoints are scored every 50 episodes on 80 held-out instances with a
+with $\tau = 0.005$. Checkpoints are scored every 50 episodes on 80 validation instances with a
 3{,}000-step budget by $100f + 40(1 - \bar t/3000)$, where $f$ is the completion rate and $\bar
 t$ the mean steps; training stops after eight evaluations without improvement or at 1{,}000
 episodes. One run takes about 13 hours on a single RTX~5080 when four runs share the GPU.
@@ -628,11 +709,11 @@ configurations with random depots: $N/M \in \{3/20, 3/30, 4/80, 5/50, 6/80, 8/15
 Four learning-free baselines establish that the problem is not solved by naive assignment. All
 use the shared interface of Section~\ref{sec:shared} and are evaluated at the same decision
 points. \emph{Greedy, no relay} is step~2 of Procedure~1 alone: every drone with cargo flies to
-its nearest unserved destination and every empty drone returns; nobody ever relays, so the chain
+its nearest unserved demand point and every empty drone returns; nobody ever relays, so the chain
 is maintained only by the projection, which stalls the fleet. \emph{One (two) fixed relays}
 assigns the first one (two) drones of the fleet to relay permanently and runs the greedy rule on
 the others; the relay count is fixed in advance instead of adapting to the lead's distance.
-\emph{Geometric rule, no escape} is Procedure~1 without step~6. All learning-free controllers are
+\emph{Geometric rule, no recovery} is Procedure~1 without step~6. All learning-free controllers are
 deterministic except for the random tie-breaking of the projection.
 
 \paragraph{Reference model}
@@ -642,15 +723,15 @@ Section~\ref{sec:rq2}. Every returned plan is replayed in the continuous simulat
 
 \paragraph{Paired protocol}
 Averaging only the episodes each method completes favours the method that gives up on hard
-instances, and a single long stall moves a 40-rollout mean by over 100 steps. All comparisons
+instances, and a single long stall moves a 40-run mean by over 100 steps. All comparisons
 between the two controllers are therefore \emph{paired}: both run on the same instance, the
 difference is taken over instances both complete, and we report the median paired difference,
 the win--loss count and a Wilcoxon signed-rank $p$-value. Inference samples from the policy;
 deterministic argmax inference has the same median but a far heavier tail. The standard
-configuration uses 480 rollouts (60 seeds, 8 repetitions, two independent measurement runs),
+configuration uses 480 runs (60 seeds, 8 repetitions, two independent measurement runs),
 the $3/30$ and $5/50$ configurations 200 (40 seeds, 5 repetitions) and the remaining
 configurations 80 (40 seeds, 2 repetitions). Repetitions differ because the projection's tie
-breaking is random. We found 40 rollouts too few to support any claim about tails.
+breaking is random. We found 40 runs too few to support any claim about tails.
 
 % =====================================================================================
 \section{Results}
@@ -659,41 +740,42 @@ breaking is random. We found 40 rollouts too few to support any claim about tail
 \subsection{RQ1: Completion under the hard constraint}
 \label{sec:rq1}
 
-Connectivity was never violated in any training episode or evaluation rollout, as the projection
+Connectivity was never violated in any training episode or evaluation run, as the projection
 guarantees. Table~\ref{tab:completion} reports completion within the 10{,}000-step budget. The
-learned policy completes every instance in every configuration. The heuristic with escape
+learned policy completes every instance in every configuration. The heuristic with recovery
 completes 98--100\%; its misses concentrate where drones are plentiful, where a long chain that
-is not needed still gets stationed and stalls. Without the escape mechanism the rule completes
+is not needed still gets stationed and stalls. Without the recovery mechanism the rule completes
 61.7\% of standard instances, and the naive baselines complete almost none: the greedy assignment
 pulls the fleet apart, and fixed relay counts are wrong for most instances because the number of
-relays a destination needs varies with its distance.
+relays a demand point needs varies with its distance.
 
 \begin{table}[t]
 \centering
 \caption{Completion within the 10{,}000-step budget. Learning-free baselines on 120 (standard)
-or 40 (unseen) rollouts; the two proposed controllers on the paired rollout counts of
-Section~\ref{sec:setup}.}
+or 40 (unseen) runs; the two proposed controllers on the paired run counts of
+Section~\ref{sec:setup}. $p$ is Fisher's exact test (two-sided) of each method's completion
+count against the learned policy on the same configuration.}
 \label{tab:completion}
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lrrr}
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\begin{tabular}{lrrrrrr}
 \toprule
-Method & $4/50$ standard & $3/30$ & $5/50$ \\
+Method & $4/50$ std. & $p$ & $3/30$ & $p$ & $5/50$ & $p$ \\
 \midrule
-Greedy, no relay & 0\% & 0\% & 25\% \\
-One fixed relay & 0\% & 2.5\% & 40\% \\
-Two fixed relays & 3.3\% & 52.5\% & 65\% \\
-Rule, no escape & 61.7\% & 95\% & 92.5\% \\
-Rule + escape (proposed) & 473/480 & 200/200 & 191/200 \\
-Learned (proposed) & \textbf{480/480} & \textbf{200/200} & \textbf{200/200} \\
+Greedy, no relay & 0\% & $<10^{-4}$ & 0\% & $<10^{-4}$ & 25\% & $<10^{-4}$ \\
+One fixed relay & 0\% & $<10^{-4}$ & 2.5\% & $<10^{-4}$ & 40\% & $<10^{-4}$ \\
+Two fixed relays & 3.3\% & $<10^{-4}$ & 52.5\% & $<10^{-4}$ & 65\% & $<10^{-4}$ \\
+Rule, no recovery & 61.7\% & $<10^{-4}$ & 95\% & 0.027 & 92.5\% & 0.004 \\
+Rule + recov.\ (prop.) & 473/480 & 0.015 & 200/200 & 1 & 191/200 & 0.004 \\
+Learned (prop.) & \textbf{480/480} & --- & \textbf{200/200} & --- & \textbf{200/200} & --- \\
 \midrule
- & $3/20$ & $4/80$ & $6/80$ \\
-Rule + escape (proposed) & 80/80 & 80/80 & 79/80 \\
-Learned (proposed) & \textbf{80/80} & \textbf{80/80} & \textbf{80/80} \\
+ & $3/20$ & & $4/80$ & & $6/80$ & \\
+Rule + recov.\ (prop.) & 80/80 & 1 & 80/80 & 1 & 79/80 & 1 \\
+Learned (prop.) & \textbf{80/80} & & \textbf{80/80} & & \textbf{80/80} & \\
 \midrule
- & $8/150$ & $10/300$ & \\
-Rule + escape (proposed) & 80/80 & 80/80 & \\
-Learned (proposed) & \textbf{80/80} & \textbf{80/80} & \\
+ & $8/150$ & & $10/300$ & & $12/400$ & \\
+Rule + recov.\ (prop.) & 80/80 & 1 & 80/80 & 1 & 80/80 & 1 \\
+Learned (prop.) & \textbf{80/80} & & \textbf{80/80} & & \textbf{80/80} & \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -706,19 +788,19 @@ reference on 34 instances with three drones: ten each for $M \in \{4, 6, 8\}$ an
 $M = 10$, with time limits of 30, 60, 120 and 120 minutes and six solver threads. Three counts describe what the solver achieved on each instance. A \emph{plan} is a feasible
 solution of the lattice model returned within the time limit; such a plan is then \emph{replayed}
 in the continuous simulator by issuing its node sequence as goals, and we count it as replayed
-only if the replay serves every destination (one plan for $M=8$ delivered seven of eight
-destinations on replay, because the continuous projection and the lattice's one-period moves do
+only if the replay serves every demand point (one plan for $M=8$ delivered seven of eight
+demand points on replay, because the continuous projection and the lattice's one-period moves do
 not coincide exactly, and is counted as found but not replayed); a plan is \emph{optimal} if the
 solver closed the optimality gap on the lattice model. The replayed makespan is the number we
 compare against.
 
-Three observations follow. First, the solver's reach ends between six and eight destinations:
-it returns plans for 9 of 10 instances with four destinations (four of them certified optimal on
+Three observations follow. First, the solver's reach ends between six and eight demand points:
+it returns plans for 9 of 10 instances with four demand points (four of them certified optimal on
 the lattice), 8 of 10 with six, 3 of 10 with eight, and none of the four with ten within two
 hours. The bottleneck is feasibility rather than optimality; the remaining gaps on returned plans
 are 12--36\%. Second, where a replayed plan exists both controllers are close to it: the
 heuristic's makespan averages 1.00, 1.07 and 1.07 times the plan for four, six and eight
-destinations, and the learned policy's per-instance median averages 0.94, 0.99 and 0.91 times
+demand points, and the learned policy's per-instance median averages 0.94, 0.99 and 0.91 times
 the plan. Both are sometimes faster than the plan, including on instances where the lattice
 optimum is certified, which is not a contradiction: the lattice restricts where a drone may be,
 so its optimum is an upper bound on the continuous optimum and a continuous controller can beat
@@ -752,29 +834,21 @@ and the learned policy's median with the interquartile range of 30 samples (tria
 \label{fig:milp}
 \end{figure*}
 
-\subsection{RQ3: Performance across environments}
+\subsection{RQ3: Comparative performance across operating conditions}
 \label{sec:rq3}
 
 \paragraph{Fleet size divides the configuration space}
 Table~\ref{tab:paired} and Figure~\ref{fig:regime} give the paired comparison across the nine
 configurations. With three drones the heuristic is faster by 39 and 30 steps in paired median with 20 and
-30 destinations. With four drones the two controllers tie: on the standard configuration the
-median paired difference over 480 rollouts is $+2$ steps with 234 wins against 239
+30 demand points. With four drones the two controllers are statistically indistinguishable: on the standard configuration the
+median paired difference over 480 runs is $+2$ steps with 234 wins against 239
 ($p = 0.52$), and on $4/80$ the learned policy is 38 steps faster. With five or more drones the
 learned policy is faster, by 62 steps at five drones growing to 178 at ten and 76 at twelve
 (70 wins against 10). The boundary therefore lies at four drones, and the advantage persists
-beyond the largest fleet we measured, although the monotone growth stops between ten and twelve.
-We have not isolated the cause of the narrowing at $12/400$ and offer three conjectures. First,
-both controllers maintain a single chain to one lead, so with twelve drones most of the fleet is
-delivering near the centre regardless of the controller and the decisions that differ between
-them concern a shrinking share of the work. Second, with 400 destinations a drone's five
-candidates are all close to it, so the choice among them matters less and the learned policy's
-advantage, which lies in choosing targets and relays jointly, has less to act on. Third, the
-manager's hop-depth and slot features are normalised by a constant of eight and exceed one for
-larger fleets, and twelve sequential autoregressive decisions compound sampling noise; both take
-the policy farther from its training distribution. Which of these dominates would require fleets
-beyond twelve drones to settle. An earlier measurement against
-the heuristic's pre-tuning escape parameters gave the same picture ($+40$, $+0$, $-54$, $-170$ on
+beyond the largest fleet we measured, although the monotone growth stops between ten and twelve
+(Section~\ref{sec:rq4} returns to this point).
+An earlier measurement against
+the heuristic's pre-tuning recovery parameters gave the same picture ($+40$, $+0$, $-54$, $-170$ on
 $3/30$, $4/50$, $5/50$ and $10/300$), so the boundary does not depend on the tuning.
 
 \begin{table*}[t]
@@ -808,39 +882,11 @@ both-completed instances, clipped to $\pm400$ steps with the number of clipped p
 \label{fig:cdf}
 \end{figure*}
 
-\paragraph{Generalisation from small fleets}
-The learned policy never saw more than four drones or more than 80 destinations in training,
-yet it completes every instance with 5 to 12 drones and 50 to 400 destinations and is faster
-than the heuristic on all of them. Two properties carry this. The set-based encoder has no
-parameter that depends on $N$ or $M$, so larger fleets are simply larger sets; and training
-samples the fleet size and depot afresh every episode. Table~\ref{tab:gen} separates the two by
-running the ablation policy that was trained on the fixed $4/50$ configuration alone (no
-configuration randomisation) on the same large-fleet instances without retraining. That policy
-also completes every instance from 5 to 10 drones, so completion generalises through the
-architecture alone; but it is slower than the randomised policy on every configuration (a tie
-against the heuristic at $5/50$ against $-62$, and $-51$ to $-174$ against $-122$ to $-178$ beyond),
-so speed on large fleets is learned from the variety of small ones. The same ablation loses 646
-steps on $3/30$ (Table~\ref{tab:ablation}), so randomisation is what makes the small-fleet side
-usable at all. Both policies were trained with at most four drones; the hop-depth and slot
-features are normalised by a constant of eight, so fleets of ten and twelve drones also take the
-encoder outside its training range of feature values, and the policy still completes them.
-
-\begin{table*}[t]
-\centering
-\caption{Generalisation to fleets larger than any seen in training, without retraining. Cells
-give the learned policy's completions and the paired median difference against the heuristic.
-The proposed policy is trained on $N \in \{3,4\}$ with random depots; the comparison policy is
-the ablation trained on the fixed $4/50$ configuration only (two seeds).}
-\label{tab:gen}
-\small
-\input{tab_gen_v5_26_10_17_15}
-\end{table*}
-
 \paragraph{Tails follow the same split}
 Where drones are scarce the learned policy's worst case is three to four times the heuristic's
 (maximum 5{,}395 versus 1{,}447 steps on $3/30$); where they are plentiful it is lighter (1{,}101
 versus 1{,}734 on $5/50$, 1{,}365 versus 1{,}753 on $10/300$). On the standard configuration over
-480 rollouts against the pre-tuning heuristic the learned policy exceeded 1{,}500 steps five times
+480 runs against the pre-tuning heuristic the learned policy exceeded 1{,}500 steps five times
 and the heuristic fourteen times.
 
 \paragraph{Mechanism}
@@ -854,24 +900,24 @@ information needed to make the heuristic's choice is present in the learned poli
 a two-layer classifier predicts the heuristic's relay assignment from the 41 observed features with
 85\% accuracy, and behaviour cloning of the full rule reaches 95\% on relay decisions. When drones
 are plentiful the opposite happens: the heuristic keeps stationing a chain that the geometry no
-longer needs, while the learned policy exploits the slack and, with its sampled inference, escapes
+longer needs, while the learned policy exploits the slack and, with its sampled inference, recoveries
 the stalls that the deterministic rule repeats; this is also where the heuristic loses its few
 completions.
 
-\paragraph{Why the scarce-fleet deficit resists policy-side fixes}
+\paragraph{Why the relay-limited deficit resists policy-side fixes}
 \label{sec:negative}
 Table~\ref{tab:negative} lists eleven interventions, each trained with four or two seeds under
-the same recipe except for the stated change and evaluated with the same paired protocol, that
+the same training configuration except for the stated change and evaluated with the same paired protocol, that
 attempt to make the learned policy relay like the heuristic when drones are scarce. The variants
 are, in the numbering of the table: (V1) the cross-entropy regularisation towards the heuristic is
 weighted three times higher for drones whose heuristic option is relay; (V2) each drone on the
 communication path of a delivering teammate receives an individual reward (2.0 or 6.0) at that
 delivery and the critic is trained on per-drone returns; (V3) checkpoint selection scores half of
-its held-out instances on the $3/30$ configuration instead of only on $4/50$, eight seeds; (V4) as
+its validation instances on the $3/30$ configuration instead of only on $4/50$, eight seeds; (V4) as
 V2 but zero-sum, the delivering drone losing what its relays gain; (V5) the critic is conditioned
 on the teammates' chosen roles (a joint-action critic) with the teammates' next roles sampled
 from the actor in the target; (V6) the autoregressive order is reversed to decide the drone
-nearest the centre first; (V7) all goals are invalidated after 60 consecutive partial-deadlock
+nearest the depot first; (V7) all goals are invalidated after 60 consecutive partial-deadlock
 steps so that the manager re-decides, in training and evaluation; (V8) the mean over per-drone
 action values in the critic is replaced by state-dependent monotone weights that sum to one with
 a floor of one half; (V9) each drone's option is stored as its own single-agent transition,
@@ -879,7 +925,7 @@ chained inside a decision point with discount one, so that no decomposition of t
 needed; (V10) the manager is initialised by behaviour cloning of the heuristic on 40{,}000
 decisions (92.5\% accuracy, 95\% on relay decisions) and then fine-tuned, with and without a
 50-episode critic warm-up; (V11) a per-step penalty proportional to the estimated arrival time of
-the bottleneck destination, with the estimate divided by each drone's realised-movement ratio so
+the bottleneck demand point, with the estimate divided by each drone's realised-movement ratio so
 that blocked drones count as slow. None improves the $3/30$ median and several hurt the
 configurations where the learned policy wins. The pattern is informative. Adding reward for
 relaying turns the means into the end: the policy relays for its own sake and $5/50$ reverses from
@@ -890,16 +936,16 @@ a sequential single-agent reformulation removes the decomposition but leaves an 
 credit chain with no contraction. Initialising the policy by behaviour cloning of the rule, with
 95\% relay accuracy, is erased within 400 episodes: once the actor is updated, relay usage falls to
 the level of a randomly initialised policy within 50 episodes and stays there. A penalty on the
-bottleneck destination's estimated arrival makes the policy reduce the \emph{average} rather than
+bottleneck demand point's estimated arrival makes the policy reduce the \emph{average} rather than
 the maximum. We conclude that, within this policy structure and objective, under-relaying is the
 learner's fixed point, not an artefact of credit, information or initialisation.
 
 \begin{table*}[t]
 \centering
-\caption{Interventions that did not remove the scarce-fleet deficit, numbered as in the text.
-Paired median against the heuristic (positive is slower); the proposed recipe is the reference
+\caption{Interventions that did not remove the relay-limited deficit, numbered as in the text.
+Paired median against the heuristic (positive is slower); the proposed configuration is the reference
 row; two values are two seeds and a range is the span over seeds or doses. These runs were
-evaluated against the heuristic with its pre-tuning escape parameters ($k_{\mathrm{stall}}=60$,
+evaluated against the heuristic with its pre-tuning recovery parameters ($k_{\mathrm{stall}}=60$,
 $h_{\mathrm{hold}}=40$), so the column values are comparable to the reference row of this table
 but not numerically identical to Table~\ref{tab:paired}, which uses the tuned heuristic.}
 \label{tab:negative}
@@ -908,7 +954,7 @@ but not numerically identical to Table~\ref{tab:paired}, which uses the tuned he
 \toprule
 \# & Intervention (what changed) & $3/30$ & $5/50$ & $4/50$ & Mechanism of failure \\
 \midrule
---- & Proposed recipe (reference) & $+40$ & $-54$ & $+0$ & --- \\
+--- & Proposed configuration (reference) & $+40$ & $-54$ & $+0$ & --- \\
 V1 & Relay-weighted rule regularisation ($\times 3$ on relay) & $+54$, $+56$ & $-44$, $-19$ & $+41$, $+54$ & relay-specific regularisation harms \\
 V2 & Per-drone relay credit (2.0 / 6.0) & $+36$ to $+82$ & $+60$ to $+106$ & $+39$ to $+131$ & relaying becomes the goal \\
 V3 & Checkpoint selection half on $3/30$ (8 seeds) & $+58$ & $-42$ & $+10$ & improves only the standard config.\\
@@ -931,14 +977,14 @@ direction, so a drone pulling on the chain effectively stops. We implemented an 
 clamps the target position to the nearest point of the communication disc around the binding
 neighbour, which removes only the outward component and keeps the tangential one (a drone can
 still circle at constant range). Both controllers use the same projection in each comparison, and
-connectivity is still never violated. These measurements predate the heuristic tuning of Section~\ref{sec:rq4-heuristic} and use
+connectivity is still never violated. These measurements predate the heuristic tuning of Section~\ref{sec:rq5-heuristic} and use
 $k_{\mathrm{stall}}=60$, $h_{\mathrm{hold}}=40$ for both projections, so they are internally
 consistent. Evaluating the same learned weights under the sliding projection without retraining
 reduces the $3/30$ deficit from $+40$ to $+21$; retraining four
 seeds under it gives $+15$ to $+48$ (mean $+28$) and lowers the learned fleet's stall ratio from
 0.27 to 0.17--0.22, with completion still 100\%. The heuristic gains little with three drones
 (median 570 to 571) but gains more than the learned policy with four (866 to 812 against 879 to
-850), so the standard-configuration tie becomes $+26$ in its favour. We therefore keep the radial
+850), so the standard-configuration equality becomes $+26$ in its favour. We therefore keep the radial
 projection as the primary model and report this as a sensitivity result: about half of the
 three-drone deficit is a property of how the constraint is enforced rather than of the learner.
 
@@ -949,14 +995,14 @@ and the instance generator rescales the reachable region $0.9NR$ with $R$, so bo
 the same instances at each radius. Completion transfers: the learned policy completes every
 instance at both radii, while the heuristic loses 18 of 200 instances on $5/50$ at the shorter
 radius. Speed shows two effects. The first is the regime shift seen with fleet size: at
-$R=250$\,m a destination needs more hops, the fleet is effectively scarcer, and every
+$R=250$\,m a demand point needs more hops, the fleet is effectively scarcer, and every
 configuration moves towards the heuristic ($+77$ on $3/30$, $+68$ on $4/50$, and the $5/50$
-advantage shrinks to a tie at $-16$, $p=0.33$); at $R=350$\,m the fleet is effectively more
+advantage shrinks to an insignificant $-16$ ($p=0.33$)); at $R=350$\,m the fleet is effectively more
 plentiful and the learned policy is faster already with four drones ($-40$ on $4/50$). The second
 is a training-radius effect: on $3/30$ and $5/50$ the learned policy's margin is best at the
 radius it was trained on and worse on both sides ($+30$ at 300\,m against $+77$ and $+52$;
 $-62$ against $-16$ and $-42$), so the normalisation by $R$ transfers completion but not the full
-speed. The regime variable is therefore the chain demand, the hops a destination needs relative
+speed. The regime variable is therefore the chain demand, the hops a demand point needs relative
 to the drones available, rather than the fleet size alone, and a deployment at a radius far from
 the training radius should retrain or at least re-evaluate the boundary.
 
@@ -984,15 +1030,59 @@ training radius.}
 \input{tab_range_v5_26_10_17_15}
 \end{table*}
 
-\subsection{RQ4: Are the components necessary?}
+\subsection{RQ4: Upward transfer of the learned policy}
 \label{sec:rq4}
 
+The learned policy never saw more than four drones or more than 80 demand points in training,
+yet it completes every instance with 5 to 12 drones and 50 to 400 demand points and is faster
+than the heuristic on all of them. Two properties carry this. The set-based encoder has no
+parameter that depends on $N$ or $M$, so larger fleets are simply larger sets; and training
+samples the fleet size and depot afresh every episode. Table~\ref{tab:gen} separates the two by
+running the ablation policy that was trained on the fixed $4/50$ configuration alone (no
+configuration randomisation) on the same large-fleet instances without retraining. That policy
+also completes every instance from 5 to 10 drones, so completion generalises through the
+architecture alone; but it is slower than the randomised policy on every configuration (no significant difference
+from the heuristic at $5/50$ against $-62$, and $-51$ to $-174$ against $-122$ to $-178$ beyond),
+so speed on large fleets is learned from the variety of small ones. The same ablation loses 646
+steps on $3/30$ (Table~\ref{tab:ablation}), so randomisation is what makes the small-fleet side
+usable at all. Both policies were trained with at most four drones; the hop-depth and slot
+features are normalised by a constant of eight, so fleets of ten and twelve drones also take the
+encoder outside its training range of feature values, and the policy still completes them.
+
+\begin{table*}[t]
+\centering
+\caption{Transfer to fleets larger than any seen in training, without retraining. Cells
+give the learned policy's completions, the paired median difference against the heuristic
+(negative: learned faster), and in parentheses the learned policy's wins--losses and the
+Wilcoxon signed-rank $p$.
+The proposed policy is trained on $N \in \{3,4\}$ with random depots; the comparison policy is
+the ablation trained on the fixed $4/50$ configuration only (two seeds).}
+\label{tab:gen}
+\small
+\input{tab_gen_v5_26_10_17_15}
+\end{table*}
+
+\paragraph{Where the transfer weakens}
+We have not isolated the cause of the narrowing at $12/400$ and offer three conjectures. First,
+both controllers maintain a single chain to one lead, so with twelve drones most of the fleet is
+delivering near the depot regardless of the controller and the decisions that differ between
+them concern a shrinking share of the work. Second, with 400 demand points a drone's five
+candidates are all close to it, so the choice among them matters less and the learned policy's
+advantage, which lies in choosing targets and relays jointly, has less to act on. Third, the
+manager's hop-depth and slot features are normalised by a constant of eight and exceed one for
+larger fleets, and twelve sequential autoregressive decisions compound sampling noise; both take
+the policy farther from its training distribution. Which of these dominates would require fleets
+beyond twelve drones to settle.
+
+\subsection{RQ5: Are the components necessary?}
+\label{sec:rq5}
+
 \paragraph{Heuristic}
-\label{sec:rq4-heuristic}
+\label{sec:rq5-heuristic}
 Table~\ref{tab:heur-ablation} grids $k_{\mathrm{stall}} \in \{30,60,90,120\}$,
-$h_{\mathrm{hold}} \in \{20,40,80\}$ and the two escape modes, plus no escape, on $3/30$,
+$h_{\mathrm{hold}} \in \{20,40,80\}$ and the two recovery modes, plus no recovery, on $3/30$,
 $4/50$ and $5/50$ with 40 tuning seeds each, and ranks settings by total completions first and
-the sum of median makespans second; this criterion was fixed before the measurement. The escape
+the sum of median makespans second; this criterion was fixed before the measurement. The recovery
 mechanism is necessary: without it the rule completes 26 of 40 standard instances. The mode
 matters more than the timing: every lead-swap setting completes 117--120 of 120 instances, while
 retreat settings complete 100--117 because slackening the chain does not change the assignment
@@ -1014,8 +1104,8 @@ the last column sums completions over the three configurations.}
 
 \paragraph{Learned policy}
 Table~\ref{tab:ablation} removes one ingredient at a time, retrains two seeds and evaluates on the
-three main configurations; values are makespan differences from the proposed recipe. Four
-independent trainings of the same recipe span 919 to 979 steps on the standard configuration, so
+three main configurations; values are makespan differences from the proposed configuration. Four
+independent trainings of the same configuration span 919 to 979 steps on the standard configuration, so
 a two-seed mean is meaningful only beyond 70--80 steps. Rule regularisation and configuration
 randomisation are necessary; entropy annealing is the single largest contributor on the standard
 configuration; autoregressive decisions help with four drones and more; the residual penalty is
@@ -1025,7 +1115,7 @@ run on other fleet sizes at all.
 
 \begin{table}[t]
 \centering
-\caption{Ablation of the learned policy: makespan difference from the proposed recipe over
+\caption{Ablation of the learned policy: makespan difference from the proposed configuration over
 completed episodes, two seeds. Positive means the removed component was needed. Differences below
 70--80 steps are within seed variance.}
 \label{tab:ablation}
@@ -1050,7 +1140,7 @@ Table~\ref{tab:latency} gives the latency of one manager decision on a CPU. The 
 0.05--0.12\,ms; the learned policy 1.3--2.5\,ms without autoregression and 2.7--7.4\,ms with it,
 growing linearly with the fleet because each drone is a sequential network call. Over a 900-step
 episode the learned policy's cumulative decision time is 0.16\,s. The lattice MILP takes 600 to
-5{,}400 seconds on instances with four to ten destinations and does not return a plan for ten.
+5{,}400 seconds on instances with four to ten demand points and does not return a plan for ten.
 
 \begin{table*}[t]
 \centering
@@ -1062,7 +1152,7 @@ a 900-step episode.}
 \toprule
 Controller & $N=3$ & $N=4$ & $N=6$ & $N=8$ & 900 steps \\
 \midrule
-Geometric rule + escape & 0.05 & 0.08 & 0.10 & 0.12 & 0.003\,s \\
+Geometric rule + recovery & 0.05 & 0.08 & 0.10 & 0.12 & 0.003\,s \\
 Learned, independent decisions & 1.27 & 1.52 & 1.94 & 2.45 & 0.069\,s \\
 Learned, autoregressive (proposed) & 2.70 & 3.52 & 5.32 & 7.35 & 0.158\,s \\
 \bottomrule
@@ -1076,12 +1166,12 @@ Learned, autoregressive (proposed) & 2.70 & 3.52 & 5.32 & 7.35 & 0.158\,s \\
 \paragraph{Deployment}
 The two controllers are complementary and the boundary is sharp, so a fleet operator can choose
 by fleet size: the heuristic with three drones, the learned policy with five or more, where it is
-both faster and more reliable; with four the two tie and the learned policy completes more. Both decide in milliseconds and both keep the fleet connected by
+both faster and more reliable; with four the two are statistically indistinguishable in speed and the learned policy completes more. Both decide in milliseconds and both keep the fleet connected by
 construction.
 
 \paragraph{What the negative results mean}
-Ten interventions that change how the learner is credited, informed, initialised or rewarded leave
-the scarce-fleet deficit in place, and a change to the environment's enforcement model removes
+Eleven interventions that change how the learner is credited, informed, initialised or rewarded leave
+the relay-limited deficit in place, and a change to the environment's enforcement model removes
 half of it. The deficit is therefore best understood as an interaction between the learner's
 fixed point under this objective and the geometry of the constraint, not as a shortcoming that
 more training or a better critic would fix. For a practitioner the actionable consequence is the
@@ -1093,12 +1183,12 @@ The learned policy was trained at a single communication radius; it transfers to
 (Section~\ref{sec:rq3}), and radii outside this range were not tested. The environment is planar, ignores
 wind, battery and collisions, and uses a disc communication model; real links are not discs. The
 MILP reference is a lattice restriction with a remaining optimality gap, not an exact optimum. The
-heuristic's novelty lies in the escape mechanism and the adaptive relay count rather than in the
+heuristic's novelty lies in the recovery mechanism and the adaptive relay count rather than in the
 chain geometry itself.
 
 \paragraph{Methodological notes}
 Three practices mattered for the conclusions. Completed-episode averages favour the controller that
-gives up, so comparisons must be paired. Forty rollouts cannot support claims about tails; several
+gives up, so comparisons must be paired. Forty runs cannot support claims about tails; several
 of our own interim conclusions reversed when the sample grew. And a pre-check that uses a different
 metric from the final judgement will pass interventions that the final judgement rejects.
 
@@ -1107,14 +1197,14 @@ metric from the final judgement will pass interventions that the final judgement
 \label{sec:conclusion}
 
 We proposed two controllers for connectivity-constrained drone delivery, a geometric chain-relay
-heuristic with deadlock escape and a fleet-size-agnostic learned policy, both acting through a
+heuristic with deadlock recovery and a fleet-size-agnostic learned policy, both acting through a
 projection that keeps the fleet connected at every step. Under a paired protocol across fleets of
 three to twelve drones the learned policy completes every instance and is faster by 38 to 178
 steps once more than four drones are available, although it was trained on three and four, while the heuristic is faster by 30--39 steps with
-three. The scarce-fleet deficit is one decision, which drone relays; it resists ten policy-side
+three. The relay-limited deficit is one decision, which drone relays; it resists eleven policy-side
 interventions and halves when the enforcement model is changed. Both controllers are three orders
 of magnitude faster than exact optimisation on a lattice, which stops returning plans at ten
-destinations. The natural next step is a policy whose output is a team assignment rather than a
+demand points. The natural next step is a policy whose output is a team assignment rather than a
 set of per-drone options, so that the relay identity becomes a coordinate the critic can value
 directly.
 

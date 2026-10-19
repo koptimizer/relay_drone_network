@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv, N_MAX
 from model.hier_net_v5_26_09_15_23 import SetManagerActor, SetManagerTwinQ
-from pipeline.common_v5_26_09_15_22 import action_mask, chain_manager, straight_worker
+from pipeline.common_v5_26_09_15_22 import escape_wrap, action_mask, chain_manager, straight_worker
 from util.instance_generator_v5_26_09_15_22 import sample_config, sample_instance
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -107,6 +107,8 @@ P.add_argument("--ent-anneal-episodes", type=int, default=0,
                     "닿기 전에 조기 종료됐다 (26-09-22)")
 P.add_argument("--ent-frac", type=float, default=0.6,
                help="엔트로피 목표 = ent_frac·log(유효 행동 수). 0.6이면 alpha가 2~3에 머물러 정책이 흐트러진다 (26-09-19 온도 프로브)")
+P.add_argument("--escape-in-loop", action="store_true",
+               help="롤아웃에서 휴리스틱과 같은 교착 탈출 덮어쓰기를 실행 행동에 적용하고, 실행된 행동을 저장한다 (분산 안정화, 26-10-19)")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -402,6 +404,12 @@ def main():
 
 	for ep in range(start_ep, A.max_episodes + 1):
 		# 엔트로피 목표를 선형 감쇠시킨다. 초반에는 넓게 탐색하고 후반에는 정책을 날카롭게 한다
+		if ep == 1 and A.escape_in_loop:
+			_hold = {"a": None}
+			_esc = escape_wrap(lambda e: _hold["a"])
+			def esc_fn(e, a_prop):
+				_hold["a"] = np.asarray(a_prop)
+				return _esc(e)
 		span = A.ent_anneal_episodes if A.ent_anneal_episodes > 0 else A.max_episodes
 		ent_frac = (A.ent_frac if A.ent_frac_final < 0 else
 		            A.ent_frac + (A.ent_frac_final - A.ent_frac) * min(1.0, (ep - 1) / max(1, span - 1)))
@@ -420,6 +428,8 @@ def main():
 			o0, m0 = sub0[0]["o"], sub0[0]["mask"]
 		else:
 			a, o0, m0 = act(env, actor, dev)
+		if A.escape_in_loop:
+			a = esc_fn(env, a)
 		r0 = act_rule(env)
 		env.set_goals(a)
 		done, t, ep_tr, opt_r, opt_k, relay_n, dec_n = False, 0, 0.0, 0.0, 0, 0, 0
@@ -447,6 +457,8 @@ def main():
 						         nx["o"], nx["j"], nx["mask"], int(r0[sd["j"]]))
 				else:
 					a2, o2, m2 = act(env, actor, dev)
+					if A.escape_in_loop:
+						a2 = esc_fn(env, a2)
 					r2 = act_rule(env)
 					buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0, rv=opt_rv)
 				relay_n += int((a == 6).sum()); dec_n += len(a)

@@ -37,7 +37,7 @@ def main():
 	        fontsize=7.5, fontweight="bold", color=C_L, va="center")
 
 	# 엔티티 입력
-	ents = [("self\n10 features", 0.03), ("5 candidate\ndestinations\n5 × 6", 0.16), ("peers\n(N−1) × 9\nincl. role one-hot", 0.29), ("relay slot\n4 features", 0.42)]
+	ents = [("self\n10 features", 0.03), ("5 candidate\ndemand points\n5 × 6", 0.16), ("peers\n(N−1) × 9\nincl. role one-hot", 0.29), ("relay slot\n4 features", 0.42)]
 	for t, x in ents:
 		box(ax, x, 0.80, 0.11, 0.12, t, fs=6)
 	ax.text(0.03, 0.935, "entities of drone i (distances / R)", fontsize=6, color="#555")
@@ -63,10 +63,10 @@ def main():
 	# 자기회귀 고리
 	ax.add_patch(FancyArrowPatch((0.88, 0.62), (0.36, 0.92), connectionstyle="arc3,rad=-0.35", arrowstyle="-|>",
 	                             mutation_scale=9, lw=1.0, color=C_L, ls="--"))
-	ax.text(0.70, 0.90, "autoregressive: write drone i's new role into the peer\nfeatures, then decide the next drone (farthest from centre first)",
+	ax.text(0.70, 0.90, "autoregressive: write drone i's new role into the peer\nfeatures, then decide the next drone (farthest from depot first)",
 	        fontsize=6, color=C_L, ha="center")
 	# 출력
-	box(ax, 0.60, 0.44, 0.37, 0.09, "options for all N drones: destination / return / relay slot", fc="#ffffff", ec=C_L, fs=6.3, bold=True)
+	box(ax, 0.60, 0.44, 0.37, 0.09, "options for all N drones: demand point / return / relay slot", fc="#ffffff", ec=C_L, fs=6.3, bold=True)
 	arrow(ax, (0.885, 0.62), (0.80, 0.53))
 
 	# ---- 하위

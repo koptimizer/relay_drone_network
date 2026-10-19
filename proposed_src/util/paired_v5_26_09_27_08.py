@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
 from model.hier_net_v5_26_09_15_23 import SetManagerActor
-from pipeline.common_v5_26_09_15_22 import action_mask, chain_escape_manager, straight_worker
+from pipeline.common_v5_26_09_15_22 import escape_wrap, action_mask, chain_escape_manager, straight_worker
 from util.instance_generator_v5_26_09_15_22 import sample_instance
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -70,6 +70,7 @@ def main():
 	p.add_argument("--random-cc", action="store_true")
 	p.add_argument("--max-steps", type=int, default=10000)
 	p.add_argument("--hl-every", type=int, default=20)
+	p.add_argument("--escape", action="store_true", help="학습 정책에도 휴리스틱과 같은 교착 탈출 덮어쓰기를 씌운다")
 	p.add_argument("--out", default="paired_v5_26_09_27_08")
 	args = p.parse_args()
 
@@ -80,7 +81,10 @@ def main():
 	                            num_drones=args.num_drones, num_dests=args.num_dests, slide=args.slide)
 	env.reset()
 	cc = "random" if args.random_cc else None
-	pol = (("규칙+탈출", chain_escape_manager()), ("학습", learned(args.manager, dev, args.autoregressive, args.ar_near)))
+	lf = learned(args.manager, dev, args.autoregressive, args.ar_near)
+	if args.escape:
+		lf = escape_wrap(lf)
+	pol = (("규칙+탈출", chain_escape_manager()), ("학습", lf))
 	rec = []
 	for rep in range(args.reps):
 		for s in range(args.seed0, args.seed0 + args.n):

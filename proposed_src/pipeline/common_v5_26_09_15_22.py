@@ -178,4 +178,35 @@ def chain_escape_manager(k_stall=None, hold=None, mode=None):
 	return fn
 
 
+def escape_wrap(base, k_stall=None, hold=None, mode=None):
+	"""임의의 상위 결정 함수에 chain_escape_manager 와 같은 교착 탈출 덮어쓰기를 씌운다 (학습 정책용)."""
+	k_stall = ESC_K if k_stall is None else k_stall
+	hold = ESC_HOLD if hold is None else hold
+	mode = ESC_MODE if mode is None else mode
+	st = {"esc": 0, "n": 0}
+
+	def fn(env):
+		if env.current_step <= 1:
+			st["esc"], st["n"] = 0, 0
+		if env.deadlock_run >= k_stall and st["esc"] == 0:
+			st["esc"], st["n"] = hold, st["n"] + 1
+		acts = np.asarray(base(env)).copy()
+		if st["esc"] > 0:
+			st["esc"] -= 1
+			reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+			tip = int(np.argmax(reach - 1e6 * (env.drones_capacity == 0)))
+			if mode == "retreat":
+				for i in range(env.num_drones):
+					if i != tip:
+						acts[i] = env.n_cand
+			else:
+				order = list(np.argsort(-reach))
+				new_tip = order[min(st["n"], len(order) - 1)]
+				acts[tip] = env.n_cand
+				if env.drones_capacity[new_tip] > 0 and env.candidates(new_tip)[0] >= 0:
+					acts[new_tip] = 0
+		return acts
+	return fn
+
+
 rule_manager = plain_manager   # v3 이름 호환

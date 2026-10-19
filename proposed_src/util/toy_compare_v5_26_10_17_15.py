@@ -18,7 +18,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
-from pipeline.common_v5_26_09_15_22 import chain_escape_manager, straight_worker
+from pipeline.common_v5_26_09_15_22 import chain_escape_manager, escape_wrap, straight_worker
 from util.instance_generator_v5_26_09_15_22 import sample_instance
 from util.paired_v5_26_09_27_08 import learned
 
@@ -48,6 +48,8 @@ def main():
 	p.add_argument("--manager", default="weights/v5_26_09_23_18_SWa/best_manager.pth")
 	p.add_argument("--reps", type=int, default=30)
 	p.add_argument("--out", default="toy_compare_v5_26_10_17_15")
+	p.add_argument("--escape", action="store_true", help="학습 정책에 교착 탈출 덮어쓰기를 씌운 열도 함께 잰다")
+	p.add_argument("--key", default="milp_steps", help="참조값 키 (MILP: milp_steps, BFS 도 같음)")
 	A = p.parse_args()
 	torch.set_num_threads(2)
 	dev = torch.device("cpu")
@@ -62,14 +64,24 @@ def main():
 		h = run(env, chain_escape_manager(), seed)
 		ls = [run(env, lf, seed) for _ in range(A.reps)]
 		lv = [x for x in ls if x]
+		le = []
+		if A.escape:
+			lfe = escape_wrap(lf)
+			le = [x for x in (run(env, lfe, seed) for _ in range(A.reps)) if x]
 		rows.append(dict(drones=N, dests=M, seed=seed,
-		                 milp=d["milp_steps"], milp_gap=d["gap"], milp_bound=d["bound_steps"], milp_sec=d["solve_sec"],
+		                 milp=d.get(A.key), milp_gap=d.get("gap"), milp_bound=d.get("bound_steps"), milp_sec=d.get("solve_sec"),
 		                 replay=(d["replay"] or {}).get("makespan") if d.get("replay") else "",
 		                 heuristic=h, learned_median=int(np.median(lv)) if lv else "",
 		                 learned_q1=int(np.percentile(lv, 25)) if lv else "", learned_q3=int(np.percentile(lv, 75)) if lv else "",
 		                 learned_mean=round(float(np.mean(lv)), 1) if lv else "",
 		                 learned_min=min(lv) if lv else "", learned_max=max(lv) if lv else "",
-		                 learned_complete=f"{len(lv)}/{A.reps}"))
+		                 learned_complete=f"{len(lv)}/{A.reps}",
+		                 learned_std=round(float(np.std(lv)), 1) if lv else "",
+		                 esc_median=int(np.median(le)) if le else "", esc_q1=int(np.percentile(le, 25)) if le else "",
+		                 esc_q3=int(np.percentile(le, 75)) if le else "", esc_mean=round(float(np.mean(le)), 1) if le else "",
+		                 esc_std=round(float(np.std(le)), 1) if le else "", esc_min=min(le) if le else "", esc_max=max(le) if le else "",
+		                 esc_complete=f"{len(le)}/{A.reps}" if A.escape else "",
+		                 spacing=d.get("spacing", ""), nodes=d.get("nodes", ""), method=d.get("method", "milp")))
 		r = rows[-1]
 		print(f"M={M:2d} seed {seed}: MILP {r['milp']} (재생 {r['replay']}, gap {r['milp_gap']}) | 휴리스틱 {h} | "
 		      f"학습 중앙 {r['learned_median']} ({r['learned_min']}-{r['learned_max']}) 완주 {r['learned_complete']}", flush=True)

@@ -282,7 +282,8 @@ $C$ & $[0,\bar T]$ & 기간 단위 makespan \\
 \end{tabular}
 \end{table*}
 
-\begin{strip}
+\begin{figure*}[!t]
+\small
 \begin{align}
 \min\;\; & C + \varepsilon \sum_{i \in N_{\mathrm{v}} \setminus \{0\}} \sum_{k \in K} \sum_{t \in T} y_{ikt} \label{eq:m-obj}\\
 \text{s.t.}\;\; & \sum_{i \in N_{\mathrm{v}}} y_{ikt} = 1 \qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\quad\;\ && \forall k \in K,\ t \in T \label{eq:m-one}\\
@@ -299,7 +300,7 @@ $C$ & $[0,\bar T]$ & 기간 단위 makespan \\
 & C \ge t\, s_{jkt} \qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\quad\ && \forall j \in D,\ k \in K,\ t < \bar T \label{eq:m-mk}\\
 & s_{jkt} = 0 && \forall k \in K,\ j \in D \text{ with } \mathrm{idx}(j) < k,\ t < \bar T \label{eq:m-sym}
 \end{align}
-\end{strip}
+\end{figure*}
 
 \paragraph{모형 읽기}
 목적함수~\eqref{eq:m-obj}는 makespan $C$를 최소화한다. 둘째 항은 가중치 $\varepsilon \bar T N
@@ -358,7 +359,7 @@ u_{jt}$는 함의되므로 생략해 지배적인 행 수를 절반으로 줄였
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_overview_v5_26_10_17_15.pdf}
-\caption{(a) 드론 3대 인스턴스에서 휴리스틱으로 497스텝 진행한 상태. 선두 드론(파란 원)이 먼
+\caption{(a) 드론 3대 인스턴스에서 휴리스틱으로 499스텝 진행한 상태. 선두 드론(파란 원)이 먼
 목적지로 향하고, 한 대가 센터까지의 선분 위에서 중계하며(빨간 삼각형), 한 대는 재적재를 위해
 센터로 복귀한다(초록 삼각형). 음영 원판은 통신 반경, 점선 원은 도달 영역 $0.9NR$이다. (b) 두
 제어기는 같은 드론별 옵션을 내고 직진 하위 제어기와 연결성 투영을 공유한다.}

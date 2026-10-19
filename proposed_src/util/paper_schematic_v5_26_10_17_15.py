@@ -52,7 +52,7 @@ def panel_geometry(ax):
 	ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
 	# 목적지
 	act = env.dests_active
-	ax.scatter(env.dests_pos[act, 0], env.dests_pos[act, 1], s=10, marker="x", color=C_D, label="unserved destination")
+	ax.scatter(env.dests_pos[act, 0], env.dests_pos[act, 1], s=10, marker="x", color=C_D, label="unserved demand point")
 	ax.scatter(env.dests_pos[~act, 0], env.dests_pos[~act, 1], s=10, marker="x", color="#cccccc", label="served")
 	# 도달 한계 (0.9 N R)
 	ax.add_patch(Circle(cc, 0.9 * 3 * R, fill=False, ls=":", lw=0.8, color="#999"))
@@ -67,7 +67,7 @@ def panel_geometry(ax):
 			if np.linalg.norm(np.asarray(a) - np.asarray(b)) <= R:
 				ax.plot([a[0], b[0]], [a[1], b[1]], color=C_L, lw=1.2)
 	# 제어 센터·드론
-	ax.scatter([cc[0]], [cc[1]], s=90, marker="s", color=C_CC, zorder=5, label="control centre")
+	ax.scatter([cc[0]], [cc[1]], s=90, marker="s", color=C_CC, zorder=5, label="depot")
 	kinds = {0: ("deliver", "o"), 1: ("return to reload", "v"), 2: ("hold", "d"), 3: ("relay", "^")}
 	seen = set()
 	for i in range(3):
@@ -99,13 +99,13 @@ def panel_controllers(ax):
 	ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
 	ax.set_title("(b) two controllers, one shared projection", fontsize=8.5, loc="left")
 	# 상단: 관측
-	box(ax, 0.25, 0.86, 0.50, 0.10, "fleet state every 20 steps\n(positions, cargo, hops, unserved destinations)", fs=6.5)
+	box(ax, 0.25, 0.86, 0.50, 0.10, "fleet state every 20 steps\n(positions, cargo, hops, unserved demand points)", fs=6.5)
 	# 왼쪽: 휴리스틱
 	box(ax, 0.01, 0.50, 0.47, 0.28,
 	    "Geometric chain-relay heuristic\n"
 	    "lead: farthest drone with cargo\n"
 	    "relays: ⌈d/0.9R⌉−1 next-farthest\n"
-	    "others: nearest destination or return\n"
+	    "others: nearest demand point or return\n"
 	    "escape: swap lead after $k_{stall}$ stalled steps",
 	    fc="#fbeeec", ec=C_H, fs=5.8)
 	# 오른쪽: 학습
@@ -118,7 +118,7 @@ def panel_controllers(ax):
 	    fc="#eaf2f8", ec=C_L, fs=5.8)
 	arrow(ax, (0.40, 0.86), (0.25, 0.78)); arrow(ax, (0.60, 0.86), (0.75, 0.78))
 	# 공유 하단
-	box(ax, 0.12, 0.32, 0.76, 0.10, "per-drone option: one of 5 candidate destinations, return, or relay slot", fs=6.3)
+	box(ax, 0.12, 0.32, 0.76, 0.10, "per-drone option: one of 5 candidate demand points, return, or relay slot", fs=6.3)
 	arrow(ax, (0.24, 0.50), (0.40, 0.42)); arrow(ax, (0.76, 0.50), (0.60, 0.42))
 	box(ax, 0.12, 0.17, 0.76, 0.09, "straight-line flight to the goal (low-level controller)", fs=6.3)
 	arrow(ax, (0.50, 0.32), (0.50, 0.26))

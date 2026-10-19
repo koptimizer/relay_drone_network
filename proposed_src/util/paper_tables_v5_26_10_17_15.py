@@ -150,13 +150,13 @@ def tab_gen(tag):
 		if not os.path.exists(swa):
 			continue
 		a, b = paired(swa); both = ~np.isnan(a) & ~np.isnan(b); d = b[both] - a[both]
-		cells = [f"{int((~np.isnan(b)).sum())}/{len(b)} \\,/\\, ${np.median(d):+.0f}$"]
+		cells = [f"{int((~np.isnan(b)).sum())}/{len(b)} \\,/\\, ${np.median(d):+.0f}$ ({int((d<0).sum())}--{int((d>0).sum())}, {pstr(stats.wilcoxon(d).pvalue)})"]
 		for sd in (1, 2):
 			f = os.path.join(FIG, f"paired_gen_{key}_A4s{sd}_v5_26_10_18_06.csv")
 			if not os.path.exists(f):
 				cells.append("---"); continue
 			a2, b2 = paired(f); both2 = ~np.isnan(a2) & ~np.isnan(b2); d2 = b2[both2] - a2[both2]
-			cells.append(f"{int((~np.isnan(b2)).sum())}/{len(b2)} \\,/\\, ${np.median(d2):+.0f}$" if both2.sum() > 5 else f"{int((~np.isnan(b2)).sum())}/{len(b2)} \\,/\\, ---")
+			cells.append(f"{int((~np.isnan(b2)).sum())}/{len(b2)} \\,/\\, ${np.median(d2):+.0f}$ ({int((d2<0).sum())}--{int((d2>0).sum())}, {pstr(stats.wilcoxon(d2).pvalue)})" if both2.sum() > 5 else f"{int((~np.isnan(b2)).sum())}/{len(b2)} \\,/\\, ---")
 		lines.append(f"{lab} & " + " & ".join(cells) + " \\\\")
 	with open(os.path.join(TEX, f"tab_gen_v5_{suffix(tag)}.tex"), "w") as f:
 		f.write("\\begin{tabular}{lrrr}\n\\toprule\n" + h["gen"] + " \\\\\n\\midrule\n"

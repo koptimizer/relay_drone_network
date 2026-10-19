@@ -22,10 +22,50 @@ from util.instance_generator_v5_26_09_15_22 import reach_limit, sample_instance
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def build_nodes(cc, dests, step_len, spacing, comm_range, num_drones, beta=0.9):
-	"""제어 센터 0번, 목적지, 격자 순으로 노드 좌표와 색인을 만든다."""
+def hull_dist(P, q):
+	"""점 q에서 볼록 껍질 P(반시계 꼭짓점 배열)까지의 거리. 안쪽이면 0."""
+	n = len(P)
+	if n == 1:
+		return float(np.linalg.norm(q - P[0]))
+	inside, best = True, np.inf
+	for a in range(n):
+		p0, p1 = P[a], P[(a + 1) % n]
+		e = p1 - p0
+		if n > 2 and e[0] * (q[1] - p0[1]) - e[1] * (q[0] - p0[0]) < 0:
+			inside = False
+		tt = 0.0 if e @ e < 1e-12 else float(np.clip((q - p0) @ e / (e @ e), 0, 1))
+		best = min(best, float(np.linalg.norm(q - (p0 + tt * e))))
+	return 0.0 if (inside and n > 2) else best
+
+
+def convex_hull(pts):
+	"""2차원 점들의 볼록 껍질 꼭짓점을 반시계 순서로 돌려준다 (Andrew monotone chain)."""
+	P = sorted({(float(x), float(y)) for x, y in pts})
+	if len(P) <= 2:
+		return np.array(P)
+	def cross(o, a, b):
+		return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+	lo, hi = [], []
+	for q in P:
+		while len(lo) >= 2 and cross(lo[-2], lo[-1], q) <= 0:
+			lo.pop()
+		lo.append(q)
+	for q in reversed(P):
+		while len(hi) >= 2 and cross(hi[-2], hi[-1], q) <= 0:
+			hi.pop()
+		hi.append(q)
+	return np.array(lo[:-1] + hi[:-1])
+
+
+def build_nodes(cc, dests, step_len, spacing, comm_range, num_drones, beta=0.9, hull_margin=-1.0):
+	"""제어 센터 0번, 목적지, 격자 순으로 노드 좌표와 색인을 만든다.
+
+	hull_margin >= 0 이면 센터와 목적지의 볼록 껍질에서 그 거리 안에 있는 격자 노드만 남긴다.
+	볼록 집합으로의 사영은 거리를 늘리지 않으므로 연속 문제의 최적 계획은 껍질 안에 둘 수 있다.
+	"""
 	pts = [np.asarray(cc, dtype=float)]
 	pts += [np.asarray(p, dtype=float) for p in dests]
+	hull = convex_hull(pts) if hull_margin >= 0 else None
 	lim = reach_limit(num_drones, comm_range, beta)
 	lo = np.minimum(np.min(dests, axis=0), cc) - spacing
 	hi = np.maximum(np.max(dests, axis=0), cc) + spacing
@@ -41,6 +81,8 @@ def build_nodes(cc, dests, step_len, spacing, comm_range, num_drones, beta=0.9):
 				continue                      # 3대로 닿을 수 없는 칸은 중계로도 쓸모가 없다
 			if min(np.linalg.norm(p - q) for q in pts) < 0.35 * spacing:
 				continue                      # 목적지·센터와 겹치는 칸은 버린다
+			if hull is not None and hull_dist(hull, p) > hull_margin + 1e-9:
+				continue                      # 껍질 밖 칸은 중계로 쓸 이유가 없다
 			grid.append(p)
 	pos = np.array(pts + grid)
 	return pos, len(dests)
@@ -48,7 +90,7 @@ def build_nodes(cc, dests, step_len, spacing, comm_range, num_drones, beta=0.9):
 
 def build_model(pos, n_dest, num_drones, cap, horizon, step_len, comm_range, eps=1e-5,
                 symmetry=True, threads=6, time_limit=600.0, verbose=True, mip_gap=0.0,
-                ring_cuts=True, mip_focus=1, norel=0.0, cum=False, gseed=0):
+                ring_cuts=True, mip_focus=1, norel=0.0, cum=False, gseed=0, multi=False):
 	"""시간 확장 격자 위의 makespan 최소화 MILP를 만든다."""
 	import gurobipy as gp
 	from gurobipy import GRB
@@ -77,7 +119,8 @@ def build_model(pos, n_dest, num_drones, cap, horizon, step_len, comm_range, eps
 	r = m.addVars(num_drones, horizon, vtype=GRB.BINARY, name="r")
 	q = m.addVars(num_drones, horizon + 1, lb=0, ub=cap, vtype=GRB.INTEGER, name="q")
 	rho = m.addVars(num_drones, horizon, lb=0, ub=cap, name="rho")
-	g = m.addVars(link, horizon + 1, lb=0, ub=num_drones, name="g")
+	g = m.addVars(link, horizon + 1, lb=0, ub=num_drones, name="g") if not multi else None
+	f = m.addVars(K, link, horizon + 1, lb=0, ub=1, name="f") if multi else None
 	C = m.addVar(lb=0, ub=horizon, name="C")
 
 	m.setObjective(C + eps * gp.quicksum(y[i, k, t] for i in range(1, n) for k in K for t in T),
@@ -138,6 +181,16 @@ def build_model(pos, n_dest, num_drones, cap, horizon, step_len, comm_range, eps
 		inn[i].append(j)
 	for t in T:
 		u = {i: gp.quicksum(y[i, k, t] for k in K) for i in range(n)}
+		if multi:
+			# 드론별 상품: 드론 k가 선 노드에서 1단위를 센터로. f^k <= 1 이라 용량이 u로 조여진다
+			for k in K:
+				for i in range(1, n):
+					m.addConstr(gp.quicksum(f[k, i, j, t] for j in out[i])
+					            - gp.quicksum(f[k, j, i, t] for j in inn[i]) == y[i, k, t], name=f"flow_{k}_{i}_{t}")
+			for (i, j) in link:
+				for k in K:
+					m.addConstr(f[k, i, j, t] <= u[i], name=f"ci_{k}_{i}_{j}_{t}")
+			continue
 		for i in range(1, n):
 			m.addConstr(gp.quicksum(g[i, j, t] for j in out[i])
 			            - gp.quicksum(g[j, i, t] for j in inn[i]) == u[i], name=f"flow_{i}_{t}")
@@ -249,6 +302,9 @@ def main():
 	p.add_argument("--map-size", type=float, default=1000.0)
 	p.add_argument("--cc", type=float, nargs=2, default=None)
 	p.add_argument("--quiet", action="store_true")
+	p.add_argument("--hull-margin", type=float, default=-1.0, help="센터·목적지 볼록 껍질에서 이 거리(m) 안의 격자만 남김. 음수면 끔")
+	p.add_argument("--hull-auto", action="store_true", help="껍질 여유를 격자 간격/sqrt(2)로")
+	p.add_argument("--multi-commodity", action="store_true", help="연결성 흐름을 드론별 상품으로 (LP 완화가 조여짐)")
 	p.add_argument("--out", default="milp_v5_26_09_21_03")
 	A = p.parse_args()
 
@@ -265,7 +321,8 @@ def main():
 	base = hs["makespan"] if hs["makespan"] else 1200
 	horizon = A.horizon if A.horizon > 0 else int(np.ceil(A.slack * base / A.kappa)) + 1
 
-	pos, n_dest = build_nodes(cc, dests, step_len, spacing, A.comm_range, A.num_drones)
+	hm = spacing / np.sqrt(2.0) if A.hull_auto else A.hull_margin
+	pos, n_dest = build_nodes(cc, dests, step_len, spacing, A.comm_range, A.num_drones, hull_margin=hm)
 	print(f"[격자] 기간 {A.kappa}스텝({A.kappa}초) 이동거리 {step_len:.1f}m 간격 {spacing:.1f}m "
 	      f"노드 {len(pos)}개 (목적지 {n_dest}, 격자 {len(pos)-n_dest-1}) 지평선 {horizon}기간", flush=True)
 
@@ -273,14 +330,15 @@ def main():
 	m, v = build_model(pos, n_dest, A.num_drones, cap, horizon, step_len, A.comm_range,
 	                   symmetry=not A.no_symmetry, threads=A.threads, time_limit=A.time_limit,
 	                   verbose=not A.quiet, mip_gap=A.mip_gap, ring_cuts=not A.no_ring_cuts,
-	                   mip_focus=A.mip_focus, norel=A.norel, cum=A.cumulative, gseed=A.gurobi_seed)
+	                   mip_focus=A.mip_focus, norel=A.norel, cum=A.cumulative, gseed=A.gurobi_seed,
+	                   multi=A.multi_commodity)
 	print(f"[모형] 변수 {m.NumVars} (이진 {m.NumBinVars}) 제약 {m.NumConstrs} 생성 {time.time()-t0:.0f}초", flush=True)
 	m.optimize()
 	if m.SolCount == 0:
 		# 실패도 기록한다. 같은 모형이 시드에 따라 해를 찾기도 못 찾기도 해, 이 편차가 결과다
 		print("[결과] 실행 가능해를 찾지 못했다", flush=True)
 		res = dict(drones=A.num_drones, dests=A.num_dests, seed=A.seed, kappa=A.kappa,
-		           spacing=round(spacing, 1), nodes=len(pos), horizon=horizon,
+		           spacing=round(spacing, 1), nodes=len(pos), horizon=horizon, hull_margin=hm, multi=A.multi_commodity,
 		           binaries=int(m.NumBinVars), variables=int(m.NumVars), rows=int(m.NumConstrs),
 		           status=int(m.Status), gap=None, milp_periods=None, milp_steps=None,
 		           bound_steps=round(float(m.ObjBound) * A.kappa, 1),
@@ -294,7 +352,7 @@ def main():
 	C = float(v["C"].X)
 	rep = replay(plan, pos, cc, dests, A.num_drones, A.kappa, A.comm_range)
 	res = dict(drones=A.num_drones, dests=A.num_dests, seed=A.seed, kappa=A.kappa,
-	           spacing=round(spacing, 1), nodes=len(pos), horizon=horizon,
+	           spacing=round(spacing, 1), nodes=len(pos), horizon=horizon, hull_margin=hm, multi=A.multi_commodity,
 	           binaries=int(m.NumBinVars), variables=int(m.NumVars), rows=int(m.NumConstrs),
 	           status=int(m.Status), gap=round(float(m.MIPGap), 4),
 	           milp_periods=round(C, 2), milp_steps=round(C * A.kappa, 1),

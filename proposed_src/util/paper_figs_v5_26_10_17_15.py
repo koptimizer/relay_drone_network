@@ -53,7 +53,7 @@ def fig_regime(tag, files):
 	ax.set_xticks(x)
 	ax.set_xticklabels([f"{r[0]}\n{r[5]}–{r[6]}" for r in rows], fontsize=8)
 	ax.set_ylabel("paired median makespan difference\n(learned − heuristic, steps)")
-	ax.set_xlabel("drones / destinations  (wins–losses for the learned policy)")
+	ax.set_xlabel("drones / demand points  (wins–losses for the learned policy)")
 	ax.text(0.99, 0.97, "heuristic faster ↑", transform=ax.transAxes, va="top", ha="right", fontsize=8, color=C_H)
 	ax.text(0.99, 0.03, "learned faster ↓", transform=ax.transAxes, va="bottom", ha="right", fontsize=8, color=C_L)
 	fig.tight_layout()
