@@ -1047,7 +1047,7 @@ configuration randomisation) on the same large-fleet instances without retrainin
 also completes every instance from 5 to 10 drones, so completion generalises through the
 architecture alone; but it is slower than the randomised policy on every configuration (no significant difference
 from the heuristic at $5/50$ against $-62$, and $-51$ to $-174$ against $-122$ to $-178$ beyond),
-so speed on large fleets is learned from the variety of small ones. The same ablation loses 646
+so speed on large fleets is learned from the variety of small ones. The same ablation loses 114--296
 steps on $3/30$ (Table~\ref{tab:ablation}), so randomisation is what makes the small-fleet side
 usable at all. Both policies were trained with at most four drones; the hop-depth and slot
 features are normalised by a constant of eight, so fleets of ten and twelve drones also take the
@@ -1112,35 +1112,29 @@ configurations.}
 \end{table*}
 
 \paragraph{Learned policy}
-Table~\ref{tab:ablation} removes one ingredient at a time, retrains two seeds and evaluates on the
-three main configurations; values are makespan differences from the proposed configuration. Four
-independent trainings of the same configuration span 919 to 979 steps on the standard configuration, so
-a two-seed mean is meaningful only beyond 70--80 steps. Rule regularisation and configuration
-randomisation are necessary; entropy annealing is the single largest contributor on the standard
-configuration; autoregressive decisions help with four drones and more; the residual penalty is
-neutral. A manager with a fixed-size MLP encoder instead of the set encoder, trained in an earlier
-version on the standard configuration only, completed 38\% of standard instances and could not be
-run on other fleet sizes at all.
+Table~\ref{tab:ablation} removes one element at a time, retrains two seeds with the same budget,
+and runs each ablated policy on the same instances as the proposed policy (the first 120, 80 and
+80 paired runs of Section~\ref{sec:rq3}); cells give the median of the per-instance makespan
+difference and a Wilcoxon signed-rank $p$, per seed. Rule regularisation and entropy-target
+annealing are necessary everywhere: removing either costs 52--189 steps on every configuration
+and seed at $p<10^{-4}$. Configuration randomisation is necessary off the training distribution:
+removing it is neutral on the standard configuration ($-19$ and $-34$, $p \ge 0.12$), on which
+the ablated policy was trained, but costs 114--296 steps on $3/30$ and 53--76 on $5/50$.
+Autoregressive decisions help on every configuration by 32--88 steps ($p \le 0.007$). The
+residual penalty is neutral: no seed on any configuration differs from the proposed policy at
+$p<0.05$. A manager with a fixed-size MLP encoder instead of the set encoder, trained in an
+earlier version on the standard configuration only, completed 38\% of standard instances and could
+not be run on other fleet sizes at all.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\caption{Ablation of the learned policy: makespan difference from the proposed configuration over
-completed episodes, two seeds. Positive means the removed component was needed. Differences below
-70--80 steps are within seed variance.}
+\caption{Ablation of the learned policy. Each cell gives, for two independently trained seeds,
+the median per-instance makespan difference between the ablated policy and the proposed policy on
+the same instances (positive: the removed element was needed) and the Wilcoxon signed-rank $p$.}
 \label{tab:ablation}
-\small
-\begin{tabular}{lrrr}
-\toprule
-Removed component & $4/50$ & $3/30$ & $5/50$ \\
-\midrule
-Rule regularisation & $+320$ & $+408$ & $+92$ \\
-Configuration randomisation & $-44$ & $+646$ & $+68$ \\
-Entropy target annealing & $+128$ & $+19$ & $+61$ \\
-Autoregressive decisions & $+94$ & $-46$ & $+33$ \\
-Residual penalty & $-28$ & $-37$ & $+8$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+\footnotesize
+\input{tab_ablation_v5_en_26_10_19_22}
+\end{table*}
 
 \subsection{Inference cost}
 \label{sec:cost}
