@@ -1087,20 +1087,25 @@ Table~\ref{tab:heur-ablation} grids $k_{\mathrm{stall}} \in \{30,60,90,120\}$,
 $h_{\mathrm{hold}} \in \{20,40,80\}$ and the two recovery modes, plus no recovery, on $3/30$,
 $4/50$ and $5/50$ with 40 tuning seeds each, and ranks settings by total completions first and
 the sum of median makespans second; this criterion was fixed before the measurement. The recovery
-mechanism is necessary: without it the rule completes 26 of 40 standard instances. The mode
-matters more than the timing: every lead-swap setting completes 117--120 of 120 instances, while
-retreat settings complete 100--117 because slackening the chain does not change the assignment
-that caused the stall. Within the lead-swap family the medians differ by at most 40 steps summed
-over three configurations, which is within the noise of 40 instances; the selected setting
-($k_{\mathrm{stall}}=120$, $h_{\mathrm{hold}}=20$) is the only one that completes all 120 and
-also has the lowest median sum. The adaptive relay count is necessary as well: fixing one or two
+mechanism is necessary: without it the rule completes 25--26 of 40 standard instances (two
+measurements). The mode matters more than the timing: every lead-swap setting completes 117--120
+of 120 instances, while retreat settings complete 101--117 because slackening the chain does not
+change the assignment that caused the stall. Within the lead-swap family the differences are not
+statistically meaningful: in a second measurement of the grid, reported in the table together with
+a paired Wilcoxon test of every setting against the selected one on the same 40 instances, no
+setting differs from the selected one at $p<0.05$ on any configuration (all $p \ge 0.09$), and
+one other setting ($30/40$) also completes all 120 with a median sum 13 steps lower, which is
+tie-breaking noise. The selected setting ($k_{\mathrm{stall}}=120$, $h_{\mathrm{hold}}=20$)
+was fixed from the first measurement and is used throughout. The adaptive relay count is necessary as well: fixing one or two
 relays completes 0--65\% (Table~\ref{tab:completion}).
 
 \begin{table*}[t]
 \centering
 \caption{Heuristic ablation on tuning seeds disjoint from the evaluation seeds (40 instances per
-configuration). Cells give completed instances and the median makespan over completed instances;
-the last column sums completions over the three configurations.}
+configuration). Cells give completed instances, the median makespan over completed instances and,
+in parentheses, the $p$-value of a Wilcoxon signed-rank test of that setting against the selected
+setting (bold) on the instances both completed; the last column sums completions over the three
+configurations.}
 \label{tab:heur-ablation}
 \small
 \input{tab_heur_v5_26_10_17_15}

@@ -52,12 +52,19 @@ def pstr(p):
 
 
 def tab_heur(tag):
-	rows = []
-	for f in sorted(glob.glob(os.path.join(FIG, "heur_ablate_v5_26_10_17_15_*.csv"))):
+	"""휴리스틱 파라미터 격자: 완주/중앙값과, 확정 설정(선두 교대 120/20) 대비 같은 시드의 쌍별 윌콕슨 p."""
+	rows, seeds = [], []
+	for f in sorted(glob.glob(os.path.join(FIG, "heur_ablate_v5_26_10_19_22_*[!s].csv"))):
 		rows += list(csv.DictReader(open(f, encoding="utf-8")))
+	for f in sorted(glob.glob(os.path.join(FIG, "heur_ablate_v5_26_10_19_22_*_seeds.csv"))):
+		seeds += list(csv.DictReader(open(f, encoding="utf-8")))
 	if not rows:
 		return
 	cfgs = ["d3m30r", "d4m50f", "d5m50r"]
+	SEL = ("shuffle", 120, 20)
+	def ms(c, k):
+		return {int(r["seed"]): (float(r["makespan"]) if r["makespan"] else np.nan) for r in seeds
+		        if r["config"] == c and (r["mode"], int(r["k_stall"]), int(r["hold"])) == k}
 	keys = []
 	for r in rows:
 		k = (r["mode"], int(r["k_stall"]), int(r["hold"]))
@@ -71,11 +78,17 @@ def tab_heur(tag):
 			if not sel:
 				cells.append("---"); continue
 			r = sel[0]; cs += int(r["complete"])
-			cells.append(f"{r['complete']}/{r['n']} \\,/\\, {r['median'] or '---'}")
+			ptxt = ""
+			if k != SEL and seeds:
+				x, y = ms(c, k), ms(c, SEL)
+				d = np.array([x[sd] - y[sd] for sd in x if sd in y and not np.isnan(x[sd]) and not np.isnan(y[sd])])
+				if len(d) > 5 and np.any(d != 0):
+					ptxt = f" ({pstr(stats.wilcoxon(d).pvalue)})"
+			cells.append(f"{r['complete']}/{r['n']} \\,/\\, {r['median'] or '---'}{ptxt}")
 		mode = H[LANG]["modes"][k[0]]
 		par = "---" if k[0] == "none" else f"{k[1]} / {k[2]}"
 		line = f"{mode} & {par} & " + " & ".join(cells) + f" & {cs}/120 \\\\"
-		if k == ("shuffle", 120, 20):
+		if k == SEL:
 			line = "\\textbf{" + mode + "} & \\textbf{" + par + "} & " + " & ".join(cells) + f" & \\textbf{{{cs}/120}} \\\\"
 		lines.append(line)
 	with open(os.path.join(TEX, f"tab_heur_v5_{suffix(tag)}.tex"), "w") as f:
