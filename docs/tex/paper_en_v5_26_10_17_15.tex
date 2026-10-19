@@ -943,31 +943,18 @@ learner's fixed point, not an artefact of credit, information or initialisation.
 \begin{table*}[t]
 \centering
 \caption{Interventions that did not remove the relay-limited deficit, numbered as in the text.
-Paired median against the heuristic (positive is slower); the proposed configuration is the reference
-row; two values are two seeds and a range is the span over seeds or doses. These runs were
+Cells give the range over seeds of the paired median difference against the heuristic (positive:
+learned slower) and, in parentheses, the number of seeds whose difference is significant at
+$p<0.05$ (Wilcoxon signed-rank) over the number of seeds trained. The reference row is the
+proposed policy against the tuned heuristic (Table~\ref{tab:paired}); the variant rows were
 evaluated against the heuristic with its pre-tuning recovery parameters ($k_{\mathrm{stall}}=60$,
-$h_{\mathrm{hold}}=40$), so the column values are comparable to the reference row of this table
-but not numerically identical to Table~\ref{tab:paired}, which uses the tuned heuristic.}
+$h_{\mathrm{hold}}=40$), against which the proposed policy measured $+40$, $-54$ and $+0$, so
+differences of a few tens of steps between the reference row and a variant row are not
+meaningful.}
 \label{tab:negative}
-\footnotesize
-\begin{tabular}{llrrrl}
-\toprule
-\# & Intervention (what changed) & $3/30$ & $5/50$ & $4/50$ & Mechanism of failure \\
-\midrule
---- & Proposed configuration (reference) & $+40$ & $-54$ & $+0$ & --- \\
-V1 & Relay-weighted rule regularisation ($\times 3$ on relay) & $+54$, $+56$ & $-44$, $-19$ & $+41$, $+54$ & relay-specific regularisation harms \\
-V2 & Per-drone relay credit (2.0 / 6.0) & $+36$ to $+82$ & $+60$ to $+106$ & $+39$ to $+131$ & relaying becomes the goal \\
-V3 & Checkpoint selection half on $3/30$ (8 seeds) & $+58$ & $-42$ & $+10$ & improves only the standard config.\\
-V4 & Zero-sum credit redistribution & $+91$, $+126$ & $+98$, $+172$ & $+146$, $+180$ & same, larger \\
-V5 & Joint-action critic & $+89$ & $-27$ & $+58$ & target variance from sampled teammates \\
-V6 & Nearest-first decision order & $+46$, $+100$ & $-43$, $-38$ & $+4$, $+106$ & order is not the cause \\
-V7 & Re-decision after 60 stalled steps & $+82$, $+95$ & $-38$, $-34$ & $+17$, $+55$ & irregular option lengths \\
-V8 & Monotone mixing critic (floor 0.5) & $+145$ & $+5$ & $+139$ & divergence vs.\ credit on one axis \\
-V9 & Sequential single-agent credit & $+142$ & $+17$ & $+116$ & no contraction within a decision \\
-V10 & Behaviour-cloning initialisation ($\pm$ warm-up) & $+42$ to $+69$ & $-42$ to $-20$ & $-4$ to $+40$ & erased within 400 episodes \\
-V11 & Bottleneck-arrival penalty (0.15 / 0.25) & $+105$ & $-8$ & $+81$ & reduces the mean, not the maximum \\
-\bottomrule
-\end{tabular}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{tab_negative_v5_en_26_10_19_22}
 \end{table*}
 
 \paragraph{Sensitivity to the connectivity enforcement model}
