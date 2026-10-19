@@ -1,0 +1,25 @@
+{
+ "drones": 3,
+ "dests": 4,
+ "seed": 901,
+ "kappa": 10,
+ "spacing": 98.2,
+ "hull_margin": 69.43788591251896,
+ "nodes": 48,
+ "method": "bfs",
+ "status": "optimal",
+ "gap": 0.0,
+ "milp_periods": 12,
+ "milp_steps": 120,
+ "bound_steps": 120,
+ "solve_sec": 2.5,
+ "rule_makespan": 145,
+ "rule_delivered": 4,
+ "replay": {
+  "steps": 118,
+  "delivered": 4,
+  "makespan": 118,
+  "blocked": 31,
+  "comm_loss": 0
+ }
+}
