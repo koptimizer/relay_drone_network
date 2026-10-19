@@ -963,10 +963,14 @@ the training radius should retrain or at least re-evaluate the boundary.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_range_v5_26_10_17_15.pdf}
-\caption{Paired median difference against the communication radius without retraining
-(training radius 300\,m, dotted). A shorter radius moves every configuration towards the
-heuristic; a longer radius helps the learned policy on $4/50$ but not beyond its training-radius
-margin on $3/30$ and $5/50$.}
+\caption{Transfer to other communication radii without retraining, one panel per
+configuration. Bars are the paired median difference (learned $-$ heuristic, steps): a bar above
+zero (red) means the heuristic was faster, below zero (blue) the learned policy; whiskers are the
+interquartile range of the paired differences, the label at each bar is the learned policy's
+wins--losses, and the completions (heuristic/learned) are printed under the radius. The shaded
+column is the training radius. Reading left to right within a panel: a shorter radius moves every
+configuration towards the heuristic, and on $3/30$ and $5/50$ the learned policy's margin is best
+at the radius it was trained on.}
 \label{fig:range}
 \end{figure}
 

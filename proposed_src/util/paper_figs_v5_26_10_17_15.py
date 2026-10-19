@@ -171,32 +171,51 @@ def fig_milp(tag, csv_path):
 
 
 def fig_range(tag, files):
-	"""통신 반경별 쌍별 중앙 차이. files: [(R, label, path)]."""
+	"""통신 반경별 쌍별 중앙 차이: 구성마다 한 패널, 막대 부호로 누가 빠른지, IQR 수염, 승-패 표기."""
 	files = [(R, lab, p) for R, lab, p in files if os.path.exists(p)]
 	if not files:
 		print("반경 CSV 없음"); return
 	labs = sorted(set(l for _, l, _ in files))
 	Rs = sorted(set(R for R, _, _ in files))
-	fig, ax = plt.subplots(figsize=(4.6, 2.8))
-	for li, lab in enumerate(labs):
-		xs, ys = [], []
+	fig, axes = plt.subplots(1, len(labs), figsize=(5.0, 2.5), sharey=True)
+	ymin, ymax = 0, 0
+	for ax, lab in zip(axes, labs):
+		comp = {}
 		for R in Rs:
 			p = [p for r, l, p in files if r == R and l == lab]
 			if not p:
 				continue
 			a, b = paired(p[0]); both = ~np.isnan(a) & ~np.isnan(b)
-			xs.append(R); ys.append(float(np.median(b[both] - a[both])))
-		ax.plot(xs, ys, "o-", label=lab, lw=1.2, ms=4)
-	ax.axhline(0, color="#333", lw=0.8)
-	ax.set_xlabel("communication radius $R$ (m)")
-	ax.set_ylabel("paired median difference\n(learned − heuristic, steps)")
-	ax.set_xticks(Rs)
-	ax.axvline(300, color="#999", ls=":", lw=0.8)
-	ax.text(301, ax.get_ylim()[1], "training radius", fontsize=7, color="#777", va="top")
-	ax.legend(frameon=False, fontsize=8, loc="center right")
-	fig.tight_layout()
+			d = b[both] - a[both]
+			med = float(np.median(d)); q1, q3 = np.percentile(d, [25, 75])
+			col = C_H if med > 0 else C_L
+			ax.bar(R, med, width=32, color=col, alpha=0.85 if R == 300 else 0.55, edgecolor=col, lw=0.8)
+			ax.plot([R, R], [q1, q3], color="#333", lw=0.9)
+			w, l = int((d < 0).sum()), int((d > 0).sum())
+			ax.text(R, (q3 if med > 0 else q1) + (6 if med > 0 else -6), f"{w}–{l}", ha="center",
+			        va="bottom" if med > 0 else "top", fontsize=6.2, color="#333")
+			comp[R] = f"{int((~np.isnan(a)).sum())}/{int((~np.isnan(b)).sum())}"
+			ymin, ymax = min(ymin, q1), max(ymax, q3)
+		ax.axhline(0, color="#333", lw=0.8)
+		ax.axvspan(284, 316, color="#ddd", alpha=0.5, lw=0, zorder=0)
+		ax.set_xticks(Rs); ax.set_xticklabels([f"{r}\n{comp.get(r, '')}" for r in Rs], fontsize=6.5)
+		ax.set_xlim(Rs[0] - 35, Rs[-1] + 35)
+		ax.set_title(f"$N/M$ = {lab}", fontsize=8)
+		ax.tick_params(axis="y", labelsize=7)
+		ax.set_xlabel("$R$ (m)\ncompletions heuristic/learned", fontsize=6.5)
+	axes[0].set_ylabel("paired median difference (steps)\nlearned − heuristic", fontsize=7)
+	pad = 0.22 * (ymax - ymin)
+	axes[0].set_ylim(ymin - pad, ymax + pad)
+	for ax in axes:
+		ax.text(0.02, 0.97, "heuristic faster", transform=ax.transAxes, fontsize=5.8, color=C_H, va="top")
+		ax.text(0.02, 0.03, "learned faster", transform=ax.transAxes, fontsize=5.8, color=C_L, va="bottom")
+	from matplotlib.patches import Patch
+	fig.legend(handles=[Patch(color="#ddd", label="training radius 300 m"),
+	                    plt.Line2D([], [], color="#333", lw=0.9, label="interquartile range; label = wins–losses of the learned policy")],
+	           loc="lower center", ncol=2, frameon=False, fontsize=6.3, bbox_to_anchor=(0.5, -0.02))
+	fig.tight_layout(rect=(0, 0.05, 1, 1))
 	out = os.path.join(FIG, f"fig_range_v5_{tag}.pdf")
-	fig.savefig(out); plt.close(fig)
+	fig.savefig(out); fig.savefig(out.replace(".pdf", ".png"), dpi=160); plt.close(fig)
 	print("저장:", out)
 
 
