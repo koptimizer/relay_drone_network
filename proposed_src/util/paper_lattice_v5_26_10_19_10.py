@@ -36,16 +36,29 @@ def main():
 	kept = {tuple(np.round(q, 3)) for q in grid}
 	removed = np.array([q for q in pos_all[1 + nd:] if tuple(np.round(q, 3)) not in kept])
 	hull = convex_hull([cc] + list(dests))
-	fig, ax = plt.subplots(figsize=(4.8, 5.3))
+	fig, ax = plt.subplots(figsize=(4.8, 5.45))
 	ax.set_aspect("equal")
 	# 도달 한계와 격자
 	ax.add_patch(Circle(cc, lim, fill=False, ls=":", lw=0.9, color="#888", label="reach limit $0.9NR$"))
-	ax.add_patch(Polygon(hull, closed=True, fill=True, fc="#f3efe3", ec="#8a7a3a", lw=1.0, ls="-", alpha=0.9, zorder=0,
-	                     label="convex hull of depot and demand points"))
+	# 껍질 둘레 h/√2 띠: 껍질 경계를 밖으로 h/√2 만큼 민 영역 (경계 선분 평행이동 + 꼭짓점 원호)
+	m = h / np.sqrt(2.0)
+	from matplotlib.path import Path
+	from matplotlib.patches import PathPatch
+	band = Polygon(hull, closed=True, fill=False, ec="#8a7a3a", lw=2 * m * 72 / 25.4 / 1.0, alpha=0.0)
+	# 띠는 선 굵기로 그리기 어렵고 축 단위라 샘플링으로 그린다: 격자보다 촘촘한 점 집합의 껍질-거리 <= m 영역
+	xs = np.linspace(pos_all[:, 0].min() - 150, pos_all[:, 0].max() + 150, 220)
+	ys = np.linspace(pos_all[:, 1].min() - 150, pos_all[:, 1].max() + 150, 220)
+	from pipeline.milp_v5_26_09_21_03 import hull_dist
+	Z = np.array([[hull_dist(hull, np.array([x, y])) for x in xs] for y in ys])
+	ax.contourf(xs, ys, Z, levels=[1e-9, m], colors=["#efe3c6"], alpha=0.6, zorder=0)
+	ax.contour(xs, ys, Z, levels=[m], colors=["#8a7a3a"], linewidths=0.7, linestyles="--", zorder=1)
+	ax.add_patch(Polygon(hull, closed=True, fill=True, fc="#e4d9b8", ec="#8a7a3a", lw=1.0, ls="-", alpha=0.9, zorder=0,
+	                     label="convex hull $H$ of depot and demand points"))
+	ax.plot([], [], color="#8a7a3a", lw=0.7, ls="--", label="margin $h/\\sqrt{2}$ around $H$")
 	if len(removed):
 		ax.scatter(removed[:, 0], removed[:, 1], s=6, marker="x", color="#c9ced3", lw=0.6,
-		           label=f"pruned node (> $h/\\sqrt{{2}}$ from hull), {len(removed)}")
-	ax.scatter(grid[:, 0], grid[:, 1], s=7, color="#5a6670", label=f"kept node ($h$ = {h:.1f} m), {len(grid)}")
+		           label=f"pruned node (outside the margin), {len(removed)}")
+	ax.scatter(grid[:, 0], grid[:, 1], s=7, color="#5a6670", label=f"kept node (within $h/\\sqrt{{2}}$ of $H$), {len(grid)}")
 	# 예시 노드 i: 격자 중 센터에서 약 400 m 떨어진 노드
 	d = np.linalg.norm(grid - cc, axis=1)
 	i = int(np.argmin(np.abs(d - 400.0)))

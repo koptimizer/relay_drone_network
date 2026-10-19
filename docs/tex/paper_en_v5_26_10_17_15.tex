@@ -365,8 +365,9 @@ unchanged (Section~\ref{sec:rq2}). Figure~\ref{fig:lattice} shows the pruned and
 \caption{Nodes of the space--time network for a reference instance with three drones and four
 demand points: the depot (node 0), the demand-point nodes $D$, and the lattice $G$ of spacing
 $h = 98.2$\,m clipped to the reach limit $0.9NR$ (dotted). The shaded polygon is the convex hull
-of the depot and the demand points; lattice nodes farther than $h/\sqrt{2}$ from it are pruned
-(crosses) and the rest are kept (dots), leaving 29 of 68 nodes. For one example node $i$ the
+$H$ of the depot and the demand points and the lighter band is the margin of width $h/\sqrt{2}$
+around it; lattice nodes inside the band or the hull are kept (dots) and those outside are pruned
+(crosses), leaving 29 of 68 nodes. For one example node $i$ the
 figure marks its move set $A(i)$ (the nodes reachable in one period, $\ell = 138.9$\,m) and its
 communication disc of radius $R$, which defines its arcs in $E$.}
 \label{fig:lattice}
