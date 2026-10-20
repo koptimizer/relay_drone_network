@@ -55,6 +55,8 @@ class DisasterRelayDroneEnv:
 		# 사라지는 것이 규칙과의 격차의 근접 원인이다 (사이클 25).
 		self.slide = slide
 		self.relay_nodes = None           # 중계 위치를 격자 노드로 제한할 때 쓰는 좌표 배열 (기본: 제한 없음)
+		self.no_project = False           # 참이면 매 스텝 연결성 투영을 끈다 (격자 모드: 기간 경계에서만 판정)
+		self.no_service = False           # 참이면 자동 배송/재적재를 끈다 (격자 모드: 기간 경계에서만 서비스)
 		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
 		self.stall_redecide = stall_redecide
 		self.redecide_run = 0
@@ -231,7 +233,7 @@ class DisasterRelayDroneEnv:
 		k = min(free, key=lambda k: float(np.linalg.norm(self.drones_pos[i] - pt[k])))
 		return k, pt[k], n_slot
 
-	def set_goals(self, actions):
+	def set_goals(self, actions, dests=None):
 		"""상위 행동(드론별 정수)을 하위 목표로 변환한다.
 
 		0..n_cand-1 = 해당 후보 목적지로 배송, n_cand = 제어 센터 복귀,
@@ -249,7 +251,8 @@ class DisasterRelayDroneEnv:
 			elif a == self.n_cand + 1:
 				relay.append(i)
 			elif 0 <= a < self.n_cand:
-				cand = self.candidates(i)[a]
+				# dests[i] >= 0 이면 후보 집합과 무관하게 그 수요지를 목표로 삼는다 (탐색 기반 방법용)
+				cand = int(dests[i]) if dests is not None and int(dests[i]) >= 0 else self.candidates(i)[a]
 				if cand < 0:                       # 후보가 없으면 유지로 대체
 					self.goal_kind[i], self.goal_pos[i], self.goal_dest[i] = \
 						GOAL_HOLD, self.drones_pos[i].copy(), -1
@@ -449,6 +452,8 @@ class DisasterRelayDroneEnv:
 
 	def _project(self, delta, moving):
 		"""연결이 유지되는 드론별 변위 (N,2)를 반환한다."""
+		if self.no_project:
+			return delta * moving[:, None].astype(float)
 		eff = delta * moving[:, None].astype(float)
 		if self._bfs_connected(self.drones_pos + eff).all():
 			return eff
@@ -565,7 +570,7 @@ class DisasterRelayDroneEnv:
 			w_rew[i] -= self.time_penalty
 
 		# 배송 / 재적재
-		for i in range(self.num_drones):
+		for i in (() if self.no_service else range(self.num_drones)):
 			if self.drones_timer[i] > 0:
 				continue
 			if self.drones_capacity[i] > 0:
