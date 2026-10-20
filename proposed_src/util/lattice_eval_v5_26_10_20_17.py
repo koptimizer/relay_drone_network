@@ -105,11 +105,15 @@ def resolve(tgt, cur, pos, cc, R):
 	return t
 
 
-def serve_at_boundary(env, node, tgt, kappa):
-	"""기간 경계에서만 서비스를 처리한다 (모형과 같이 한 기간을 통째로 쓴다)."""
+def serve_at_boundary(env, node, tgt, kappa, force=True):
+	"""기간 경계에서만 서비스를 처리한다 (모형과 같이 한 기간을 통째로 쓴다).
+
+	force면 미배송 수요지 노드에 적재를 싣고 서 있는 드론은 반드시 배송하고 그 기간을 머문다.
+	이는 모형의 s_jkt=1 과 정확히 같은 행동이므로 하한 성질이 유지된다.
+	"""
 	nd = env.num_dests
 	for i in range(env.num_drones):
-		if env.drones_timer[i] > 0 or tgt[i] != node[i]:
+		if env.drones_timer[i] > 0 or (not force and tgt[i] != node[i]):
 			continue
 		j = int(node[i]) - 1
 		if 0 <= j < nd and env.dests_active[j] and env.drones_capacity[i] > 0:
@@ -121,7 +125,7 @@ def serve_at_boundary(env, node, tgt, kappa):
 			if not env.dests_active.any() and env.makespan is None:
 				env.makespan = env.current_step
 				env.term_reason = "complete"
-		elif node[i] == 0 and env.drones_capacity[i] < env.max_capacity:
+		elif node[i] == 0 and env.drones_capacity[i] == 0:
 			env.drones_capacity[i] = env.max_capacity
 			env.drones_timer[i] = kappa
 			env.reloads[i] += 1

@@ -52,9 +52,9 @@ def fig_regime(tag, files):
 	ax.axhline(0, color="#333", lw=0.8)
 	ax.set_xticks(x)
 	ax.set_xticklabels([f"{r[0]}\n{r[5]}–{r[6]}" for r in rows], fontsize=8)
-	ax.set_ylabel("paired median makespan difference\n(learned − heuristic, steps)")
+	ax.set_ylabel("paired median makespan difference\n(learned − rule, steps)")
 	ax.set_xlabel("drones / demand points  (wins–losses for the learned policy)")
-	ax.text(0.99, 0.97, "heuristic faster ↑", transform=ax.transAxes, va="top", ha="right", fontsize=8, color=C_H)
+	ax.text(0.99, 0.97, "rule faster ↑", transform=ax.transAxes, va="top", ha="right", fontsize=8, color=C_H)
 	ax.text(0.99, 0.03, "learned faster ↓", transform=ax.transAxes, va="bottom", ha="right", fontsize=8, color=C_L)
 	fig.tight_layout()
 	out = os.path.join(FIG, f"fig_regime_v5_{tag}.pdf")
@@ -72,7 +72,7 @@ def fig_cdf(tag, files):
 		a, b = paired(p)
 		allv = np.concatenate([a[~np.isnan(a)], b[~np.isnan(b)]])
 		xmax = float(np.percentile(allv, 98))
-		for arr, col, nm in ((a, C_H, "heuristic"), (b, C_L, "learned")):
+		for arr, col, nm in ((a, C_H, "rule"), (b, C_L, "learned")):
 			v = np.sort(arr[~np.isnan(arr)])
 			axes[0, j].step(v, np.arange(1, len(v) + 1) / len(arr), where="post", color=col, lw=1.2, label=nm)
 			axes[0, j].axvline(np.median(v), color=col, ls=":", lw=0.8)
@@ -89,7 +89,7 @@ def fig_cdf(tag, files):
 		axes[1, j].hist(dc, bins=np.linspace(-lim, lim, 33), color="#777", alpha=0.85)
 		axes[1, j].axvline(0, color="#333", lw=0.8)
 		axes[1, j].axvline(np.median(d), color="#000", ls="--", lw=0.9)
-		axes[1, j].set_xlabel("learned − heuristic (steps)")
+		axes[1, j].set_xlabel("learned − rule (steps)")
 		over = int((np.abs(d) > lim).sum())
 		right = np.median(d) <= 0
 		axes[1, j].text(0.98 if right else 0.02, 0.95, f"median {np.median(d):+.0f}\n{over} pairs beyond ±400",
@@ -103,7 +103,7 @@ def fig_cdf(tag, files):
 
 
 def fig_heur(tag, pattern):
-	"""휴리스틱 절제 열지도: 설정별 완주 합과 중앙 makespan 합."""
+	"""규칙 절제 열지도: 설정별 완주 합과 중앙 makespan 합."""
 	rows = []
 	for f in sorted(glob.glob(pattern)):
 		rows += list(csv.DictReader(open(f, encoding="utf-8")))
@@ -155,7 +155,7 @@ def fig_milp(tag, csv_path):
 		lo = [float(r["learned_q1"]) if r.get("learned_q1") else np.nan for r in sel]
 		hi = [float(r["learned_q3"]) if r.get("learned_q3") else np.nan for r in sel]
 		ax.plot(x, milp, "s", color="#444", ms=4, label="MILP plan (replayed)")
-		ax.plot(x, heur, "o", color=C_H, ms=4, label="heuristic")
+		ax.plot(x, heur, "o", color=C_H, ms=4, label="rule")
 		ax.errorbar(x, lm, yerr=[np.array(lm) - np.array(lo), np.array(hi) - np.array(lm)], fmt="^", color=C_L,
 		            ms=4, elinewidth=0.6, capsize=1.5, label="learned median (IQR of 30 samples)")
 		ax.set_title(f"$M={M}$", fontsize=9)
@@ -207,15 +207,15 @@ def fig_range(tag, files):
 		ax.set_title(f"$N/M$ = {lab}", fontsize=8)
 		ax.tick_params(axis="y", labelsize=7)
 		ax.set_xlabel("$R$ (m)", fontsize=7, labelpad=13)
-	axes[0].set_ylabel("paired median difference (steps)\nlearned − heuristic", fontsize=7)
+	axes[0].set_ylabel("paired median difference (steps)\nlearned − rule", fontsize=7)
 	pad = 0.22 * (ymax - ymin)
 	axes[0].set_ylim(ymin - pad, ymax + pad)
 	for ax in axes:
-		ax.text(0.02, 0.97, "heuristic faster", transform=ax.transAxes, fontsize=5.8, color=C_H, va="top")
+		ax.text(0.02, 0.97, "rule faster", transform=ax.transAxes, fontsize=5.8, color=C_H, va="top")
 		ax.text(0.02, 0.03, "learned faster", transform=ax.transAxes, fontsize=5.8, color=C_L, va="bottom")
 	from matplotlib.patches import Patch
 	fig.legend(handles=[Patch(color="#ddd", label="training radius 300 m"),
-	                    plt.Line2D([], [], color="#333", lw=0.9, label="interquartile range; label = wins–losses of the learned policy;\nsmall numbers = completions heuristic/learned")],
+	                    plt.Line2D([], [], color="#333", lw=0.9, label="interquartile range; label = wins–losses of the learned policy;\nsmall numbers = completions rule/learned")],
 	           loc="lower center", ncol=2, frameon=False, fontsize=6.3, bbox_to_anchor=(0.5, -0.03))
 	fig.tight_layout(rect=(0, 0.08, 1, 1))
 	out = os.path.join(FIG, f"fig_range_v5_{tag}.pdf")
@@ -230,7 +230,7 @@ def fig_latency(tag):
 	ind = [1.27, 1.52, 1.94, 2.45]
 	ar = [2.70, 3.52, 5.32, 7.35]
 	fig, ax = plt.subplots(figsize=(4.2, 2.7))
-	ax.plot(N, rule, "o-", color=C_H, label="heuristic")
+	ax.plot(N, rule, "o-", color=C_H, label="rule")
 	ax.plot(N, ind, "s--", color=C_L, alpha=0.6, label="learned, independent")
 	ax.plot(N, ar, "^-", color=C_L, label="learned, autoregressive")
 	ax.set_yscale("log")

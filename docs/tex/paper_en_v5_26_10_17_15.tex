@@ -43,13 +43,13 @@ relay chain formed by the fleet itself, while carrying supplies with limited cap
 returning to reload. We model this as a makespan-minimisation problem in which every drone can
 either deliver or relay, and connectivity is a hard constraint enforced at every time step. We
 propose two controllers that share the same connectivity-preserving projection: a geometric
-chain-relay heuristic with a deadlock-recovery mechanism, and a fleet-size-agnostic policy learned
+chain-relay rule with a deadlock-recovery mechanism, and a fleet-size-agnostic policy learned
 once with discrete soft actor-critic over a set-based, autoregressive manager. Both are compared
 on identical instances with a paired protocol across fleets of 3 to 12 drones and 20 to 400
 demand points, against four learning-free baselines and a time-expanded mixed-integer reference
 model on small instances. The learned policy completes every instance in every configuration;
-the heuristic completes 98--100\% with the recovery mechanism and 62\% without it. The two
-controllers divide the configuration space: with three drones the heuristic is 30--39 steps
+the rule completes 98--100\% with the recovery mechanism and 62\% without it. The two
+controllers divide the configuration space: with three drones the rule is 30--39 steps
 faster in paired median, with four drones the two are statistically indistinguishable over 480 paired runs, and with
 five or more drones the learned policy is faster by 38 to 178 steps. The policy is trained only
 on three and four drones and transfers without retraining to every larger fleet tested; the
@@ -59,7 +59,7 @@ policy-side interventions covering information, credit assignment, decision stru
 initialisation and reward shaping all fail to remove it; half of it disappears when the
 connectivity projection is changed from radial shrinking to tangential sliding, showing that the
 deficit is partly a property of how the constraint is enforced rather than of the learner. On forty instances solved to proven optimality, with the controllers' relays restricted to the
-model's own node set, the learned policy is 4.3\% above the optimum on average and the heuristic
+model's own node set, the learned policy is 4.3\% above the optimum on average and the rule
 9.7\%. Both
 controllers run in milliseconds per decision, three to six orders of magnitude below exact
 optimisation, which no longer proves optimality once reloading is needed.
@@ -67,7 +67,7 @@ optimisation, which no longer proves optimality once reloading is needed.
 
 \begin{keyword}
 drone delivery \sep relay network \sep connectivity constraint \sep multi-agent reinforcement
-learning \sep heuristic \sep disaster logistics
+learning \sep rule \sep disaster logistics
 \end{keyword}
 
 \end{frontmatter}
@@ -108,7 +108,7 @@ constraint are solved exactly for tens of customers \cite{roberti2021}.
 \paragraph{Proposal}
 We propose two controllers for this problem and study them side by side.
 \begin{enumerate}
-\item A \emph{geometric chain-relay heuristic}. The drone farthest from the depot with cargo is
+\item A \emph{geometric chain-relay rule}. The drone farthest from the depot with cargo is
 the lead; the number of relays is the number of communication hops its target needs; the relays
 are the next-farthest drones, stationed on the segment from the depot to the lead at intervals of
 $0.9R$. Because the rule is deterministic it can repeat a deadlocked assignment indefinitely, so
@@ -144,11 +144,11 @@ upward to larger fleets and larger instances without retraining, and what carrie
 \end{itemize}
 
 \paragraph{Findings}
-The learned policy completes every instance in every configuration tested; the heuristic
+The learned policy completes every instance in every configuration tested; the rule
 completes 98--100\% with the recovery mechanism (RQ1). On forty instances solved to proven optimality, with both controllers' relays restricted to the
-model's node set, the learned policy is 4.3\% above the optimum on average and the heuristic
+model's node set, the learned policy is 4.3\% above the optimum on average and the rule
 9.7\%, and the optimum is itself an upper bound on the continuous optimum (RQ2). The two controllers
-divide the configuration space by fleet size: the heuristic is faster with three drones, the two
+divide the configuration space by fleet size: the rule is faster with three drones, the two
 are statistically indistinguishable with four, and the learned policy is faster with five or more,
 by 62 to 178 steps up to ten drones and 76 at twelve; the three-drone deficit is a single
 decision, which drone relays, and it resists eleven policy-side interventions but shrinks by half
@@ -157,12 +157,12 @@ drones or 80 demand points in training, yet it completes every instance with up 
 400 demand points; the set-based architecture carries completion and the configuration
 randomisation in training carries speed (RQ4). Removing rule regularisation, configuration
 randomisation or entropy annealing from the learned policy costs hundreds of steps or completion,
-and removing the recovery mechanism from the heuristic costs a third of its completions (RQ5).
+and removing the recovery mechanism from the rule costs a third of its completions (RQ5).
 The learned policy's heavy right tail resists training-side remedies but is removed by applying
-the heuristic's recovery step at inference.
+the rule's recovery step at inference.
 
 \paragraph{Contributions}
-(i) A geometric chain-relay heuristic with deadlock recovery and a fleet-size-agnostic learned
+(i) A geometric chain-relay rule with deadlock recovery and a fleet-size-agnostic learned
 policy for connectivity-constrained delivery, both built on a projection that makes the
 constraint hold by construction. (ii) A paired evaluation across fleet sizes that shows the two
 controllers are complementary, together with the mechanism behind the boundary, and evidence that
@@ -270,7 +270,7 @@ be connected to the depot by a multi-hop chain at every step, and (iii) a makesp
 In this setting relay duty competes with cargo throughput and the fleet must return to the depot
 repeatedly, which is what makes role assignment a sequential decision rather than a one-off
 placement. We contribute an exact space--time network model of this problem, a constructive
-online heuristic with a deadlock-recovery mechanism, and a learned size-agnostic policy, and we
+online rule with a deadlock-recovery mechanism, and a learned size-agnostic policy, and we
 report where each is preferable.
 
 % =====================================================================================
@@ -304,7 +304,7 @@ rate and, over completed instances, makespan.
 A configuration is a triple of fleet size $N$, number of demand points $M$ and depot placement
 (fixed at the map centre, or uniformly random). The \emph{standard} configuration is $N=4$,
 $M=50$ with the fixed depot. The learned policy is trained with $N \in \{3,4\}$, $M \in [20,80]$
-and a random depot; all other configurations are unseen by it. The heuristic has no training.
+and a random depot; all other configurations are unseen by it. The rule has no training.
 
 
 \subsection{A space--time network model, exact on the discretisation}
@@ -403,7 +403,7 @@ $E \subseteq N_{\mathrm{v}}^2$ & & ordered pairs of distinct nodes within commun
 $Q$ & 5 & cargo capacity (units) \\
 $R$ & 300\,m & communication range \\
 $\kappa$, $\ell$, $h$ & 10 steps, 138.9\,m, 98.2\,m & period length, flight range per period, lattice spacing \\
-$\bar T$ & & horizon in periods, set to $1.15\times$ the heuristic's makespan \\
+$\bar T$ & & horizon in periods, set to $1.15\times$ the rule's makespan \\
 $\varepsilon$ & $10^{-5}$ & tie-breaking weight \\
 $\mathrm{idx}(j)$ & & index of demand point $j$ in a fixed ordering of $D$ \\
 \midrule
@@ -508,7 +508,7 @@ shared and are described first.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_overview_v5_26_10_17_15.pdf}
-\caption{(a) An instance with three drones under the heuristic at step 499: the lead (blue
+\caption{(a) An instance with three drones under the rule at step 499: the lead (blue
 circle) heads for a far demand point, one drone relays on the segment to the depot (red
 triangle), and one drone returns to the depot to reload (green triangle); shaded discs are
 communication ranges and the dotted circle is the reachable region $0.9NR$. (b) The two
@@ -530,7 +530,7 @@ unserved demand points nearest to it; \emph{return} to the depot; or \emph{relay
 \emph{valid} for a drone only if it makes sense at that moment: a demand point option requires
 cargo on board and an existing candidate, return requires the drone not to be full, and relay
 requires a free relay slot (defined next) and at least one teammate that is not itself relaying.
-Invalid options are masked for the learned policy and never produced by the heuristic; a drone
+Invalid options are masked for the learned policy and never produced by the rule; a drone
 with no valid option returns to the depot.
 
 \paragraph{Relay slots}
@@ -557,14 +557,14 @@ connected and breaks ties at random, so that no single anchor drone is starved. 
 positions are always connected, so zero scaling is a valid fallback and the constraint holds by
 construction. A drone whose displacement is scaled below 10\% is \emph{stalled} for that step,
 and a \emph{partial deadlock} is a step in which all but at most one of the moving drones are
-stalled; the number of consecutive partial-deadlock steps, $\delta_t$, is what the heuristic's
+stalled; the number of consecutive partial-deadlock steps, $\delta_t$, is what the rule's
 recovery mechanism monitors. This projection scales a displacement along its own direction;
 Section~\ref{sec:sensitivity} studies a variant that keeps the tangential component.
 
-\subsection{Geometric chain-relay heuristic with deadlock recovery}
-\label{sec:heuristic}
+\subsection{Geometric chain-relay rule with deadlock recovery}
+\label{sec:rule}
 
-The heuristic is a deterministic rule evaluated at every decision point
+The rule is a deterministic rule evaluated at every decision point
 (Procedure~1). It first gives every drone a default: a drone with cargo goes to
 its nearest unserved demand point and a drone without cargo returns to the depot. It then selects
 the \emph{lead}, the drone with cargo that is farthest from the depot, computes how many hops the
@@ -575,7 +575,7 @@ and 0.05--0.12\,ms in our implementation.
 
 \begin{figure}[t]
 \footnotesize
-\noindent\textbf{Procedure 1.} Geometric chain-relay heuristic with deadlock recovery, run at every
+\noindent\textbf{Procedure 1.} Geometric chain-relay rule with deadlock recovery, run at every
 decision point. State kept between calls: remaining recovery length $e$ (initially 0) and recovery
 count $m$ (initially 0); both reset at the start of an episode. Parameters:
 $k_{\mathrm{stall}} = 120$, $h_{\mathrm{hold}} = 20$, mode $\in$ \{lead swap, retreat\}.
@@ -618,7 +618,7 @@ are implemented. In \emph{lead swap} the current lead is sent back to the depot 
 lead passes to another drone; on the $m$-th recovery of an episode it passes to the $m$-th farthest
 drone, so that repeated recoveries cycle through the fleet rather than swapping the same two drones.
 In \emph{retreat} every drone except the lead returns towards the depot, which slackens the
-chain. Section~\ref{sec:rq5-heuristic} selects the mode and the two parameters on tuning seeds;
+chain. Section~\ref{sec:rq5-rule} selects the mode and the two parameters on tuning seeds;
 lead swap with $k_{\mathrm{stall}} = 120$ and $h_{\mathrm{hold}} = 20$ is used in every comparison.
 
 \subsection{Hierarchical learned policy}
@@ -706,7 +706,7 @@ Section~\ref{sec:rq5}. (i) The entropy target is annealed linearly from $0.6 \lo
 n_{\mathrm{valid}}$ to $0.25 \log n_{\mathrm{valid}}$ over the first 400 episodes: a high
 target keeps the policy random enough to recovery deadlocks early in training, a low one lets it
 hold a multi-step formation later. (ii) A cross-entropy term with weight 2.0 pulls the policy
-towards the option the heuristic's assignment rule (Procedure~1, steps 2--5, without recovery)
+towards the option the rule's assignment rule (Procedure~1, steps 2--5, without recovery)
 would take, wherever that option is valid. (iii) Every training episode samples $N \in
 \{3,4\}$, $M \in [20,80]$ and a random depot. Optimisation uses Adam at $3 \times 10^{-4}$,
 batches of 256 transitions from a replay buffer of 60{,}000, one gradient step every 4
@@ -723,7 +723,7 @@ episodes. One run takes about 13 hours on a single RTX~5080 when four runs share
 \paragraph{Instances and configurations}
 Instances are generated from integer seeds; a seed, $N$, $M$ and the depot mode determine the
 instance exactly, so two controllers can be run on identical instances. Evaluation seeds are
-disjoint from the seeds used for training, for checkpoint selection and for tuning the heuristic.
+disjoint from the seeds used for training, for checkpoint selection and for tuning the rule.
 We evaluate on the standard configuration ($N=4$, $M=50$, fixed depot) and on eight unseen
 configurations with random depots: $N/M \in \{3/20, 3/30, 4/80, 5/50, 6/80, 8/150, 10/300, 12/400\}$.
 
@@ -765,7 +765,7 @@ breaking is random. We found 40 runs too few to support any claim about tails.
 
 Connectivity was never violated in any training episode or evaluation run, as the projection
 guarantees. Table~\ref{tab:completion} reports completion within the 10{,}000-step budget. The
-learned policy completes every instance in every configuration. The heuristic with recovery
+learned policy completes every instance in every configuration. The rule with recovery
 completes 98--100\%; its misses concentrate where drones are plentiful, where a long chain that
 is not needed still gets stationed and stalls. Without the recovery mechanism the rule completes
 61.7\% of standard instances, and the naive baselines complete almost none: the greedy assignment
@@ -829,14 +829,14 @@ discretisation rather than a difference in decision quality. We therefore restri
 slots of both controllers to the node set of the same lattice: the slot position computed in
 Section~\ref{sec:shared} is replaced by the nearest lattice node, so a relaying drone can only
 stand where the model could put it. Delivery and depot goals need no such treatment because they
-are exact nodes of the lattice by construction. The restriction costs the heuristic one
+are exact nodes of the lattice by construction. The restriction costs the rule one
 completion out of forty, on the instance with $M = 6$ whose optimal plan has one drone serving
 five of the six demand points; the learned policy completes all forty with and without it.
 
 \paragraph{Result}
 Table~\ref{tab:exact} and Figure~\ref{fig:exact} give the gap of each controller to the model
 optimum on all forty instances. Over the thirty-nine instances both controllers complete, the
-heuristic is 9.7\% above the optimum on average, the learned policy 4.3\% and the learned policy
+rule is 9.7\% above the optimum on average, the learned policy 4.3\% and the learned policy
 with the recovery override 3.2\%; the learned policy is closer on 27 of the 39 instances
 (Wilcoxon $p = 0.001$). The gap grows with the number of demand points for both, from 2.3\% and
 $-3.6$\% at $M = 3$ to 17.8\% and 10.7\% at $M = 6$, because more demand points mean more
@@ -873,9 +873,9 @@ roughly two orders of magnitude below the instances where the controllers are in
 \caption{Optimum of the space--time model at $h = 98$\,m versus the proposed controllers, three
 drones, ten instances per $M$. The optima are proven by the search of Section~\ref{sec:rq2};
 makespans come from the continuous simulator with relay positions restricted to the model's node
-set (heuristic deterministic, learned and learned + recovery: median of 30 runs); the gap columns
+set (rule deterministic, learned and learned + recovery: median of 30 runs); the gap columns
 average the per-instance ratio to the optimum over the instances both controllers complete; $p$ is
-a Wilcoxon signed-rank test of the heuristic's gap against the learned policy's. Negative values
+a Wilcoxon signed-rank test of the rule's gap against the learned policy's. Negative values
 reflect the lattice travel and the ten-step period of the model, which keep its optimum an upper
 bound on the continuous optimum.}
 \label{tab:exact}
@@ -887,7 +887,7 @@ bound on the continuous optimum.}
 \centering
 \includegraphics[width=\linewidth]{fig_exact_v5_26_10_19_22.pdf}
 \caption{Per-instance makespan on the exactly solved instances with three drones: optimum of the
-space--time model at $h = 98$\,m (square), heuristic (circle), learned policy median with the
+space--time model at $h = 98$\,m (square), rule (circle), learned policy median with the
 interquartile range of 30 runs (upward triangle) and learned policy with the recovery override
 (downward triangle). Relay positions of both controllers are restricted to the model's node set.}
 \label{fig:exact}
@@ -898,7 +898,7 @@ interquartile range of 30 runs (upward triangle) and learned policy with the rec
 
 \paragraph{Fleet size divides the configuration space}
 Table~\ref{tab:paired} and Figure~\ref{fig:regime} give the paired comparison across the nine
-configurations. With three drones the heuristic is faster by 39 and 30 steps in paired median with 20 and
+configurations. With three drones the rule is faster by 39 and 30 steps in paired median with 20 and
 30 demand points. With four drones the two controllers are statistically indistinguishable: on the standard configuration the
 median paired difference over 480 runs is $+2$ steps with 234 wins against 239
 ($p = 0.52$), and on $4/80$ the learned policy is 38 steps faster. With five or more drones the
@@ -907,13 +907,13 @@ learned policy is faster, by 62 steps at five drones growing to 178 at ten and 7
 beyond the largest fleet we measured, although the monotone growth stops between ten and twelve
 (Section~\ref{sec:rq4} returns to this point).
 An earlier measurement against
-the heuristic's pre-tuning recovery parameters gave the same picture ($+40$, $+0$, $-54$, $-170$ on
+the rule's pre-tuning recovery parameters gave the same picture ($+40$, $+0$, $-54$, $-170$ on
 $3/30$, $4/50$, $5/50$ and $10/300$), so the boundary does not depend on the tuning.
 
 \begin{table*}[t]
 \centering
 \caption{Paired comparison on identical instances. Positive differences mean the learned policy
-is slower than the heuristic. $p$ from the Wilcoxon signed-rank test on both-completed pairs.}
+is slower than the rule. $p$ from the Wilcoxon signed-rank test on both-completed pairs.}
 \label{tab:paired}
 \small
 \input{tab_paired_v5_26_10_17_15}
@@ -922,14 +922,14 @@ is slower than the heuristic. $p$ from the Wilcoxon signed-rank test on both-com
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_regime_v5_26_10_17_15.pdf}
-\caption{Paired median makespan difference (learned minus heuristic) by configuration, with the
+\caption{Paired median makespan difference (learned minus rule) by configuration, with the
 interquartile range of the paired differences as error bars and the learned policy's wins--losses
 under each label. Negative values favour the learned policy; the boundary lies at four drones.}
 \label{fig:regime}
 \end{figure}
 
 Figure~\ref{fig:cdf} shows the full distributions on the three main configurations: with three
-drones the heuristic's curve lies to the left, with four the curves coincide, and with five the
+drones the rule's curve lies to the left, with four the curves coincide, and with five the
 learned policy's curve lies to the left and reaches completion earlier.
 
 \begin{figure*}[t]
@@ -942,11 +942,11 @@ both-completed instances, clipped to $\pm400$ steps with the number of clipped p
 \end{figure*}
 
 \paragraph{Tails follow the same split}
-Where drones are scarce the learned policy's worst case is three to four times the heuristic's
+Where drones are scarce the learned policy's worst case is three to four times the rule's
 (maximum 5{,}395 versus 1{,}447 steps on $3/30$); where they are plentiful it is lighter (1{,}101
 versus 1{,}734 on $5/50$, 1{,}365 versus 1{,}753 on $10/300$). On the standard configuration over
-480 runs against the pre-tuning heuristic the learned policy exceeded 1{,}500 steps five times
-and the heuristic fourteen times.
+480 runs against the pre-tuning rule the learned policy exceeded 1{,}500 steps five times
+and the rule fourteen times.
 
 \paragraph{Stabilising the tail}
 That tail is a liability for a relief operation, where the worst case matters more than the
@@ -962,7 +962,7 @@ of them \emph{without} the override at inference restored the original spread (s
 338, maximum 3{,}634), which shows that the training change did nothing and the override at
 inference did the work.
 
-On the \emph{inference} side, applying the heuristic's recovery step (Procedure~1, step~6) to the
+On the \emph{inference} side, applying the rule's recovery step (Procedure~1, step~6) to the
 proposed policy's options whenever the fleet has been in partial deadlock for
 $k_{\mathrm{stall}}$ steps, with no retraining, removes the tail on every configuration
 (Table~\ref{tab:stab}). The worst case falls from 4{,}614 to 1{,}210 steps on $3/30$ and from
@@ -977,7 +977,7 @@ what has to be guaranteed.
 \begin{table*}[t]
 \centering
 \caption{Effect of the deadlock-recovery override applied to the proposed policy at inference,
-without retraining. The paired median, wins--losses and $p$ are against the tuned heuristic on the
+without retraining. The paired median, wins--losses and $p$ are against the tuned rule on the
 same instances; the standard deviation, 90th percentile, maximum and the count above 1{,}500 steps
 describe the learned policy's own makespan distribution.}
 \label{tab:stab}
@@ -986,27 +986,27 @@ describe the learned policy's own makespan distribution.}
 \end{table*}
 
 \paragraph{Mechanism}
-The two controllers differ in one decision. On $3/30$ the heuristic stations 1.39 relays on
+The two controllers differ in one decision. On $3/30$ the rule stations 1.39 relays on
 average and the learned policy 0.78; the learned fleet therefore spends 27\% of drone-steps stalled
-by the projection against 8\% for the heuristic. Overriding only the learned policy's relay
-assignment with the heuristic's, at inference, recovers the full 44-step gap; matching only the
+by the projection against 8\% for the rule. Overriding only the learned policy's relay
+assignment with the rule's, at inference, recovers the full 44-step gap; matching only the
 \emph{number} of relays recovers 14 steps of median but removes the tail (maximum from 4{,}904 to
 1{,}083). The identity of the relaying drone drives the median and the count drives the tail. The
-information needed to make the heuristic's choice is present in the learned policy's observation:
-a two-layer classifier predicts the heuristic's relay assignment from the 41 observed features with
+information needed to make the rule's choice is present in the learned policy's observation:
+a two-layer classifier predicts the rule's relay assignment from the 41 observed features with
 85\% accuracy, and behaviour cloning of the full rule reaches 95\% on relay decisions. When drones
-are plentiful the opposite happens: the heuristic keeps stationing a chain that the geometry no
+are plentiful the opposite happens: the rule keeps stationing a chain that the geometry no
 longer needs, while the learned policy exploits the slack and, with its sampled inference, recoveries
-the stalls that the deterministic rule repeats; this is also where the heuristic loses its few
+the stalls that the deterministic rule repeats; this is also where the rule loses its few
 completions.
 
 \paragraph{Why the relay-limited deficit resists policy-side fixes}
 \label{sec:negative}
 Table~\ref{tab:negative} lists eleven interventions, each trained with four or two seeds under
 the same training configuration except for the stated change and evaluated with the same paired protocol, that
-attempt to make the learned policy relay like the heuristic when drones are scarce. The variants
-are, in the numbering of the table: (V1) the cross-entropy regularisation towards the heuristic is
-weighted three times higher for drones whose heuristic option is relay; (V2) each drone on the
+attempt to make the learned policy relay like the rule when drones are scarce. The variants
+are, in the numbering of the table: (V1) the cross-entropy regularisation towards the rule is
+weighted three times higher for drones whose rule option is relay; (V2) each drone on the
 communication path of a delivering teammate receives an individual reward (2.0 or 6.0) at that
 delivery and the critic is trained on per-drone returns; (V3) checkpoint selection scores half of
 its validation instances on the $3/30$ configuration instead of only on $4/50$, eight seeds; (V4) as
@@ -1018,7 +1018,7 @@ steps so that the manager re-decides, in training and evaluation; (V8) the mean 
 action values in the critic is replaced by state-dependent monotone weights that sum to one with
 a floor of one half; (V9) each drone's option is stored as its own single-agent transition,
 chained inside a decision point with discount one, so that no decomposition of the team return is
-needed; (V10) the manager is initialised by behaviour cloning of the heuristic on 40{,}000
+needed; (V10) the manager is initialised by behaviour cloning of the rule on 40{,}000
 decisions (92.5\% accuracy, 95\% on relay decisions) and then fine-tuned, with and without a
 50-episode critic warm-up; (V11) a per-step penalty proportional to the estimated arrival time of
 the bottleneck demand point, with the estimate divided by each drone's realised-movement ratio so
@@ -1039,11 +1039,11 @@ learner's fixed point, not an artefact of credit, information or initialisation.
 \begin{table*}[t]
 \centering
 \caption{Interventions that did not remove the relay-limited deficit, numbered as in the text.
-Cells give the range over seeds of the paired median difference against the heuristic (positive:
+Cells give the range over seeds of the paired median difference against the rule (positive:
 learned slower) and, in parentheses, the number of seeds whose difference is significant at
 $p<0.05$ (Wilcoxon signed-rank) over the number of seeds trained. The reference row is the
-proposed policy against the tuned heuristic (Table~\ref{tab:paired}); the variant rows were
-evaluated against the heuristic with its pre-tuning recovery parameters ($k_{\mathrm{stall}}=60$,
+proposed policy against the tuned rule (Table~\ref{tab:paired}); the variant rows were
+evaluated against the rule with its pre-tuning recovery parameters ($k_{\mathrm{stall}}=60$,
 $h_{\mathrm{hold}}=40$), against which the proposed policy measured $+40$, $-54$ and $+0$, so
 differences of a few tens of steps between the reference row and a variant row are not
 meaningful.}
@@ -1060,12 +1060,12 @@ direction, so a drone pulling on the chain effectively stops. We implemented an 
 clamps the target position to the nearest point of the communication disc around the binding
 neighbour, which removes only the outward component and keeps the tangential one (a drone can
 still circle at constant range). Both controllers use the same projection in each comparison, and
-connectivity is still never violated. These measurements predate the heuristic tuning of Section~\ref{sec:rq5-heuristic} and use
+connectivity is still never violated. These measurements predate the rule tuning of Section~\ref{sec:rq5-rule} and use
 $k_{\mathrm{stall}}=60$, $h_{\mathrm{hold}}=40$ for both projections, so they are internally
 consistent. Evaluating the same learned weights under the sliding projection without retraining
 reduces the $3/30$ deficit from $+40$ to $+21$; retraining four
 seeds under it gives $+15$ to $+48$ (mean $+28$) and lowers the learned fleet's stall ratio from
-0.27 to 0.17--0.22, with completion still 100\%. The heuristic gains little with three drones
+0.27 to 0.17--0.22, with completion still 100\%. The rule gains little with three drones
 (median 570 to 571) but gains more than the learned policy with four (866 to 812 against 879 to
 850), so the standard-configuration equality becomes $+26$ in its favour. We therefore keep the radial
 projection as the primary model and report this as a sensitivity result: about half of the
@@ -1076,10 +1076,10 @@ Both controllers were run without retraining at $R = 250$\,m and $R = 350$\,m
 (Table~\ref{tab:range}, Figure~\ref{fig:range}); the learned policy normalises distances by $R$,
 and the instance generator rescales the reachable region $0.9NR$ with $R$, so both controllers see
 the same instances at each radius. Completion transfers: the learned policy completes every
-instance at both radii, while the heuristic loses 18 of 200 instances on $5/50$ at the shorter
+instance at both radii, while the rule loses 18 of 200 instances on $5/50$ at the shorter
 radius. Speed shows two effects. The first is the regime shift seen with fleet size: at
 $R=250$\,m a demand point needs more hops, the fleet is effectively scarcer, and every
-configuration moves towards the heuristic ($+77$ on $3/30$, $+68$ on $4/50$, and the $5/50$
+configuration moves towards the rule ($+77$ on $3/30$, $+68$ on $4/50$, and the $5/50$
 advantage shrinks to an insignificant $-16$ ($p=0.33$)); at $R=350$\,m the fleet is effectively more
 plentiful and the learned policy is faster already with four drones ($-40$ on $4/50$). The second
 is a training-radius effect: on $3/30$ and $5/50$ the learned policy's margin is best at the
@@ -1093,12 +1093,12 @@ the training radius should retrain or at least re-evaluate the boundary.
 \centering
 \includegraphics[width=\linewidth]{fig_range_v5_26_10_17_15.pdf}
 \caption{Transfer to other communication radii without retraining, one panel per
-configuration. Bars are the paired median difference (learned $-$ heuristic, steps): a bar above
-zero (red) means the heuristic was faster, below zero (blue) the learned policy; whiskers are the
+configuration. Bars are the paired median difference (learned $-$ rule, steps): a bar above
+zero (red) means the rule was faster, below zero (blue) the learned policy; whiskers are the
 interquartile range of the paired differences, the label at each bar is the learned policy's
-wins--losses, and the completions (heuristic/learned) are printed under the radius. The shaded
+wins--losses, and the completions (rule/learned) are printed under the radius. The shaded
 column is the training radius. Reading left to right within a panel: a shorter radius moves every
-configuration towards the heuristic, and on $3/30$ and $5/50$ the learned policy's margin is best
+configuration towards the rule, and on $3/30$ and $5/50$ the learned policy's margin is best
 at the radius it was trained on.}
 \label{fig:range}
 \end{figure}
@@ -1106,7 +1106,7 @@ at the radius it was trained on.}
 \begin{table*}[t]
 \centering
 \caption{Transfer to other communication radii without retraining. Cells give completions
-(heuristic/learned) and the paired median difference with win--loss and $p$; $R=300$\,m is the
+(rule/learned) and the paired median difference with win--loss and $p$; $R=300$\,m is the
 training radius.}
 \label{tab:range}
 \small
@@ -1118,14 +1118,14 @@ training radius.}
 
 The learned policy never saw more than four drones or more than 80 demand points in training,
 yet it completes every instance with 5 to 12 drones and 50 to 400 demand points and is faster
-than the heuristic on all of them. Two properties carry this. The set-based encoder has no
+than the rule on all of them. Two properties carry this. The set-based encoder has no
 parameter that depends on $N$ or $M$, so larger fleets are simply larger sets; and training
 samples the fleet size and depot afresh every episode. Table~\ref{tab:gen} separates the two by
 running the ablation policy that was trained on the fixed $4/50$ configuration alone (no
 configuration randomisation) on the same large-fleet instances without retraining. That policy
 also completes every instance from 5 to 10 drones, so completion generalises through the
 architecture alone; but it is slower than the randomised policy on every configuration (no significant difference
-from the heuristic at $5/50$ against $-62$, and $-51$ to $-174$ against $-122$ to $-178$ beyond),
+from the rule at $5/50$ against $-62$, and $-51$ to $-174$ against $-122$ to $-178$ beyond),
 so speed on large fleets is learned from the variety of small ones. The same ablation loses 114--296
 steps on $3/30$ (Table~\ref{tab:ablation}), so randomisation is what makes the small-fleet side
 usable at all. Both policies were trained with at most four drones; the hop-depth and slot
@@ -1135,7 +1135,7 @@ encoder outside its training range of feature values, and the policy still compl
 \begin{table*}[t]
 \centering
 \caption{Transfer to fleets larger than any seen in training, without retraining. Cells
-give the learned policy's completions, the paired median difference against the heuristic
+give the learned policy's completions, the paired median difference against the rule
 (negative: learned faster), and in parentheses the learned policy's wins--losses and the
 Wilcoxon signed-rank $p$.
 The proposed policy is trained on $N \in \{3,4\}$ with random depots; the comparison policy is
@@ -1160,8 +1160,8 @@ beyond twelve drones to settle.
 \subsection{RQ5: Are the components necessary?}
 \label{sec:rq5}
 
-\paragraph{Heuristic}
-\label{sec:rq5-heuristic}
+\paragraph{Rule}
+\label{sec:rq5-rule}
 Table~\ref{tab:heur-ablation} grids $k_{\mathrm{stall}} \in \{30,60,90,120\}$,
 $h_{\mathrm{hold}} \in \{20,40,80\}$ and the two recovery modes, plus no recovery, on $3/30$,
 $4/50$ and $5/50$ with 40 tuning seeds each, and ranks settings by total completions first and
@@ -1180,7 +1180,7 @@ relays completes 0--65\% (Table~\ref{tab:completion}).
 
 \begin{table*}[t]
 \centering
-\caption{Heuristic ablation on tuning seeds disjoint from the evaluation seeds (40 instances per
+\caption{Rule ablation on tuning seeds disjoint from the evaluation seeds (40 instances per
 configuration). Cells give completed instances, the median makespan over completed instances and,
 in parentheses, the $p$-value of a Wilcoxon signed-rank test of that setting against the selected
 setting (bold) on the instances both completed; the last column sums completions over the three
@@ -1218,7 +1218,7 @@ the same instances (positive: the removed element was needed) and the Wilcoxon s
 \subsection{Inference cost}
 \label{sec:cost}
 
-Table~\ref{tab:latency} gives the latency of one manager decision on a CPU. The heuristic costs
+Table~\ref{tab:latency} gives the latency of one manager decision on a CPU. The rule costs
 0.05--0.12\,ms; the learned policy 1.3--2.5\,ms without autoregression and 2.7--7.4\,ms with it,
 growing linearly with the fleet because each drone is a sequential network call. Over a 900-step
 episode the learned policy's cumulative decision time is 0.16\,s. The exact search takes 0--11 seconds on instances with three to six demand points
@@ -1247,7 +1247,7 @@ Learned, autoregressive (proposed) & 2.70 & 3.52 & 5.32 & 7.35 & 0.158\,s \\
 
 \paragraph{Deployment}
 The two controllers are complementary and the boundary is sharp, so a fleet operator can choose
-by fleet size: the heuristic with three drones, the learned policy with five or more, where it is
+by fleet size: the rule with three drones, the learned policy with five or more, where it is
 both faster and more reliable; with four the two are statistically indistinguishable in speed and the learned policy completes more. Both decide in milliseconds and both keep the fleet connected by
 construction.
 
@@ -1261,14 +1261,14 @@ one above: pick the controller by regime.
 
 \paragraph{Limitations}
 The learned policy was trained at a single communication radius; it transfers to radii of 250 and
-350\,m in completion but its speed ranking against the heuristic shifts with the radius
+350\,m in completion but its speed ranking against the rule shifts with the radius
 (Section~\ref{sec:rq3}), and radii outside this range were not tested. The environment is planar, ignores
 wind, battery and collisions, and uses a disc communication model; real links are not discs. The
 exact optimum is that of a discretised model at a single lattice spacing: the 98\,m lattice and
 the ten-step period leave a quantisation that refining to 49\,m shrinks by 7--9\% but that we
 cannot afford on every instance, so the measured gaps understate the true ones, and beyond six
 demand points only solver incumbents with a remaining optimality gap are available. The
-heuristic's novelty lies in the recovery mechanism and the adaptive relay count rather than in the
+rule's novelty lies in the recovery mechanism and the adaptive relay count rather than in the
 chain geometry itself.
 
 \paragraph{Methodological notes}
@@ -1282,13 +1282,13 @@ metric from the final judgement will pass interventions that the final judgement
 \label{sec:conclusion}
 
 We proposed two controllers for connectivity-constrained drone delivery, a geometric chain-relay
-heuristic with deadlock recovery and a fleet-size-agnostic learned policy, both acting through a
+rule with deadlock recovery and a fleet-size-agnostic learned policy, both acting through a
 projection that keeps the fleet connected at every step. Under a paired protocol across fleets of
 three to twelve drones the learned policy completes every instance and is faster by 38 to 178
-steps once more than four drones are available, although it was trained on three and four, while the heuristic is faster by 30--39 steps with
+steps once more than four drones are available, although it was trained on three and four, while the rule is faster by 30--39 steps with
 three. The relay-limited deficit is one decision, which drone relays; it resists eleven policy-side
 interventions and halves when the enforcement model is changed. Where an exact optimum of the space--time model is available, the learned policy is 4.3\% above
-it on average and the heuristic 9.7\%, and both decide three to six orders of magnitude faster
+it on average and the rule 9.7\%, and both decide three to six orders of magnitude faster
 than the exact search, whose reach ends at about six demand points. The natural next step is a policy whose output is a team assignment rather than a
 set of per-drone options, so that the relay identity becomes a coordinate the critic can value
 directly.

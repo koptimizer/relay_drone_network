@@ -25,7 +25,7 @@ V = [("V1", ["RR3a", "RR3b"], "Relay-weighted rule regularisation ($\\times 3$)"
      ("V10", ["BC1a", "BC1w", "BC2a", "BC2w"], "Behaviour-cloning initialisation ($\\pm$ warm-up)", "행동 복제 초기화 (워밍업 $\\pm$)", "erased within 400 episodes", "400 에피소드 안에 지워짐"),
      ("V11", ["BN1", "BN2", "BN3", "BN4"], "Bottleneck-arrival penalty (0.15 / 0.25)", "병목 도달 시각 벌점 (0.15 / 0.25)", "reduces the mean, not the maximum", "최댓값이 아닌 평균을 줄임")]
 def ref_csv(cfg):
-	"""기준 SWa 의 튜닝 전 휴리스틱(60/40) 측정: 26_10_17_15 재측정을 제외하고 행 수가 가장 많은 파일."""
+	"""기준 SWa 의 튜닝 전 규칙(60/40) 측정: 26_10_17_15 재측정을 제외하고 행 수가 가장 많은 파일."""
 	pat = {"d3": "paired_d3_", "d5": "paired_d5_", "std": "paired_std"}[cfg]
 	fs = [f for f in glob.glob(os.path.join(FIG, "paired_*SWa*.csv")) if os.path.basename(f).startswith(pat)
 	      and "R250" not in f and "R350" not in f and "esc" not in f and "sl_" not in f]

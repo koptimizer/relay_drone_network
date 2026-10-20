@@ -1,6 +1,6 @@
 """논문 표 조각 생성 (사이클 26). CSV·JSON에서 LaTeX 행을 만들어 docs/tex/tab_*.tex 에 쓴다.
 
-- tab_heur: 휴리스틱 절제 (RQ4)       <- figures/heur_ablate_v5_26_10_17_15_*.csv
+- tab_heur: 규칙 절제 (RQ4)       <- figures/heur_ablate_v5_26_10_17_15_*.csv
 - tab_milp: 격자 MILP 참조 비교 (RQ2) <- figures/toy_compare_v5_26_10_17_15.csv
 - tab_range: 통신 반경 전이 (RQ3)     <- figures/paired_R{250,350}_*_SWa_v5_26_10_17_15.csv
 - tab_paired: 크기별 쌍별 비교 (RQ3)  <- --suffix 로 지정한 재측정본 또는 기존 파일
@@ -20,16 +20,16 @@ TEX = os.path.join(ROOT, "docs", "tex")
 LANG = "en"
 H = {
 	"en": dict(heur="mode & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & completions",
-	           milp="$M$ & inst. & plan / replayed / optimal & gap & min & MILP replay & heuristic & learned median (range) & ratio h / l",
+	           milp="$M$ & inst. & plan / replayed / optimal & gap & min & MILP replay & rule & learned median (range) & ratio h / l",
 	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
-	           paired="$N/M$ & rollouts & complete h/l & median heuristic / learned & paired median & win--loss & $p$",
+	           paired="$N/M$ & rollouts & complete h/l & median rule / learned & paired median & win--loss & $p$",
 	           modes={"none": "none", "shuffle": "lead swap", "retreat": "retreat"},
 	           solved="solved", none="none", tried="tried",
 	           gen="$N/M$ & trained on $N\\in\\{3,4\\}$, $M\\in[20,80]$ & trained on $4/50$ only, seed 1 & seed 2"),
 	"ko": dict(heur="방식 & $k_{\\mathrm{stall}}$ / $h_{\\mathrm{hold}}$ & $3/30$ & $4/50$ & $5/50$ & 완주 합",
-	           milp="$M$ & 인스턴스 & 계획 / 재생 / 최적 & 갭 & 분 & MILP 재생 & 휴리스틱 & 학습 중앙값 (범위) & 비율 h / l",
+	           milp="$M$ & 인스턴스 & 계획 / 재생 / 최적 & 갭 & 분 & MILP 재생 & 규칙 & 학습 중앙값 (범위) & 비율 h / l",
 	           range="$N/M$ & $R=250$\\,m & $R=300$\\,m & $R=350$\\,m",
-	           paired="$N/M$ & 롤아웃 & 완주 h/l & 중앙값 휴리스틱 / 학습 & 쌍별 중앙 & 승--패 & $p$",
+	           paired="$N/M$ & 롤아웃 & 완주 h/l & 중앙값 규칙 / 학습 & 쌍별 중앙 & 승--패 & $p$",
 	           modes={"none": "없음", "shuffle": "선두 교대", "retreat": "후퇴"},
 	           solved="해 있음", none="해 없음", tried="시도",
 	           gen="$N/M$ & $N\\in\\{3,4\\}$, $M\\in[20,80]$ 학습 & $4/50$만 학습, 시드 1 & 시드 2"),
@@ -52,7 +52,7 @@ def pstr(p):
 
 
 def tab_heur(tag):
-	"""휴리스틱 파라미터 격자: 완주/중앙값과, 확정 설정(선두 교대 120/20) 대비 같은 시드의 쌍별 윌콕슨 p."""
+	"""규칙 파라미터 격자: 완주/중앙값과, 확정 설정(선두 교대 120/20) 대비 같은 시드의 쌍별 윌콕슨 p."""
 	rows, seeds = [], []
 	for f in sorted(glob.glob(os.path.join(FIG, "heur_ablate_v5_26_10_19_22_*[!s].csv"))):
 		rows += list(csv.DictReader(open(f, encoding="utf-8")))
@@ -98,7 +98,7 @@ def tab_heur(tag):
 
 
 def tab_milp(tag):
-	"""M별 요약: 계획 수/재생 성공 수, 재생 MILP 평균, 휴리스틱·학습 평균과 MILP 대비 비율, 풀이 시간."""
+	"""M별 요약: 계획 수/재생 성공 수, 재생 MILP 평균, 규칙·학습 평균과 MILP 대비 비율, 풀이 시간."""
 	p = os.path.join(FIG, "toy_compare_v5_26_10_17_15.csv")
 	if not os.path.exists(p):
 		return
