@@ -58,9 +58,10 @@ speed. The three-drone deficit is localised to a single decision, which drone re
 policy-side interventions covering information, credit assignment, decision structure,
 initialisation and reward shaping all fail to remove it; half of it disappears when the
 connectivity projection is changed from radial shrinking to tangential sliding, showing that the
-deficit is partly a property of how the constraint is enforced rather than of the learner. On forty instances solved to proven optimality, with the controllers' relays restricted to the
-model's own node set, the learned policy is 4.3\% above the optimum on average and the rule
-9.7\%. Both
+deficit is partly a property of how the constraint is enforced rather than of the learner. On forty instances solved to proven optimality and run in the model's own decision space, the
+rule and the learned policy are 58.0\% and 55.8\% above the optimum while an offline search over
+visit orders, built on the same option structure, is 20.8\% above it, which locates most of the
+distance in the choice of targets rather than in the relay geometry. Both
 controllers run in milliseconds per decision, three to six orders of magnitude below exact
 optimisation, which no longer proves optimality once reloading is needed.
 \end{abstract}
@@ -150,9 +151,9 @@ upward to larger fleets and larger instances without retraining, and what carrie
 
 \paragraph{Findings}
 The learned policy completes every instance in every configuration tested; the rule
-completes 98--100\% with the recovery mechanism (RQ1). On forty instances solved to proven optimality, with both controllers' relays restricted to the
-model's node set, the learned policy is 4.3\% above the optimum on average and the rule
-9.7\%, and the optimum is itself an upper bound on the continuous optimum (RQ2). The two controllers
+completes 98--100\% with the recovery mechanism (RQ1). On forty instances solved to proven optimality and run in the model's own decision space, the
+rule and the learned policy are 58.0\% and 55.8\% above the optimum and an offline search over
+visit orders is 20.8\% above it, so most of the distance is the myopic choice of targets (RQ2). The two controllers
 divide the configuration space by fleet size: the rule is faster with three drones, the two
 are statistically indistinguishable with four, and the learned policy is faster with five or more,
 by 62 to 178 steps up to ten drones and 76 at twelve; the three-drone deficit is a single
@@ -919,7 +920,7 @@ annealing restarts.}
 \caption{Per-instance makespan on the exactly solved instances with three drones, all methods run
 in the model's decision space: optimum of the space--time model at $h = 98$\,m (square), rule
 (circle), search heuristic (diamond) and learned policy median with the interquartile range of 30
-runs (triangle).}
+runs (triangle); whiskers that leave the axis are marked at the top edge.}
 \label{fig:exact}
 \end{figure*}
 
@@ -1317,9 +1318,11 @@ projection that keeps the fleet connected at every step. Under a paired protocol
 three to twelve drones the learned policy completes every instance and is faster by 38 to 178
 steps once more than four drones are available, although it was trained on three and four, while the rule is faster by 30--39 steps with
 three. The relay-limited deficit is one decision, which drone relays; it resists eleven policy-side
-interventions and halves when the enforcement model is changed. Where an exact optimum of the space--time model is available, the learned policy is 4.3\% above
-it on average and the rule 9.7\%, and both decide three to six orders of magnitude faster
-than the exact search, whose reach ends at about six demand points. The natural next step is a policy whose output is a team assignment rather than a
+interventions and halves when the enforcement model is changed. Where an exact optimum of the space--time model is available, both online controllers are 56--58\%
+above it in the model's own decision space while an offline search on the same option structure
+is 20.8\% above it, so the remaining headroom is in choosing targets rather than in the relay
+geometry; both controllers decide three to six orders of magnitude faster than either the exact
+search or the offline search, whose reach ends at about six demand points. The natural next step is a policy whose output is a team assignment rather than a
 set of per-drone options, so that the relay identity becomes a coordinate the critic can value
 directly.
 

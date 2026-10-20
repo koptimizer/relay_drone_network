@@ -97,6 +97,14 @@ def fig(d):
 		q1 = np.array([d[k]["q1"] for k in ks]); q3 = np.array([d[k]["q3"] for k in ks])
 		ax.errorbar(x + 0.18, lm, yerr=[np.maximum(0, lm - q1), np.maximum(0, q3 - lm)], fmt="^", ms=4,
 		            color=C_L, lw=0.8, capsize=1.5, label="learned, median (IQR of 30)")
+		# 축은 중앙값 기준으로 맞추고, 사분위 수염이 밖으로 나가면 잘라 표시한다
+		vals = np.concatenate([[d[k]["opt"] for k in ks], [d[k]["rule"] for k in ks],
+		                       [d[k]["meta"] for k in ks], lm])
+		lo, hi = np.nanmin(vals) * 0.88, np.nanmax(vals) * 1.12
+		ax.set_ylim(lo, hi)
+		for xi, q in zip(x + 0.18, q3):
+			if q > hi:
+				ax.plot([xi], [hi], marker="^", ms=3, color=C_L, clip_on=False, alpha=0.5)
 		ax.set_title(f"$M$ = {M}", fontsize=8); ax.set_xticks(x); ax.tick_params(labelsize=7)
 		ax.set_xlabel("instance", fontsize=7.5)
 	np.atleast_1d(axes)[0].set_ylabel("makespan (steps)", fontsize=7.5)
