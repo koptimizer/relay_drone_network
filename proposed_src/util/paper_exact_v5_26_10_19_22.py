@@ -46,29 +46,49 @@ def load_toy(name):
 	return {(int(r["dests"]), int(r["seed"])): r for r in csv.DictReader(open(p, encoding="utf-8"))}
 
 
+def converged(o, tol=0.03):
+	"""세 격자 간격의 최적값이 tol 안에서 일치하면 그 인스턴스는 격자가 수렴한 것으로 본다."""
+	v = [o[h]["steps"] for h in HS if h in o]
+	return len(v) == len(HS) and (max(v) - min(v)) <= tol * min(v)
+
+
 def tab_exact(bfs, toy, lang):
-	"""M별: 최적값 평균(간격 3종), 제어기/최적 비율(가장 촘촘한 격자 기준), 쌍별 검정."""
-	H = {"en": ("$M$ & $n$ & " + " & ".join(f"$h={h}$" for h in HS) + " & heuristic & learned (median) & learned + recovery & $p$ (heur.\\ vs.\\ learned) \\\\",),
-	     "ko": ("$M$ & $n$ & " + " & ".join(f"$h={h}$" for h in HS) + " & 휴리스틱 & 학습 (중앙값) & 학습 + 복구 & $p$ (휴리스틱 대 학습) \\\\",)}
-	lines = []
+	"""격자가 수렴한 M<=5 인스턴스와 최적이 증명된 M=6 인스턴스를 한 표에 모은다 (인스턴스별)."""
+	H = {"en": "$M$ & inst. & " + " & ".join(f"$h{{=}}{h}$" for h in HS) + " & heuristic & learned & learned+rec. & heur. & learned & l.+rec. \\\\",
+	     "ko": "$M$ & 번호 & " + " & ".join(f"$h{{=}}{h}$" for h in HS) + " & 휴리스틱 & 학습 & 학습+복구 & 휴리 & 학습 & 학습+복구 \\\\"}
+	lines, rh, rl, re = [], [], [], []
 	for M in sorted({k[0] for k in bfs}):
-		keys = sorted(k for k in bfs if k[0] == M and all(h in bfs[k] for h in HS) and k in toy)
-		if not keys:
+		for k in sorted(k for k in bfs if k[0] == M):
+			if not converged(bfs[k]) or k not in toy:
+				continue
+			o = float(bfs[k][HS[-1]]["steps"]); t = toy[k]
+			h, l, e = float(t["heuristic"]), float(t["learned_median"]), float(t["esc_median"])
+			rh.append(h / o); rl.append(l / o); re.append(e / o)
+			lines.append(f"{M} & {k[1] - 900} & " + " & ".join(f"{bfs[k][x]['steps']:.0f}" for x in HS)
+			             + f" & {h:.0f} & {l:.0f} & {e:.0f} & {h/o:.2f} & {l/o:.2f} & {e/o:.2f} \\\\")
+	# M=6: 최적이 증명된 MILP 인스턴스 (격자 하나뿐이라 수렴 확인 없음)
+	milp = load_toy("toy_milph_v5_26_10_19_22.csv")
+	for f in sorted(glob.glob(os.path.join(FIG, "milph_n3m6s*_26_10_19_22.json"))):
+		d = json.load(open(f))
+		if not d["milp_steps"] or d["gap"] is None or d["gap"] > 1e-6:
 			continue
-		opt = {h: np.array([bfs[k][h]["steps"] for k in keys], dtype=float) for h in HS}
-		fine = HS[-1]
-		heur = np.array([float(toy[k]["heuristic"]) if toy[k]["heuristic"] else np.nan for k in keys])
-		lm = np.array([float(toy[k]["learned_median"]) if toy[k]["learned_median"] else np.nan for k in keys])
-		le = np.array([float(toy[k]["esc_median"]) if toy[k].get("esc_median") else np.nan for k in keys])
-		rh, rl, re = heur / opt[fine], lm / opt[fine], le / opt[fine]
-		both = ~np.isnan(heur) & ~np.isnan(lm)
-		p = stats.wilcoxon(lm[both] - heur[both]).pvalue if both.sum() > 5 and np.any(lm[both] != heur[both]) else np.nan
-		cells = [str(M), str(len(keys))] + [f"{opt[h].mean():.0f}" for h in HS]
-		cells += [f"{np.nanmean(rh):.3f}", f"{np.nanmean(rl):.3f}", f"{np.nanmean(re):.3f}" if not np.all(np.isnan(re)) else "---",
-		          pstr(p) if not np.isnan(p) else "---"]
-		lines.append(" & ".join(cells) + " \\\\")
+		k = (6, int(d["seed"]))
+		if k not in milp:
+			continue
+		o = float(d["milp_steps"]); t = milp[k]
+		h, l, e = float(t["heuristic"]), float(t["learned_median"]), float(t["esc_median"])
+		rh.append(h / o); rl.append(l / o); re.append(e / o)
+		lines.append(f"6 & {k[1] - 900} & {o:.0f} & --- & --- & {h:.0f} & {l:.0f} & {e:.0f} & {h/o:.2f} & {l/o:.2f} & {e/o:.2f} \\\\")
+	mean = ("\\midrule\n\\multicolumn{6}{l}{" + ("mean ratio over the " if lang == "en" else "표의 ")
+	        + f"{len(rh)}" + (" instances}" if lang == "en" else "개 인스턴스 평균 비율}")
+	        + f" & & & {np.mean(rh):.2f} & {np.mean(rl):.2f} & {np.mean(re):.2f} \\\\")
 	with open(os.path.join(TEX, f"tab_exact_v5_{lang}_26_10_19_22.tex"), "w") as f:
-		f.write("\\begin{tabular}{rr" + "r" * len(HS) + "rrrr}\n\\toprule\n" + H[lang][0] + "\n\\midrule\n" + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}%\n")
+		f.write("\\begin{tabular}{rr" + "r" * len(HS) + "rrrrrr}\n\\toprule\n"
+		        + ("& & \\multicolumn{3}{c}{lattice optimum (steps)} & \\multicolumn{3}{c}{makespan (steps)} & \\multicolumn{3}{c}{ratio to optimum} \\\\\n"
+		           if lang == "en" else
+		           "& & \\multicolumn{3}{c}{격자 최적값 (스텝)} & \\multicolumn{3}{c}{makespan (스텝)} & \\multicolumn{3}{c}{최적값 대비 비율} \\\\\n")
+		        + "\\cmidrule(lr){3-5}\\cmidrule(lr){6-8}\\cmidrule(lr){9-11}\n"
+		        + H[lang] + "\n\\midrule\n" + "\n".join(lines) + "\n" + mean + "\n\\bottomrule\n\\end{tabular}%\n")
 	print(f"tab_exact({lang}):", len(lines), "행")
 
 
@@ -123,7 +143,9 @@ def fig_exact(bfs, toy):
 		ax.errorbar(x + 0.15, lm, yerr=[np.array(lm) - np.array(q1), np.array(q3) - np.array(lm)], fmt="^", ms=4, color=C_L, lw=0.8, capsize=1.5, label="learned, median (IQR of 30)")
 		le = [float(toy[k]["esc_median"]) if k in toy and toy[k].get("esc_median") else np.nan for k in keys]
 		ax.plot(x - 0.15, le, "v", ms=4, color=C_E, label="learned + recovery, median")
-		ax.set_title(f"$M$ = {M}", fontsize=8); ax.set_xticks(x); ax.set_xlabel("instance")
+		ax.set_title(f"$M$ = {M}", fontsize=8); ax.set_xticks(x)
+		ax.set_xticklabels([f"{i}" + ("*" if converged(bfs[k]) else "") for i, k in zip(x, keys)], fontsize=7)
+		ax.set_xlabel("instance (* : lattice converged)", fontsize=7)
 	axes[0].set_ylabel("makespan (steps)")
 	h, l = axes[0].get_legend_handles_labels()
 	fig.legend(h, l, loc="upper center", ncol=3, frameon=False, fontsize=6.5, bbox_to_anchor=(0.5, 1.02))

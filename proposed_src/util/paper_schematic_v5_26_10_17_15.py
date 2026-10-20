@@ -25,25 +25,32 @@ C_H, C_L, C_D, C_CC = "#b04236", "#1d6d9c", "#777777", "#222222"
 
 def panel_geometry(ax):
 	"""규칙+탈출을 220스텝 굴린 뒤의 상태: 선두 한 대, 중계 한 대, 복귀 한 대."""
-	env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=10000,
-	                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=3, num_dests=30)
-	env.cc_pos, env.dests_pos = sample_instance(30, seed=503, num_drones=3, comm_range=300.0, cc_pos=None)
-	env.reset()
-	mf = chain_escape_manager()
-	env.set_goals(mf(env))
-	# 배송·복귀·중계 세 역할이 동시에 보이는 첫 시점(150스텝 이후)에서 멈춘다
-	for t in range(1, 1200):
-		env.step(straight_worker(env))
-		if t % 20 == 0 or env.goal_invalid().any():
-			env.set_goals(mf(env))
-		kinds = set(int(k) for k in env.goal_kind)
-		if t >= 150 and {0, 1, 3} <= kinds:
-			reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
-			pd = min(np.linalg.norm(env.drones_pos[a] - env.drones_pos[b]) for a in range(3) for b in range(a + 1, 3))
-			# 선두가 1.5R 너머에 있고 드론끼리 120 m 이상 떨어진, 사슬이 보이는 장면만 고른다
-			if reach.max() > 1.5 * env.comm_range and pd > 120.0:
-				break
-	print("개요 그림 시점:", t, "역할", sorted(set(int(k) for k in env.goal_kind)))
+	# 투영의 동점 처리가 무작위라 장면이 재현되도록 난수 시드를 고정하고, 조건을 만족하는 첫 시드를 쓴다
+	for rs in range(40):
+		np.random.seed(rs)
+		env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=10000,
+		                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=3, num_dests=30)
+		env.cc_pos, env.dests_pos = sample_instance(30, seed=503, num_drones=3, comm_range=300.0, cc_pos=None)
+		env.reset()
+		mf = chain_escape_manager()
+		env.set_goals(mf(env))
+		hit = False
+		# 배송·복귀·중계 세 역할이 동시에 보이는 첫 시점(150스텝 이후)에서 멈춘다
+		for t in range(1, 1200):
+			env.step(straight_worker(env))
+			if t % 20 == 0 or env.goal_invalid().any():
+				env.set_goals(mf(env))
+			kinds = set(int(k) for k in env.goal_kind)
+			if t >= 150 and {0, 1, 3} <= kinds:
+				reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+				pd = min(np.linalg.norm(env.drones_pos[a] - env.drones_pos[b]) for a in range(3) for b in range(a + 1, 3))
+				# 선두가 1.5R 너머에 있고 드론끼리 120 m 이상 떨어진, 사슬이 보이는 장면만 고른다
+				if reach.max() > 1.5 * env.comm_range and pd > 120.0:
+					hit = True
+					break
+		if hit:
+			break
+	print("개요 그림 시점:", t, "난수시드", rs, "역할", sorted(set(int(k) for k in env.goal_kind)))
 	R = env.comm_range
 	cc = env.cc_pos
 	ax.set_aspect("equal")
@@ -79,7 +86,8 @@ def panel_geometry(ax):
 		g = env.goal_pos[i]
 		ax.add_patch(FancyArrowPatch(env.drones_pos[i], g, arrowstyle="-|>", mutation_scale=8, lw=0.8,
 		                             color="#333", alpha=0.7, zorder=4))
-	ax.legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=6, loc="lower left", markerscale=0.8)
+	ax.legend(frameon=True, framealpha=0.85, edgecolor="none", fontsize=6, loc="upper left", markerscale=0.8,
+	          borderpad=0.3, labelspacing=0.3, handletextpad=0.4)
 	ax.set_title(f"(a) a multi-hop relay chain (step {t})", fontsize=8.5, loc="left")
 
 

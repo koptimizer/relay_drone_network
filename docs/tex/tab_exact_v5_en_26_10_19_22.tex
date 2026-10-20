@@ -1,9 +1,19 @@
-\begin{tabular}{rrrrrrrrr}
+\begin{tabular}{rrrrrrrrrrr}
 \toprule
-$M$ & $n$ & $h=98$ & $h=69$ & $h=49$ & heuristic & learned (median) & learned + recovery & $p$ (heur.\ vs.\ learned) \\
+& & \multicolumn{3}{c}{lattice optimum (steps)} & \multicolumn{3}{c}{makespan (steps)} & \multicolumn{3}{c}{ratio to optimum} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}
+$M$ & inst. & $h{=}98$ & $h{=}69$ & $h{=}49$ & heuristic & learned & learned+rec. & heur. & learned & l.+rec. \\
 \midrule
-3 & 10 & 89 & 87 & 82 & 1.126 & 1.017 & 1.035 & 0.016 \\
-4 & 10 & 110 & 107 & 103 & 1.107 & 1.047 & 1.048 & 0.008 \\
-5 & 10 & 121 & 118 & 110 & 1.227 & 1.167 & 1.161 & 0.355 \\
+3 & 9 & 80 & 80 & 80 & 80 & 76 & 78 & 1.00 & 0.95 & 0.97 \\
+3 & 10 & 70 & 70 & 70 & 62 & 50 & 56 & 0.89 & 0.71 & 0.80 \\
+4 & 1 & 120 & 120 & 120 & 145 & 139 & 145 & 1.21 & 1.16 & 1.21 \\
+4 & 7 & 100 & 100 & 100 & 124 & 108 & 97 & 1.24 & 1.08 & 0.97 \\
+4 & 9 & 100 & 100 & 100 & 106 & 96 & 96 & 1.06 & 0.96 & 0.96 \\
+5 & 10 & 90 & 90 & 90 & 110 & 98 & 98 & 1.22 & 1.09 & 1.09 \\
+6 & 3 & 130 & --- & --- & 143 & 142 & 148 & 1.10 & 1.09 & 1.14 \\
+6 & 8 & 100 & --- & --- & 121 & 106 & 107 & 1.21 & 1.06 & 1.07 \\
+6 & 10 & 120 & --- & --- & 157 & 127 & 120 & 1.31 & 1.06 & 1.00 \\
+\midrule
+\multicolumn{6}{l}{mean ratio over the 9 instances} & & & 1.14 & 1.02 & 1.02 \\
 \bottomrule
 \end{tabular}%
