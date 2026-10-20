@@ -845,11 +845,14 @@ time rises from seconds at $98$\,m to 25 minutes on average at $49$\,m for $M = 
 For $M \ge 6$ a drone must return to reload, the state space of the search grows by a cargo
 dimension per drone, and we fall back to the MILP with the hull-pruned lattice at $h = 98$\,m,
 one hour per instance and four solver threads (Table~\ref{tab:solver}). Here the solver's reach
-ends: it proves optimality on few instances, returns feasible solutions with optimality gaps of
-tens of percent on the rest, and returns nothing on some. The numbers in Table~\ref{tab:solver}
-compare the controllers with the best solution the solver found, which is an upper bound on the
-lattice optimum and no longer a reference of known quality; both controllers are faster than that
-solution on most of these instances. The comparison in RQ3 is therefore between two controllers
+ends. With six demand points it returns a feasible solution on 9 of 10 instances and proves
+optimality on 3; with eight it returns a solution on 5 of 10 and proves none; with ten it returns
+one solution out of four. The mean remaining optimality gap grows from 14\% to 31\% and 37\%, so
+the solver's incumbent is an upper bound on the lattice optimum of unknown quality rather than a
+reference. Measured against that incumbent the heuristic is 1.16, 1.11 and 1.08 times its
+makespan and the learned policy 1.07, 0.97 and 1.05; the learned policy beats the incumbent on
+the eight-demand-point instances, which only says that an hour of branch and bound no longer
+produces a good plan at that size. The comparison in RQ3 is therefore between two controllers
 that, where an exact optimum is available, are within 2--17\% (learned) and 11--23\% (heuristic)
 of it, and the exact reference stops being available exactly where the controllers are needed.
 
