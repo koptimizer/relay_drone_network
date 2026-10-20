@@ -1,14 +1,14 @@
 \begin{tabular}{rrrrrrrrr}
 \toprule
-$M$ & inst. & optimum & \multicolumn{2}{c}{completed} & \multicolumn{3}{c}{gap to the optimum} & $p$ \\
-\cmidrule(lr){4-5}\cmidrule(lr){6-8}
-& & (mean) & heur. & learned & heuristic & learned & learned+rec. & \\
+$M$ & inst. & optimum & \multicolumn{4}{c}{gap to the optimum, model's decision space} & \multicolumn{2}{c}{continuous space} \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-9}
+& & (mean) & rule & heuristic & learned & learned+rec. & rule & learned \\
 \midrule
-3 & 10 & 89 & 10/10 & 10/10 & +2.3\% & -3.6\% & -6.8\% & 0.109 \\
-4 & 10 & 110 & 10/10 & 10/10 & +5.4\% & -0.3\% & -1.7\% & 0.051 \\
-5 & 10 & 121 & 10/10 & 10/10 & +14.0\% & +8.7\% & +8.1\% & 0.186 \\
-6 & 10 & 136 & 9/10 & 10/10 & +17.8\% & +10.7\% & +11.7\% & 0.129 \\
+3 & 10 & 89 & +50.4\% & +24.0\% & +50.0\% & +52.0\% & +2.3\% & -3.6\% \\
+4 & 10 & 110 & +52.1\% & +16.4\% & +51.5\% & +49.6\% & +5.4\% & -0.3\% \\
+5 & 10 & 121 & +62.8\% & +23.8\% & +58.8\% & +59.4\% & +14.0\% & +8.7\% \\
+6 & 10 & 136 & +67.6\% & +19.1\% & +72.5\% & +59.1\% & +17.8\% & +10.7\% \\
 \midrule
-all & 39 & --- & --- & --- & +9.7\% & +4.3\% & +3.2\% & 0.001 \\
+all & 39 & --- & +58.0\% & +20.8\% & +55.8\% & +55.1\% & +9.7\% & +4.3\% \\
 \bottomrule
 \end{tabular}%

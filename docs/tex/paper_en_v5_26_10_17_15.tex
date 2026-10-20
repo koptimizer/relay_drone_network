@@ -106,7 +106,8 @@ returns no feasible solution on some, whereas drone-routing models without a con
 constraint are solved exactly for tens of customers \cite{roberti2021}.
 
 \paragraph{Proposal}
-We propose two controllers for this problem and study them side by side.
+We propose three methods for this problem and study them side by side: two online controllers
+that decide in milliseconds, and one offline search that we use as a quality reference.
 \begin{enumerate}
 \item A \emph{geometric chain-relay rule}. The drone farthest from the depot with cargo is
 the lead; the number of relays is the number of communication hops its target needs; the relays
@@ -115,6 +116,10 @@ $0.9R$. Because the rule is deterministic it can repeat a deadlocked assignment 
 we add a \emph{deadlock-recovery} mechanism that swaps the lead whenever the fleet has stalled for a
 fixed number of steps. The recovery mechanism alone lifts completion on the standard configuration
 from 62\% to 98\%.
+\item A \emph{search heuristic} that keeps the rule's option structure and its relay geometry
+but replaces the myopic target choice by simulated annealing over per-drone visit orders,
+evaluated by simulation. It is offline and costs minutes per instance, and we use it to separate
+how much of the distance to the optimum is the option structure and how much is the ordering.
 \item A \emph{learned policy} that is agnostic to fleet size. A manager assigns each drone one of
 seven discrete options every twenty steps; it encodes the drones, candidate demand points and relay
 slot as a set, pools them with attention, and decides autoregressively so that a formation of one
@@ -123,7 +128,7 @@ actor-critic \cite{haarnoja2018} on fleets of three and four drones and then run
 retraining on fleets of up to twelve, in the spirit of size-agnostic learned solvers for routing
 \cite{kool2019,park2023}.
 \end{enumerate}
-Both controllers act through the same connectivity-preserving projection: each commanded move is
+All three act through the same connectivity-preserving projection: each commanded move is
 scaled by the largest factor that keeps the fleet connected. Connectivity is therefore guaranteed
 by construction for both, and the empirical question is whether a controller makes progress under
 the constraint rather than whether it violates it.
@@ -621,6 +626,28 @@ In \emph{retreat} every drone except the lead returns towards the depot, which s
 chain. Section~\ref{sec:rq5-rule} selects the mode and the two parameters on tuning seeds;
 lead swap with $k_{\mathrm{stall}} = 120$ and $h_{\mathrm{hold}} = 20$ is used in every comparison.
 
+\subsection{Search heuristic over visit orders}
+\label{sec:search}
+
+The rule decides myopically: at every decision point the lead goes to its nearest unserved demand
+point. The third method keeps everything else the rule does and replaces that choice by a search.
+A solution is a \emph{priority list} of demand points per drone. At a decision point a drone's
+goal is the first demand point on its own list that is still unserved, or the depot if its list
+is exhausted or it is empty; relays and the deadlock recovery are assigned exactly as in
+Procedure~1, steps 3--6. The makespan of a solution is obtained by simulating it, so the
+objective needs no model of the dynamics and automatically respects the connectivity constraint.
+
+The search is simulated annealing. The initial solution is read off a run of the rule, by
+recording which drone served which demand point in which order, so the search starts from the
+rule's behaviour and can only improve on it. A neighbour is produced by relocating one demand
+point to a random position in a random drone's list, or by swapping two demand points between
+lists; a candidate is accepted if it is not worse, and otherwise with the usual Metropolis
+probability under a geometric cooling schedule. Rollouts that exceed $2.5\times$ the incumbent
+are cut short. We run three restarts of 1{,}000 iterations, so about 3{,}000 simulations per
+instance. Unlike the other two methods the search is offline: it needs the instance before the
+mission and spends minutes on it, which is why we report it as a quality reference rather than as
+a controller.
+
 \subsection{Hierarchical learned policy}
 \label{sec:learned}
 
@@ -822,62 +849,65 @@ optimum in one second against 1{,}242 (seed 902, ten periods), and on the three 
 $M = 6$ that the MILP certified within an hour the two agree exactly (130, 100 and 120 steps).
 Each instance takes 0--11 seconds, so we solve ten instances for each of $M = 3, 4, 5, 6$.
 
-\paragraph{Putting the controllers on the model's node set}
-A controller run in continuous space and a plan confined to the lattice do not place their relays
-in the same positions, which makes part of any difference between them an artefact of the
-discretisation rather than a difference in decision quality. We therefore restrict the relay
-slots of both controllers to the node set of the same lattice: the slot position computed in
-Section~\ref{sec:shared} is replaced by the nearest lattice node, so a relaying drone can only
-stand where the model could put it. Delivery and depot goals need no such treatment because they
-are exact nodes of the lattice by construction. The restriction costs the rule one
-completion out of forty, on the instance with $M = 6$ whose optimal plan has one drone serving
-five of the six demand points; the learned policy completes all forty with and without it.
+\paragraph{Running the controllers in the model's decision space}
+A controller that flies freely and a plan confined to the lattice are not playing the same game,
+so a difference between them is partly an artefact of the discretisation. We therefore run the
+controllers in the model's own decision space. A drone occupies a lattice node at every period
+boundary and may move only to a node in $A(i)$; connectivity is checked at period boundaries, as
+in the model; a service occupies a whole period, so a drone that stands on an unserved demand
+point with cargo at a boundary delivers and stays there for that period, which is exactly
+$s_{jkt}=1$; relay slots are snapped to the nearest node. The low-level mover is itself close to
+optimal: node-to-node distances in periods are precomputed, and at each boundary the joint move
+minimising the total remaining periods to the drones' goals, subject to connectivity, is chosen,
+so the measured gap reflects goal selection and not a clumsy execution layer. The implementation
+is verified by replaying each optimal plan through the same machinery: on all forty instances the
+replay reproduces the model's optimum exactly, so the optimum is a valid lower bound for every
+controller in this space.
 
 \paragraph{Result}
-Table~\ref{tab:exact} and Figure~\ref{fig:exact} give the gap of each controller to the model
-optimum on all forty instances. Over the thirty-nine instances both controllers complete, the
-rule is 9.7\% above the optimum on average, the learned policy 4.3\% and the learned policy
-with the recovery override 3.2\%; the learned policy is closer on 27 of the 39 instances
-(Wilcoxon $p = 0.001$). The gap grows with the number of demand points for both, from 2.3\% and
-$-3.6$\% at $M = 3$ to 17.8\% and 10.7\% at $M = 6$, because more demand points mean more
-service legs during which the chain has to be rearranged and more opportunities to order them
-badly.
+Table~\ref{tab:exact} and Figure~\ref{fig:exact} give the gap of each method to the optimum. No
+run of any method beats the optimum. In the model's space the rule is 58.0\% above it, the
+learned policy 55.8\% and the search heuristic 20.8\%; the search heuristic is better than both
+online controllers ($p < 10^{-4}$ in both cases, Wilcoxon over 39 instances) while the rule and
+the learned policy are statistically indistinguishable from each other ($p = 0.14$).
 
-Two caveats bound how these numbers should be read, both in the same direction. First, the model
-optimum is itself an upper bound on the continuous optimum: its drones travel between lattice
-nodes, so an axis-aligned leg covers $h = 98$ rather than $\ell = 138.9$\,m per period, and a
-service occupies a whole ten-step period even when the drone arrives in the middle of one. This is
-why three of the per-$M$ gaps are negative, most clearly at $M = 3$, where a controller moving
-continuously finishes before the best lattice plan can. Second, refining the lattice shrinks that
-bound: on the instances with $M \le 5$, solving at $h = 69$ and $h = 49$\,m lowers the mean
-optimum by 7--9\% (89 to 82, 110 to 103 and 121 to 110 steps for $M = 3, 4, 5$), at a cost that
-rises from seconds to 25 minutes per instance and that we cannot pay for every instance. The
-numbers in Table~\ref{tab:exact} are therefore gaps to the best plan the model can express at
-$h = 98$\,m, which is a lower bound on each controller's true optimality gap; the ranking between
-the two controllers, which is what RQ3 builds on, is unaffected because both are measured against
-the same reference on the same instances with the same relay positions available.
+The three methods decompose the gap, because the search heuristic uses exactly the option
+structure of the rule --- one chain, geometric relay slots, the same deadlock recovery --- and
+optimises only the order in which demand points are visited. The 37 percentage points between the
+rule and the search heuristic are therefore the cost of choosing targets myopically, and the
+remaining 21 points are the cost of the option structure itself and of executing it on the
+lattice. The learned policy was meant to make exactly the choice the search heuristic optimises,
+and on these instances it does not: it sits with the rule. That is where the headroom is, and it
+is not where we expected it.
 
-\paragraph{Where the reference stops}
-The search is limited by the state space, which grows as $2^M$ in the demand points and would
-need a cargo dimension per drone once reloading becomes necessary. Beyond six demand points we
-fall back to the MILP on the hull-pruned lattice, one hour per instance and four solver threads,
-and it stops producing a reference: with eight demand points it returns a feasible solution on 5
-of 10 instances and proves optimality on none (mean remaining gap 31\%), and with ten it returns
-one solution out of four (gap 37\%). Both controllers are faster than those incumbents on most of
-those instances, which says more about an hour of branch and bound at that size than about the
-controllers. The exact reference therefore stops being available at about six demand points,
-roughly two orders of magnitude below the instances where the controllers are intended to run.
+\paragraph{What the continuous measurement adds}
+The last two columns of Table~\ref{tab:exact} repeat the measurement with the controllers in the
+continuous space they are designed for, against the same lattice optima. There the rule is 9.7\%
+and the learned policy 4.3\% above the optimum, and on the smallest instances they are faster
+than it. Both statements are true and measure different things. The model's optimum is exact in
+its own space but is an upper bound on the continuous optimum, because its drones cover $h$
+rather than $\ell$ per period on axis-aligned legs and spend a whole period on each service; so
+the continuous figures are lower bounds on the true optimality gap, not estimates of it. The
+large difference between the two columns is not a property of learning: the rule is training-free
+and loses 48 percentage points in the move to the lattice, against 52 for the learned policy, so
+all but a few points of the difference are the cost of executing a controller designed for
+straight-line flight on a 98\,m lattice with ten-step periods.
+
+\paragraph{Cost}
+The search heuristic buys its 37 points with computation: a mean of 360\,s per instance over
+3{,}000 simulated rollouts, against 0.05--0.12\,ms per decision for the rule and 2.7--7.4\,ms for
+the learned policy (Table~\ref{tab:latency}), and it needs the instance in advance. The exact
+search needs 0--11\,s but only works while no reload is needed.
 
 \begin{table*}[t]
 \centering
-\caption{Optimum of the space--time model at $h = 98$\,m versus the proposed controllers, three
-drones, ten instances per $M$. The optima are proven by the search of Section~\ref{sec:rq2};
-makespans come from the continuous simulator with relay positions restricted to the model's node
-set (rule deterministic, learned and learned + recovery: median of 30 runs); the gap columns
-average the per-instance ratio to the optimum over the instances both controllers complete; $p$ is
-a Wilcoxon signed-rank test of the rule's gap against the learned policy's. Negative values
-reflect the lattice travel and the ten-step period of the model, which keep its optimum an upper
-bound on the continuous optimum.}
+\caption{Optimum of the space--time model at $h = 98$\,m versus the three proposed methods, three
+drones, ten instances per $M$. The optima are proven by the search of Section~\ref{sec:rq2}. The
+first group runs every method in the model's decision space, where the optimum is a valid lower
+bound; the second repeats rule and learned policy in the continuous space they are designed for,
+where the same optimum is an upper bound on the continuous optimum and the gaps consequently
+understate. Learned values are medians of 30 runs; the search heuristic is the best of three
+annealing restarts.}
 \label{tab:exact}
 \small
 \input{tab_exact_v5_en_26_10_19_22}
@@ -886,10 +916,10 @@ bound on the continuous optimum.}
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_exact_v5_26_10_19_22.pdf}
-\caption{Per-instance makespan on the exactly solved instances with three drones: optimum of the
-space--time model at $h = 98$\,m (square), rule (circle), learned policy median with the
-interquartile range of 30 runs (upward triangle) and learned policy with the recovery override
-(downward triangle). Relay positions of both controllers are restricted to the model's node set.}
+\caption{Per-instance makespan on the exactly solved instances with three drones, all methods run
+in the model's decision space: optimum of the space--time model at $h = 98$\,m (square), rule
+(circle), search heuristic (diamond) and learned policy median with the interquartile range of 30
+runs (triangle).}
 \label{fig:exact}
 \end{figure*}
 
