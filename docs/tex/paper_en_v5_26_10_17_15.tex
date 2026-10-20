@@ -158,6 +158,8 @@ drones or 80 demand points in training, yet it completes every instance with up 
 randomisation in training carries speed (RQ4). Removing rule regularisation, configuration
 randomisation or entropy annealing from the learned policy costs hundreds of steps or completion,
 and removing the recovery mechanism from the heuristic costs a third of its completions (RQ5).
+The learned policy's heavy right tail resists training-side remedies but is removed by applying
+the heuristic's recovery step at inference.
 
 \paragraph{Contributions}
 (i) A geometric chain-relay heuristic with deadlock recovery and a fleet-size-agnostic learned
