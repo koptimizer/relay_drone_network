@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
 from pipeline.common_v5_26_09_15_22 import chain_escape_manager, escape_wrap, straight_worker
+from pipeline.milp_v5_26_09_21_03 import build_nodes
 from util.instance_generator_v5_26_09_15_22 import sample_instance
 from util.paired_v5_26_09_27_08 import learned
 
@@ -50,6 +51,8 @@ def main():
 	p.add_argument("--out", default="toy_compare_v5_26_10_17_15")
 	p.add_argument("--escape", action="store_true", help="학습 정책에 교착 탈출 덮어쓰기를 씌운 열도 함께 잰다")
 	p.add_argument("--key", default="milp_steps", help="참조값 키 (MILP: milp_steps, BFS 도 같음)")
+	p.add_argument("--lattice-snap", action="store_true",
+	               help="중계가 설 수 있는 자리를 참조 모형과 같은 격자 노드로 제한해 이산화 차이를 없앤다")
 	A = p.parse_args()
 	torch.set_num_threads(2)
 	dev = torch.device("cpu")
@@ -61,6 +64,12 @@ def main():
 		env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=10000,
 		                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=N, num_dests=M)
 		env.reset()
+		if A.lattice_snap:
+			cc, dests = sample_instance(M, seed=seed, num_drones=N, comm_range=300.0, cc_pos=None)
+			ell = env.max_speed * int(d.get("kappa", 10))
+			sp = float(d.get("spacing", ell / np.sqrt(2.0)))
+			nodes, _nd = build_nodes(cc, dests, ell, sp, 300.0, N, hull_margin=sp / np.sqrt(2.0))
+			env.relay_nodes = nodes
 		h = run(env, chain_escape_manager(), seed)
 		ls = [run(env, lf, seed) for _ in range(A.reps)]
 		lv = [x for x in ls if x]

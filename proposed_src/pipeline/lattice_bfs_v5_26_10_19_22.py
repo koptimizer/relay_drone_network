@@ -142,7 +142,7 @@ def main():
 	assert A.num_drones == 3, "현재 구현은 드론 3대 전용"
 	cc, dests = sample_instance(A.num_dests, seed=A.seed, num_drones=A.num_drones, comm_range=A.comm_range, cc_pos=None)
 	env0 = DisasterRelayDroneEnv(num_drones=A.num_drones, num_dests=A.num_dests)
-	assert A.num_dests <= env0.max_capacity, "재적재가 필요한 크기는 MILP 로"
+	assert A.num_dests <= 2 * env0.max_capacity, "용량 비추적 완화의 타당성을 확인할 수 있는 크기까지만"
 	step_len = env0.max_speed * A.kappa
 	spacing = A.spacing if A.spacing > 0 else step_len / np.sqrt(2.0)
 	hm = spacing / np.sqrt(2.0) if A.hull_margin == -2.0 else A.hull_margin

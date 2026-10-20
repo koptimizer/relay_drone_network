@@ -74,12 +74,14 @@ def main():
 	ax.add_patch(Circle(pi, R, fill=False, ls="--", lw=0.8, color="#b04236"))
 	ax.scatter([pi[0]], [pi[1]], s=40, color="#1d6d9c", zorder=5, label="example node $i$")
 	ax.annotate("communication arcs $E$:\nnodes within $R$ of $i$", xy=(pi[0] - R * 0.71, pi[1] - R * 0.71),
-	            xytext=(pi[0] - R * 1.45, pi[1] - R * 1.62), fontsize=6.6, color="#b04236", ha="center", va="top",
+	            xycoords="data", xytext=(0.03, 0.03), textcoords="axes fraction",
+	            fontsize=6.6, color="#b04236", ha="left", va="bottom",
+	            bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="none", alpha=0.85),
 	            arrowprops=dict(arrowstyle="-", lw=0.6, color="#b04236", shrinkA=1, shrinkB=1))
 	# 센터·목적지
 	ax.scatter([cc[0]], [cc[1]], s=90, marker="s", color="#222", zorder=6, label="depot (node 0)")
 	ax.scatter(dests[:, 0], dests[:, 1], s=50, marker="x", color="#222", lw=1.5, zorder=6, label="demand point nodes $D$")
-	ax.set_xlim(pos[:, 0].min() - 150, pos[:, 0].max() + 130); ax.set_ylim(pos[:, 1].min() - 240, pos[:, 1].max() + 150)
+	ax.set_xlim(pos[:, 0].min() - 150, pos[:, 0].max() + 130); ax.set_ylim(100, 700)
 	ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
 	ax.legend(frameon=False, fontsize=6.3, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, columnspacing=0.8, handletextpad=0.4)
 	ax.set_title(f"nodes after pruning: $N_v$ = {len(pos)} of {len(pos_all)}  (3 drones, 4 demand points)", fontsize=8.5)

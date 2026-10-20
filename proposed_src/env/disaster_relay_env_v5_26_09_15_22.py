@@ -54,6 +54,7 @@ class DisasterRelayDroneEnv:
 		# 남긴다 (옆으로 도는 이동은 전속으로 살아남는다). 3/30에서 드론-시간의 32%가 축소로
 		# 사라지는 것이 규칙과의 격차의 근접 원인이다 (사이클 25).
 		self.slide = slide
+		self.relay_nodes = None           # 중계 위치를 격자 노드로 제한할 때 쓰는 좌표 배열 (기본: 제한 없음)
 		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
 		self.stall_redecide = stall_redecide
 		self.redecide_run = 0
@@ -222,6 +223,11 @@ class DisasterRelayDroneEnv:
 		if not free:
 			return -1, None, n_slot
 		pt = {k: self.cc_pos + (f - self.cc_pos) * (k / (n_slot + 1)) for k in free}
+		if self.relay_nodes is not None:
+			# 중계가 설 수 있는 자리를 격자 노드로 제한한다 (수리모형과 같은 자리 집합에서 비교)
+			for k in free:
+				j = int(np.argmin(np.linalg.norm(self.relay_nodes - pt[k], axis=1)))
+				pt[k] = self.relay_nodes[j]
 		k = min(free, key=lambda k: float(np.linalg.norm(self.drones_pos[i] - pt[k])))
 		return k, pt[k], n_slot
 
