@@ -176,7 +176,9 @@ the learned policy transfers upward to fleets three times larger than any it was
 (iii) A set of eleven documented negative results on closing the relay-limited deficit by changing
 the learner, and a sensitivity result showing that half of the deficit is attributable to the
 enforcement model. (iv) A space--time network model of the problem, solved exactly on small
-instances, with an explicit account of what its optimum does and does not bound.
+instances, with an evaluation that runs every method in the model's own decision space so that
+its optimum is a valid bound, and an explicit account of what each measurement does and does not
+say.
 
 % =====================================================================================
 \section{Related Work}
@@ -899,6 +901,16 @@ The search heuristic buys its 37 points with computation: a mean of 360\,s per i
 3{,}000 simulated rollouts, against 0.05--0.12\,ms per decision for the rule and 2.7--7.4\,ms for
 the learned policy (Table~\ref{tab:latency}), and it needs the instance in advance. The exact
 search needs 0--11\,s but only works while no reload is needed.
+
+\paragraph{Where the reference stops}
+The exact search is limited by its state space, which grows as $2^M$ in the demand points and
+would need a cargo dimension per drone once reloading becomes necessary. Beyond six demand points
+we fall back to the MILP on the hull-pruned lattice, one hour per instance and four solver
+threads, and it stops producing a reference: with eight demand points it returns a feasible
+solution on 5 of 10 instances and proves optimality on none (mean remaining gap 31\%), and with
+ten it returns one solution out of four (gap 37\%). The exact reference therefore stops being
+available at about six demand points, two orders of magnitude below the instances the controllers
+are intended to run on.
 
 \begin{table*}[t]
 \centering
