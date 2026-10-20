@@ -120,42 +120,125 @@ def seed_order(env, seed, lat=None, kappa=10, hl_every=20):
 	return order
 
 
-def search(env, seed, lat, kappa, iters, rng, t0=1.0, t1=0.02):
-	"""모의 담금질: 재배치·교환 이웃, 지수 냉각. (최적해, 값, 평가 횟수)."""
-	cur = seed_order(env, seed, lat, kappa)
+def _moves(cur, rng, kind=None):
+	"""이웃 하나를 만든다: 재배치 / 교환 / 목록 내 구간 뒤집기."""
+	cand = [list(x) for x in cur]
+	full = [(i, p) for i in range(len(cand)) for p in range(len(cand[i]))]
+	if not full:
+		return cand
+	k = kind if kind is not None else int(rng.integers(3))
+	i, p = full[int(rng.integers(len(full)))]
+	if k == 0 or len(cand) == 1:                               # 재배치
+		j = int(rng.integers(len(cand)))
+		v = cand[i].pop(p)
+		cand[j].insert(int(rng.integers(len(cand[j]) + 1)), v)
+	elif k == 1:                                               # 교환
+		j = int(rng.integers(len(cand)))
+		if not cand[j]:
+			return _moves(cur, rng, 0)
+		q = int(rng.integers(len(cand[j])))
+		cand[i][p], cand[j][q] = cand[j][q], cand[i][p]
+	else:                                                      # 구간 뒤집기 (2-opt)
+		if len(cand[i]) < 2:
+			return _moves(cur, rng, 0)
+		q = int(rng.integers(len(cand[i])))
+		lo, hi = min(p, q), max(p, q)
+		cand[i][lo:hi + 1] = cand[i][lo:hi + 1][::-1]
+	return cand
+
+
+def _local(cur, fc, f, rng, budget):
+	"""첫 개선 국소 탐색: 세 이웃을 번갈아 시도하고 개선이 없으면 멈춘다."""
+	n = 0
+	improved = True
+	while improved and n < budget:
+		improved = False
+		for k in (0, 1, 2):
+			for _ in range(12):
+				if n >= budget:
+					break
+				cand = _moves(cur, rng, k)
+				fv = f(cand); n += 1
+				if fv < fc:
+					cur, fc, improved = cand, fv, True
+					break
+	return cur, fc, n
+
+
+def search(env, seed, lat, kappa, iters, rng, algo="sa", t0=1.0, t1=0.02):
+	"""탐색 기반 휴리스틱. algo: sa(모의 담금질) / vns / ils / grasp. (최적해, 값, 평가 횟수)."""
+	init = seed_order(env, seed, lat, kappa)
 	f = lambda o: rollout(env, o, seed, lat, kappa) or 10 ** 6
-	fc = f(cur)
+	fc = f(init)
 	if fc < 10 ** 6:
 		env.max_steps = int(2.5 * fc)        # 나쁜 해를 끝까지 굴리지 않는다 (탐색 속도)
+	cur = [list(x) for x in init]
 	best, fb, n = [list(x) for x in cur], fc, 1
-	for k in range(iters):
-		T = t0 * (t1 / t0) ** (k / max(1, iters - 1))
-		cand = [list(x) for x in cur]
-		full = [(i, p) for i in range(len(cand)) for p in range(len(cand[i]))]
-		if not full:
-			break
-		i, p = full[rng.integers(len(full))]
-		j = int(rng.integers(len(cand)))
-		if rng.random() < 0.5 or len(cand[j]) == 0:          # 재배치
-			v = cand[i].pop(p)
-			cand[j].insert(int(rng.integers(len(cand[j]) + 1)), v)
-		else:                                                 # 교환
-			q = int(rng.integers(len(cand[j])))
-			cand[i][p], cand[j][q] = cand[j][q], cand[i][p]
-		fv = f(cand); n += 1
-		if fv <= fc or rng.random() < np.exp(-(fv - fc) / max(1e-9, T * max(1.0, fc) * 0.05)):
-			cur, fc = cand, fv
+	if algo == "sa":
+		for k in range(iters):
+			T = t0 * (t1 / t0) ** (k / max(1, iters - 1))
+			cand = _moves(cur, rng)
+			fv = f(cand); n += 1
+			if fv <= fc or rng.random() < np.exp(-(fv - fc) / max(1e-9, T * max(1.0, fc) * 0.05)):
+				cur, fc = cand, fv
+				if fv < fb:
+					best, fb = [list(x) for x in cand], fv
+	elif algo == "vns":
+		kmax = 6
+		cur, fc, m = _local(cur, fc, f, rng, iters // 4); n += m
+		best, fb = [list(x) for x in cur], fc
+		kk = 1
+		while n < iters:
+			sh = [list(x) for x in cur]
+			for _ in range(kk):
+				sh = _moves(sh, rng)
+			fs = f(sh); n += 1
+			sh, fs, m = _local(sh, fs, f, rng, max(10, (iters - n) // 4)); n += m
+			if fs < fc:
+				cur, fc, kk = sh, fs, 1
+				if fs < fb:
+					best, fb = [list(x) for x in sh], fs
+			else:
+				kk = kk + 1 if kk < kmax else 1
+	elif algo == "ils":
+		cur, fc, m = _local(cur, fc, f, rng, iters // 4); n += m
+		best, fb = [list(x) for x in cur], fc
+		while n < iters:
+			sh = [list(x) for x in best]
+			for _ in range(3):
+				sh = _moves(sh, rng)
+			fs = f(sh); n += 1
+			sh, fs, m = _local(sh, fs, f, rng, max(10, (iters - n) // 4)); n += m
+			if fs <= fb:
+				best, fb = [list(x) for x in sh], fs
+	elif algo == "grasp":
+		N, M = env.num_drones, env.num_dests
+		cc, dests = env.cc_pos, env.dests_pos
+		while n < iters:
+			left = list(range(M)); o = [[] for _ in range(N)]
+			last = [cc.copy() for _ in range(N)]
+			while left:
+				i = int(np.argmin([len(x) for x in o]))
+				dd = np.array([np.linalg.norm(dests[j] - last[i]) for j in left])
+				rcl = np.argsort(dd)[:max(1, int(np.ceil(0.3 * len(left))))]
+				j = left[int(rcl[int(rng.integers(len(rcl)))])]
+				o[i].append(j); last[i] = dests[j]; left.remove(j)
+			fv = f(o); n += 1
+			o, fv, m = _local(o, fv, f, rng, max(10, (iters - n) // 6)); n += m
 			if fv < fb:
-				best, fb = [list(x) for x in cand], fv
+				best, fb = [list(x) for x in o], fv
+	else:
+		raise ValueError(algo)
 	return best, fb, n
 
 
 def main():
 	p = argparse.ArgumentParser()
-	p.add_argument("--pattern", default="bfs_n3m*_h98_26_10_19_22.json")
+	p.add_argument("--pattern", default="bfs2_n3m*_h98_26_10_21_03.json")
 	p.add_argument("--iters", type=int, default=400)
 	p.add_argument("--restarts", type=int, default=3)
 	p.add_argument("--lattice", action="store_true", help="수리모형과 같은 격자 결정 공간에서 평가")
+	p.add_argument("--algo", default="sa", choices=["sa", "vns", "ils", "grasp"])
 	p.add_argument("--out", default="metaheur_v5_26_10_20_17")
 	A_ = p.parse_args()
 	rows = []
@@ -175,12 +258,12 @@ def main():
 			lat = (pos, Ax, hop_table(Ax, len(pos)))
 		t0 = time.time(); bv, ev = None, 0
 		for r in range(A_.restarts):
-			_o, v, n = search(env, seed, lat, kappa, A_.iters, np.random.default_rng(1000 + r))
+			_o, v, n = search(env, seed, lat, kappa, A_.iters, np.random.default_rng(1000 + r), algo=A_.algo)
 			ev += n
 			bv = v if bv is None else min(bv, v)
 		sec = time.time() - t0
-		rows.append(dict(drones=N, dests=M, seed=seed, opt=d["milp_steps"], meta=bv if bv < 10 ** 6 else "",
-		                 evals=ev, sec=round(sec, 1)))
+		rows.append(dict(drones=N, dests=M, seed=seed, opt=d["milp_steps"], algo=A_.algo,
+		                 meta=bv if bv < 10 ** 6 else "", evals=ev, sec=round(sec, 1)))
 		print(f"M={M:2d} s{seed}: 최적 {d['milp_steps']:.0f} | 탐색 {bv} ({ev}회 평가, {sec:.0f}초)", flush=True)
 	out = os.path.join(ROOT, "figures", f"{A_.out}.csv")
 	with open(out, "w", newline="", encoding="utf-8") as fh:

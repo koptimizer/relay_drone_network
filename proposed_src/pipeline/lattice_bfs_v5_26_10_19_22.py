@@ -22,22 +22,40 @@ from util.instance_generator_v5_26_09_15_22 import sample_instance
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def connected3(d, R):
-	"""노드 삼중 (a,b,c)마다 {0,a,b,c} 가 반경 R 그래프에서 연결인지 표를 만든다."""
-	n = len(d)
-	L = d <= R + 1e-6
-	a = np.arange(n)
-	A, B, C = np.meshgrid(a, a, a, indexing="ij")
-	l0a, l0b, l0c = L[0][A], L[0][B], L[0][C]
-	lab, lac, lbc = L[A, B], L[A, C], L[B, C]
-	# 센터에서 각 노드로 1홉, 2홉, 3홉 안에 닿는지 (3 드론)
-	ra, rb, rc = l0a.copy(), l0b.copy(), l0c.copy()
-	for _ in range(3):
-		ra2 = ra | (rb & lab) | (rc & lac)
-		rb2 = rb | (ra & lab) | (rc & lbc)
-		rc2 = rc | (ra & lac) | (rb & lbc)
-		ra, rb, rc = ra2, rb2, rc2
-	return ra & rb & rc
+def conn_table():
+	"""4노드(거점+드론3) 그래프의 6간선 비트 패턴별 연결 여부 표 (64개)."""
+	E = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
+	out = np.zeros(64, dtype=bool)
+	for m in range(64):
+		adj = {i: set() for i in range(4)}
+		for k, (u, v) in enumerate(E):
+			if m >> k & 1:
+				adj[u].add(v); adj[v].add(u)
+		seen, st = {0}, [0]
+		while st:
+			u = st.pop()
+			for v in adj[u]:
+				if v not in seen:
+					seen.add(v); st.append(v)
+		out[m] = len(seen) == 4
+	return out
+
+
+def persist_ok(L, cur, nxt, table):
+	"""전이가 허용되는가: 기간의 양 끝에서 모두 반경 안인 간선만으로 연결되어야 한다.
+
+	두 드론이 직선으로 움직이면 거리는 시간에 대해 볼록하므로 양 끝에서 R 이하면 기간 내내 R 이하다.
+	따라서 이 조건은 연속 시간 연결성을 보장한다 (경계에서만 보는 조건은 보장하지 못한다).
+	"""
+	a, b, c = cur
+	a2, b2, c2 = nxt
+	m = (L[0, a] & L[0, a2]).astype(np.int64)
+	m |= (L[0, b] & L[0, b2]).astype(np.int64) << 1
+	m |= (L[0, c] & L[0, c2]).astype(np.int64) << 2
+	m |= (L[a, b] & L[a2, b2]).astype(np.int64) << 3
+	m |= (L[a, c] & L[a2, c2]).astype(np.int64) << 4
+	m |= (L[b, c] & L[b2, c2]).astype(np.int64) << 5
+	return table[m]
 
 
 def solve(pos, n_dest, R, step_len, max_periods, verbose=True):
@@ -50,7 +68,8 @@ def solve(pos, n_dest, R, step_len, max_periods, verbose=True):
 	for i in range(n):
 		js = np.flatnonzero(mv[i])
 		nb[i, :len(js)] = js
-	conn = connected3(d, R)
+	L = d <= R + 1e-6
+	CT = conn_table()
 	M = n_dest
 	full = (1 << M) - 1
 	destbit = np.zeros(n, dtype=np.int64)
@@ -75,7 +94,7 @@ def solve(pos, n_dest, R, step_len, max_periods, verbose=True):
 			src = np.broadcast_to(np.arange(len(st))[:, None, None, None] + s0, na.shape)
 			ok = (na >= 0) & (nbb >= 0) & (nc >= 0)
 			na, nbb, nc, src = na[ok], nbb[ok], nc[ok], src[ok]
-			ok = conn[na, nbb, nc]
+			ok = persist_ok(L, (a[src - s0], b[src - s0], c[src - s0]), (na, nbb, nc), CT)
 			na, nbb, nc, src = na[ok], nbb[ok], nc[ok], src[ok]
 			m2 = m[src - s0].copy()
 			for x, nx in ((a, na), (b, nbb), (c, nc)):

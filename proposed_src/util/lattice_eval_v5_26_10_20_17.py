@@ -59,6 +59,25 @@ def goal_node(env, i, pos):
 	return int(np.argmin(np.linalg.norm(pos - env.goal_pos[i], axis=1)))
 
 
+def persist_connected(cur, nxt, pos, cc, R):
+	"""기간의 양 끝에서 모두 반경 안인 간선만으로 연결되는가.
+
+	직선 이동에서 두 점 사이 거리는 시간에 대해 볼록하므로, 양 끝에서 R 이하인 간선은 기간 내내
+	R 이하다. 따라서 이 조건은 연속 시간 연결성을 보장한다.
+	"""
+	P0 = np.vstack([cc[None, :], pos[cur]])
+	P1 = np.vstack([cc[None, :], pos[nxt]])
+	E = ((np.linalg.norm(P0[:, None, :] - P0[None, :, :], axis=2) <= R + 1e-6)
+	     & (np.linalg.norm(P1[:, None, :] - P1[None, :, :], axis=2) <= R + 1e-6))
+	seen, st = {0}, [0]
+	while st:
+		u = st.pop()
+		for v in np.flatnonzero(E[u]):
+			if v not in seen:
+				seen.add(int(v)); st.append(int(v))
+	return len(seen) == len(P0)
+
+
 def lattice_step(env, node, pos, A, hop, cc, R):
 	"""한 기간의 공동 이동: 연결을 지키면서 목표까지 남은 기간 수의 합을 최소화하는 조합.
 
@@ -80,7 +99,7 @@ def lattice_step(env, node, pos, A, hop, cc, R):
 		for b0 in (opts[1] if N > 1 else [0]):
 			for c0 in (opts[2] if N > 2 else [0]):
 				t = np.array([a0, b0, c0][:N], dtype=int)
-				if not connected(pos[t], cc, R):
+				if not persist_connected(node, t, pos, cc, R):
 					continue
 				sc = sum(int(hop[t[i], gn[i]]) for i in range(N))
 				if bs is None or sc < bs:
@@ -138,6 +157,8 @@ def lattice_rollout(env, setter, seed, pos, A, kappa, hop=None, hl_every=20):
 	env.reset()
 	env.no_project = env.no_service = True
 	env.relay_nodes = pos
+	# 격자 노드가 지도 경계를 넘을 수 있다. 경계 클리핑이 기간 중 직선 이동을 휘게 하므로 넓혀 둔다.
+	env.map_size = (float(max(pos.max(), env.map_size[0])) + 10.0,) * 2
 	if hop is None:
 		hop = hop_table(A, len(pos))
 	node = np.zeros(env.num_drones, dtype=int)
@@ -145,11 +166,12 @@ def lattice_rollout(env, setter, seed, pos, A, kappa, hop=None, hl_every=20):
 	setter(env)
 	t = 0
 	while env.makespan is None and t < env.max_steps:
-		tgt = lattice_step(env, node, pos, A, hop, env.cc_pos, env.comm_range)
-		serve_at_boundary(env, node, tgt, kappa)
+		# 서비스를 먼저 확정해야 lattice_step 이 머무는 드론을 고정한 채 연결성을 검사한다.
+		# 순서가 뒤바뀌면 검사한 배치와 실제 배치가 달라져 연결이 끊긴 전이가 통과한다.
+		serve_at_boundary(env, node, node, kappa)
 		if env.makespan is not None:
 			break
-		tgt = np.where(env.drones_timer > 0, node, tgt)
+		tgt = lattice_step(env, node, pos, A, hop, env.cc_pos, env.comm_range)
 		stp = (pos[tgt] - pos[node]) / (kappa * env.max_speed)
 		for _ in range(kappa):
 			env.step(stp)
@@ -168,7 +190,7 @@ def run(env, mf, seed, pos, A, kappa, hop=None, hl_every=20):
 
 def main():
 	p = argparse.ArgumentParser()
-	p.add_argument("--pattern", default="bfs_n3m*_h98_26_10_19_22.json")
+	p.add_argument("--pattern", default="bfs2_n3m*_h98_26_10_21_03.json")
 	p.add_argument("--manager", default="weights/v5_26_09_23_18_SWa/best_manager.pth")
 	p.add_argument("--reps", type=int, default=30)
 	p.add_argument("--out", default="lattice_eval_v5_26_10_20_17")
