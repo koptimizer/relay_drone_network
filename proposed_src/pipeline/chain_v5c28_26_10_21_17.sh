@@ -16,6 +16,9 @@ say(){ echo "[$(date '+%F %T')] $*" | tee -a "$LOG"; }
 say "=== 0단계: 교사 풀 대기 ==="
 while [ "$(ls $POOL 2>/dev/null | wc -l)" -lt 14 ]; do sleep 120; done
 say "교사 풀 준비: $(python3 -c "import json,glob;r=[x for f in glob.glob('$POOL') for x in json.load(open(f))];g=[x for x in r if x.get('teacher_ms')];import numpy as np;print(len(r),'건, 교사/규칙 평균',round(float(np.mean([x['teacher_ms']/x['rule_ms'] for x in g if x['rule_ms']])),3))")"
+# 풀 경로의 * 를 셸이 펼치면 학습 스크립트에 인자가 여러 개로 들어가 argparse 가 죽는다 (26-10-21 18:05 사고).
+# 여기부터 셸 글로빙을 끄고, 펼치기는 학습 스크립트의 glob.glob 에 맡긴다.
+set -f
 C="--residual-penalty 0.1 --rule-reg 2.0 --autoregressive --select makespan --speed-weight 40 --holdout-steps 3000 --eval-n 80 --ent-frac 0.6 --ent-frac-final 0.25 --ent-anneal-episodes 400 --pool $POOL"
 say "=== 1단계: 학습 4실행 시작 ==="
 setsid nohup bash $SUP v5_26_10_21_17_RT1 $C --seed 1 > /dev/null 2>&1 &
@@ -25,7 +28,11 @@ setsid nohup bash $SUP v5_26_10_21_17_ST2 $C --teacher --seed 4 > /dev/null 2>&1
 sleep 120
 while true; do
 	n=0
-	for r in RT1 RT2 ST1 ST2; do grep -q "감시 종료" "runs/sup_v5_26_10_21_17_${r}_supervisor.log" 2>/dev/null && n=$((n+1)); done
+	for r in RT1 RT2 ST1 ST2; do
+		# 정상 종료 표시가 있거나, 감시 스크립트가 재시도를 다 쓰고 사라졌으면 끝난 것으로 본다
+		if grep -q "감시 종료" "runs/sup_v5_26_10_21_17_${r}_supervisor.log" 2>/dev/null \
+		   || ! pgrep -f "[s]upervise_v5_26_10_13_12.sh v5_26_10_21_17_${r} " > /dev/null; then n=$((n+1)); fi
+	done
 	[ "$n" -ge 4 ] && break
 	sleep 300
 done
