@@ -63,7 +63,7 @@ def seq_actions(env, order, st, k_stall=None, hold=None):
 	return acts, dst
 
 
-def rollout(env, order, seed, lat=None, kappa=10, hl_every=20):
+def rollout(env, order, seed, lat=None, kappa=10, hl_every=20, cc_mode=None):
 	"""해 하나를 시뮬레이션해 makespan(미완주면 None)을 돌려준다. lat=(pos, A, hop)면 격자 모드."""
 	st = {"esc": 0, "n": 0}
 	setter = lambda e: e.set_goals(*seq_actions(e, order, st))
@@ -72,7 +72,7 @@ def rollout(env, order, seed, lat=None, kappa=10, hl_every=20):
 		st["esc"], st["n"] = 0, 0
 		return lattice_rollout(env, setter, seed, pos, A, kappa, hop, hl_every)
 	env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=seed, num_drones=env.num_drones,
-	                                            comm_range=env.comm_range, cc_pos=None)
+	                                            comm_range=env.comm_range, cc_pos=cc_mode)
 	env.reset()
 	setter(env)
 	done, t = False, 0
@@ -85,7 +85,7 @@ def rollout(env, order, seed, lat=None, kappa=10, hl_every=20):
 	return s["makespan"] if s["makespan"] else None
 
 
-def seed_order(env, seed, lat=None, kappa=10, hl_every=20):
+def seed_order(env, seed, lat=None, kappa=10, hl_every=20, cc_mode=None):
 	"""규칙+복구를 한 번 굴리며 드론별 배송 순서를 뽑아 초기해로 쓴다."""
 	order = [[] for _ in range(env.num_drones)]
 	mf = chain_escape_manager()
@@ -104,7 +104,7 @@ def seed_order(env, seed, lat=None, kappa=10, hl_every=20):
 		lattice_rollout(env, setter, seed, pos, A, kappa, hop, hl_every)
 	else:
 		env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=seed, num_drones=env.num_drones,
-		                                            comm_range=env.comm_range, cc_pos=None)
+		                                            comm_range=env.comm_range, cc_pos=cc_mode)
 		env.reset()
 		setter(env)
 		done, t = False, 0
@@ -165,10 +165,10 @@ def _local(cur, fc, f, rng, budget):
 	return cur, fc, n
 
 
-def search(env, seed, lat, kappa, iters, rng, algo="sa", t0=1.0, t1=0.02):
+def search(env, seed, lat, kappa, iters, rng, algo="sa", t0=1.0, t1=0.02, cc_mode=None):
 	"""탐색 기반 휴리스틱. algo: sa(모의 담금질) / vns / ils / grasp. (최적해, 값, 평가 횟수)."""
-	init = seed_order(env, seed, lat, kappa)
-	f = lambda o: rollout(env, o, seed, lat, kappa) or 10 ** 6
+	init = seed_order(env, seed, lat, kappa, cc_mode=cc_mode)
+	f = lambda o: rollout(env, o, seed, lat, kappa, cc_mode=cc_mode) or 10 ** 6
 	fc = f(init)
 	if fc < 10 ** 6:
 		env.max_steps = int(2.5 * fc)        # 나쁜 해를 끝까지 굴리지 않는다 (탐색 속도)

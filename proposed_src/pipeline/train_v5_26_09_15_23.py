@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv, N_MAX
 from model.hier_net_v5_26_09_15_23 import SetManagerActor, SetManagerTwinQ
 from pipeline.common_v5_26_09_15_22 import escape_wrap, action_mask, chain_manager, straight_worker
+from util.metaheur_v5_26_10_20_17 import seq_actions
 from util.instance_generator_v5_26_09_15_22 import sample_config, sample_instance
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -109,6 +110,10 @@ P.add_argument("--ent-frac", type=float, default=0.6,
                help="엔트로피 목표 = ent_frac·log(유효 행동 수). 0.6이면 alpha가 2~3에 머물러 정책이 흐트러진다 (26-09-19 온도 프로브)")
 P.add_argument("--escape-in-loop", action="store_true",
                help="롤아웃에서 휴리스틱과 같은 교착 탈출 덮어쓰기를 실행 행동에 적용하고, 실행된 행동을 저장한다 (분산 안정화, 26-10-19)")
+P.add_argument("--pool", default="",
+               help="교사 풀 JSON glob. 주면 에피소드마다 이 풀의 인스턴스를 뽑는다 (N, M, Q, 무작위 거점)")
+P.add_argument("--teacher", action="store_true",
+               help="정규화 목표를 규칙 대신 풀의 탐색 휴리스틱 순서가 그 상태에서 내릴 옵션으로 바꾼다 (26-10-21)")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -279,6 +284,19 @@ def act_seq(env, actor, dev):
 	return a[0, :env.num_drones].cpu().numpy(), sub
 
 
+def act_teacher(env, order, st):
+	"""교사(탐색 휴리스틱 순서)가 이 상태에서 내릴 옵션. 후보 다섯에 없는 목표는 -1(라벨 없음)."""
+	acts, dst = seq_actions(env, order, st)
+	lab = np.full(env.num_drones, -1, dtype=np.int64)
+	for i in range(env.num_drones):
+		if acts[i] >= env.n_cand:
+			lab[i] = int(acts[i])
+		else:
+			hit = np.flatnonzero(np.asarray(env.candidates(i)) == dst[i])
+			lab[i] = int(hit[0]) if len(hit) else -1
+	return lab
+
+
 def act_rule(env):
 	"""규칙 행동 (정규화용). 마스크에 걸리면 정규화 표적에서 제외되도록 -1."""
 	ra = chain_manager(env).astype(np.int64)
@@ -353,6 +371,16 @@ def main():
 		raise SystemExit("--seq-decision은 자기회귀 결정 순서를 전제한다 (--autoregressive 필요)")
 	dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	inst_rng = np.random.default_rng(A.seed + 1000)
+	pool = []
+	if A.pool:
+		import glob as _glob
+		import json as _json
+		for f in sorted(_glob.glob(A.pool)):
+			pool += [x for x in _json.load(open(f)) if x.get("teacher_ms")]
+		print(f"교사 풀 {len(pool)}개 인스턴스 ({A.pool}) | 정규화 목표 = {'교사' if A.teacher else '규칙'}", flush=True)
+	tch = {"order": None, "st": {"esc": 0, "n": 0}}
+	lab_tot, lab_miss = 0, 0
+	rule_or_teacher = (lambda e: act_teacher(e, tch["order"], tch["st"])) if A.teacher else act_rule
 	actor = SetManagerActor(advice=A.rule_obs, autoregressive=A.autoregressive, ar_near=A.ar_near).to(dev)
 	mq = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
 	mq_t = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
@@ -413,7 +441,15 @@ def main():
 		span = A.ent_anneal_episodes if A.ent_anneal_episodes > 0 else A.max_episodes
 		ent_frac = (A.ent_frac if A.ent_frac_final < 0 else
 		            A.ent_frac + (A.ent_frac_final - A.ent_frac) * min(1.0, (ep - 1) / max(1, span - 1)))
-		if A.random_config:
+		if pool:
+			x = pool[int(inst_rng.integers(len(pool)))]
+			if (x["N"], x["M"]) != (env.num_drones, env.num_dests):
+				env = make_env(x["N"], x["M"])
+			env.max_capacity = int(x["Q"])
+			env.cc_pos, env.dests_pos = sample_instance(x["M"], seed=int(x["seed"]), num_drones=x["N"],
+			                                            comm_range=env.comm_range, cc_pos="random")
+			tch["order"], tch["st"] = x["order"], {"esc": 0, "n": 0}
+		elif A.random_config:
 			n, m, cc, d = sample_config(inst_rng, A.drones_range, A.dests_range, random_cc=True,
 			                            drone_weights=A.drone_weights)
 			if (n, m) != (env.num_drones, env.num_dests):
@@ -430,7 +466,8 @@ def main():
 			a, o0, m0 = act(env, actor, dev)
 		if A.escape_in_loop:
 			a = esc_fn(env, a)
-		r0 = act_rule(env)
+		r0 = rule_or_teacher(env)
+		lab_tot += len(r0); lab_miss += int((r0 < 0).sum())
 		env.set_goals(a)
 		done, t, ep_tr, opt_r, opt_k, relay_n, dec_n = False, 0, 0.0, 0.0, 0, 0, 0
 		opt_rv = np.zeros(env.num_drones)
@@ -445,7 +482,8 @@ def main():
 			if hl_now or done:
 				if A.seq_decision:
 					a2, sub2 = act_seq(env, actor, dev)
-					r2 = act_rule(env)
+					r2 = rule_or_teacher(env)
+					lab_tot += len(r2); lab_miss += int((r2 < 0).sum())
 					# 같은 호출 안의 결정은 보상 0·할인 1로 잇고, 마지막 결정만 환경 구간 수익을 받는다
 					for i, sd in enumerate(sub0):
 						last = (i == len(sub0) - 1)
@@ -459,7 +497,8 @@ def main():
 					a2, o2, m2 = act(env, actor, dev)
 					if A.escape_in_loop:
 						a2 = esc_fn(env, a2)
-					r2 = act_rule(env)
+					r2 = rule_or_teacher(env)
+					lab_tot += len(r2); lab_miss += int((r2 < 0).sum())
 					buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0, rv=opt_rv)
 				relay_n += int((a == 6).sum()); dec_n += len(a)
 				if not done:
@@ -505,8 +544,9 @@ def main():
 					qmin = torch.min(qd1, qd2)[bi, b["j"]]
 				la = (p * (al_e * lp - qmin)).sum(-1).mean()
 				if A.rule_reg > 0.0:
-					ok = b["mask"].gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1).float()
-					nll = -lp.gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1)
+					rac = b["ra"].clamp_min(0)
+					ok = b["mask"].gather(-1, rac.unsqueeze(-1)).squeeze(-1).float() * (b["ra"] >= 0).float()
+					nll = -lp.gather(-1, rac.unsqueeze(-1)).squeeze(-1)
 					la = la + A.rule_reg * (nll * ok).sum() / ok.sum().clamp_min(1.0)
 				a_opt.zero_grad(); la.backward(); nn.utils.clip_grad_norm_(actor.parameters(), 1.0); a_opt.step()
 				ent = (-(p * lp).sum(-1)).mean()
@@ -571,8 +611,9 @@ def main():
 				la = ((p * (alpha * lp - qmin)).sum(-1) * dm).sum() / dm.sum()
 				if A.rule_reg > 0.0:
 					# 규칙 행동이 마스크 안에 있는 드론만 정규화한다
-					ok = dm * b["mask"].gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1).float()
-					nll = -lp.gather(-1, b["ra"].unsqueeze(-1)).squeeze(-1)
+					rac = b["ra"].clamp_min(0)
+					ok = dm * b["mask"].gather(-1, rac.unsqueeze(-1)).squeeze(-1).float() * (b["ra"] >= 0).float()
+					nll = -lp.gather(-1, rac.unsqueeze(-1)).squeeze(-1)
 					# 중계 지시에 더 큰 가중치를 줄 수 있다 — 드론이 부족한 구성에서 정책이
 					# 중계를 규칙의 절반만 쓰고(0.78 대 1.39) 투영에 막혀 시간을 잃는다 (26-09-27 측정)
 					if A.relay_reg != 1.0:
@@ -607,7 +648,8 @@ def main():
 		writer.add_scalar("train/target_q", last_y, ep)
 		row_alpha = float(log_alpha.exp())
 		print(f"Ep {ep} | 드론{env.num_drones} 목적지{env.num_dests:2d} | {t:4d}스텝 | 배송 {st['delivered']:2d}/{env.num_dests} "
-		      f"| 재적재 {st['reloads']:2d} | 중계율 {row['relay_frac']:.2f} | alpha {row_alpha:.3f} | {st['term_reason']}", flush=True)
+		      f"| 재적재 {st['reloads']:2d} | 중계율 {row['relay_frac']:.2f} | alpha {row_alpha:.3f} | {st['term_reason']}"
+		      + (f" | 라벨없음 {lab_miss / max(1, lab_tot):.2f}" if A.pool else ""), flush=True)
 
 		if ep % CKPT_EVERY == 0:
 			torch.save(actor.state_dict(), os.path.join(W_DIR, f"manager_ep{ep}.pth"))
