@@ -144,7 +144,7 @@ def serve_at_boundary(env, node, tgt, kappa, force=True):
 			if not env.dests_active.any() and env.makespan is None:
 				env.makespan = env.current_step
 				env.term_reason = "complete"
-		elif node[i] == 0 and env.drones_capacity[i] == 0:
+		elif node[i] == 0 and env.drones_capacity[i] < env.max_capacity and env.goal_kind[i] == 1:
 			env.drones_capacity[i] = env.max_capacity
 			env.drones_timer[i] = kappa
 			env.reloads[i] += 1
@@ -204,6 +204,8 @@ def main():
 		N, M, seed, kappa = int(d["drones"]), int(d["dests"]), int(d["seed"]), int(d["kappa"])
 		env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=10000,
 		                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=N, num_dests=M)
+		if "capacity" in d:
+			env.max_capacity = int(d["capacity"])        # 재적재가 강제되는 인스턴스 (N*Q < M)
 		env.reset()
 		cc, dests = sample_instance(M, seed=seed, num_drones=N, comm_range=300.0, cc_pos=None)
 		ell = env.max_speed * kappa

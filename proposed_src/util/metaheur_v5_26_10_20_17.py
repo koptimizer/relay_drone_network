@@ -247,6 +247,8 @@ def main():
 		N, M, seed, kappa = int(d["drones"]), int(d["dests"]), int(d["seed"]), int(d["kappa"])
 		env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=10000,
 		                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=N, num_dests=M)
+		if "capacity" in d:
+			env.max_capacity = int(d["capacity"])
 		env.reset()
 		lat = None
 		if A_.lattice:

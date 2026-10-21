@@ -33,3 +33,20 @@ nohup.out
 docs/tex/*.log
 docs/tex/*.aux
 docs/tex/*.out
+
+# --- 애니메이션 (26-10-21) ---
+# M=6 궤적 GIF 33MB. proposed_src/util/viz_lattice_v5_26_10_21_00.py 로 언제든 재생성된다.
+figures/viz/*.gif
+
+# --- LaTeX 빌드 부산물 ---
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# --- 정확 탐색 인스턴스별 로그 ---
+# 결과는 figures/*.json 에 남는다. 로그는 진행 상황용이라 추적하지 않는다.
+runs/bfs/*.log
+runs/bfs2/*.log
+runs/bfs3/*.log
+runs/bfs6/*.log
+runs/milp/*.log

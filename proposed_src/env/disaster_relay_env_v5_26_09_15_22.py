@@ -57,6 +57,7 @@ class DisasterRelayDroneEnv:
 		self.relay_nodes = None           # 중계 위치를 격자 노드로 제한할 때 쓰는 좌표 배열 (기본: 제한 없음)
 		self.no_project = False           # 참이면 매 스텝 연결성 투영을 끈다 (격자 모드: 기간 경계에서만 판정)
 		self.no_service = False           # 참이면 자동 배송/재적재를 끈다 (격자 모드: 기간 경계에서만 서비스)
+		self.relay_lookahead = False      # 참이면 슬롯에 도착한 중계를 다음 전선 기준 슬롯으로 미리 보낸다
 		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
 		self.stall_redecide = stall_redecide
 		self.redecide_run = 0
@@ -214,6 +215,15 @@ class DisasterRelayDroneEnv:
 		hops = max(1, int(np.ceil(d / (self.relay_beta * self.comm_range))))
 		return f, min(hops - 1, self.num_drones - 1)
 
+	def _next_frontier(self):
+		"""아직 아무도 겨냥하지 않은 수요지 중 거점에서 가장 먼 점 (선행 배치용)."""
+		act = np.flatnonzero(self.dests_active)
+		if len(act) == 0:
+			return None
+		free = [j for j in act if not np.any(self.goal_dest == j)]
+		cand = free if free else list(act)
+		return self.dests_pos[max(cand, key=lambda j: float(np.linalg.norm(self.dests_pos[j] - self.cc_pos)))]
+
 	def relay_slot_for(self, i):
 		"""드론 i가 맡을 중계 슬롯 번호와 좌표를 구한다 (없으면 -1, None)."""
 		f, n_slot = self._frontier(i)
@@ -231,6 +241,15 @@ class DisasterRelayDroneEnv:
 				j = int(np.argmin(np.linalg.norm(self.relay_nodes - pt[k], axis=1)))
 				pt[k] = self.relay_nodes[j]
 		k = min(free, key=lambda k: float(np.linalg.norm(self.drones_pos[i] - pt[k])))
+		if self.relay_lookahead and float(np.linalg.norm(self.drones_pos[i] - pt[k])) <= self.interaction_radius:
+			# 슬롯에 도착했으면 다음 전선 기준 같은 번호의 슬롯으로 미리 움직인다.
+			# 연결성은 투영(또는 격자 이동)이 지키므로 갈 수 있는 만큼만 간다.
+			g = self._next_frontier()
+			if g is not None:
+				q = self.cc_pos + (g - self.cc_pos) * (k / (n_slot + 1))
+				if self.relay_nodes is not None:
+					q = self.relay_nodes[int(np.argmin(np.linalg.norm(self.relay_nodes - q, axis=1)))]
+				return k, q, n_slot
 		return k, pt[k], n_slot
 
 	def set_goals(self, actions, dests=None):

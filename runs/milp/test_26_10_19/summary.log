@@ -1,0 +1,9 @@
+[21:51:32] done 901 hull: nodes 48 steps 140.0 gap 0.3571 bound 90.0 sec 600.0
+[21:51:32] done 901 base: nodes 99 steps 160.0 gap 0.5 bound 80.0 sec 600.0
+[21:51:32] done 901 hullmc: nodes 48 steps 170.0 gap 0.5294 bound 80.0 sec 600.0
+[21:51:32] done 901 mc: nodes 99 steps None gap None bound 71.4 sec 600.1
+[22:01:34] done 903 hull: nodes 41 steps 120.0 gap 0.1667 bound 100.0 sec 600.0
+[22:01:34] done 903 base: nodes 81 steps None gap None bound 80.0 sec 600.0
+[22:01:34] done 903 hullmc: nodes 41 steps None gap None bound 80.0 sec 600.0
+[22:01:36] done 903 mc: nodes 81 steps None gap None bound 64.3 sec 600.3
+ALLDONE 22:01:36

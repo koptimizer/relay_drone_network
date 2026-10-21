@@ -75,6 +75,81 @@ def plain_manager(env):
 	return acts
 
 
+def order_manager(env, order="far"):
+	"""규칙 상위의 목표 선택 전략 변형: 선두가 어떤 수요지를 먼저 맡을지 정하는 규칙만 바꾼다.
+
+	near = 최근접(기본), far = 거점에서 가장 먼 곳 먼저, sweep = 거점 기준 각도 순으로 훑기.
+	사슬을 매번 다시 세우는 비용을 줄이는 것이 목적이고, 중계 배정과 복구는 그대로다.
+	"""
+	N = env.num_drones
+	acts = np.zeros(N, dtype=np.int64)
+	dst = -np.ones(N, dtype=np.int64)
+	act = np.flatnonzero(env.dests_active)
+	if len(act) == 0:
+		return acts, dst
+	d0 = np.linalg.norm(env.dests_pos[act] - env.cc_pos, axis=1)
+	if order == "far":
+		rank = act[np.argsort(-d0)]
+	elif order == "sweep":
+		ang = np.arctan2(env.dests_pos[act, 1] - env.cc_pos[1], env.dests_pos[act, 0] - env.cc_pos[0])
+		# 현재 선두 방향에서 시작해 같은 회전 방향으로 훑는다
+		reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+		tip = int(np.argmax(reach))
+		a0 = float(np.arctan2(env.drones_pos[tip, 1] - env.cc_pos[1], env.drones_pos[tip, 0] - env.cc_pos[0]))
+		rank = act[np.argsort((ang - a0) % (2 * np.pi))]
+	else:
+		rank = act[np.argsort(d0)]
+	taken = set()
+	for i in range(N):
+		if env.drones_capacity[i] == 0:
+			acts[i] = env.n_cand
+			continue
+		j = next((int(x) for x in rank if int(x) not in taken), -1)
+		if j < 0:
+			acts[i] = env.n_cand + 1
+		else:
+			acts[i], dst[i] = 0, j
+			taken.add(j)
+	# 중계: 선두가 닿을 거리에 맞춰 필요한 만큼
+	reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+	live = [i for i in range(N) if dst[i] >= 0]
+	if live:
+		tip = max(live, key=lambda i: float(np.linalg.norm(env.dests_pos[dst[i]] - env.cc_pos)))
+		d = max(float(reach[tip]), float(np.linalg.norm(env.dests_pos[dst[tip]] - env.cc_pos)))
+		need = min(max(1, int(np.ceil(d / (env.relay_beta * env.comm_range)))) - 1, N - 1)
+		for i in [j for j in np.argsort(-reach) if j != tip][:need]:
+			acts[i], dst[i] = env.n_cand + 1, -1
+	return acts, dst
+
+
+def order_escape_manager(order="far", k_stall=None, hold=None, mode=None):
+	"""order_manager 에 기하 규칙과 같은 교착 복구를 씌운다."""
+	k_stall = ESC_K if k_stall is None else k_stall
+	hold = ESC_HOLD if hold is None else hold
+	mode = ESC_MODE if mode is None else mode
+	st = {"esc": 0, "n": 0}
+
+	def fn(env):
+		if env.current_step <= 1:
+			st["esc"], st["n"] = 0, 0
+		if env.deadlock_run >= k_stall and st["esc"] == 0:
+			st["esc"], st["n"] = hold, st["n"] + 1
+		acts, dst = order_manager(env, order)
+		if st["esc"] > 0:
+			st["esc"] -= 1
+			reach = np.linalg.norm(env.drones_pos - env.cc_pos, axis=1)
+			tip = int(np.argmax(reach - 1e6 * (env.drones_capacity == 0)))
+			order_r = list(np.argsort(-reach))
+			new_tip = order_r[min(st["n"], len(order_r) - 1)]
+			acts[tip], dst[tip] = env.n_cand, -1
+			if env.drones_capacity[new_tip] > 0:
+				a2, d2 = order_manager(env, order)
+				if d2[new_tip] >= 0:
+					acts[new_tip], dst[new_tip] = 0, d2[new_tip]
+		return acts, dst
+	return fn
+
+
 def straight_worker(env):
 	"""하위 목표를 향해 최대 추력으로 직진한다."""
 	g = env.goal_pos - env.drones_pos

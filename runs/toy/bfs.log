@@ -1,0 +1,35 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M= 3 seed 901: MILP 110 (재생 106, gap 0.0) | 휴리스틱 121 | 학습 중앙 114 (111-270) 완주 30/30
+M= 3 seed 902: MILP 80 (재생 76, gap 0.0) | 휴리스틱 67 | 학습 중앙 58 (56-202) 완주 30/30
+M= 3 seed 903: MILP 90 (재생 87, gap 0.0) | 휴리스틱 93 | 학습 중앙 88 (80-102) 완주 30/30
+M= 3 seed 904: MILP 120 (재생 112, gap 0.0) | 휴리스틱 111 | 학습 중앙 111 (101-311) 완주 30/30
+M= 3 seed 905: MILP 110 (재생 110, gap 0.0) | 휴리스틱 105 | 학습 중앙 106 (105-230) 완주 30/30
+M= 3 seed 906: MILP 120 (재생 113, gap 0.0) | 휴리스틱 122 | 학습 중앙 122 (100-232) 완주 30/30
+M= 3 seed 907: MILP 50 (재생 52, gap 0.0) | 휴리스틱 68 | 학습 중앙 51 (40-62) 완주 30/30
+M= 3 seed 908: MILP 60 (재생 55, gap 0.0) | 휴리스틱 77 | 학습 중앙 62 (58-74) 완주 30/30
+M= 3 seed 909: MILP 80 (재생 82, gap 0.0) | 휴리스틱 80 | 학습 중앙 76 (60-104) 완주 30/30
+M= 3 seed 910: MILP 70 (재생 73, gap 0.0) | 휴리스틱 62 | 학습 중앙 50 (50-75) 완주 30/30
+M= 4 seed 901: MILP 120 (재생 118, gap 0.0) | 휴리스틱 145 | 학습 중앙 139 (114-196) 완주 30/30
+M= 4 seed 902: MILP 100 (재생 95, gap 0.0) | 휴리스틱 100 | 학습 중앙 100 (73-128) 완주 30/30
+M= 4 seed 903: MILP 120 (재생 117, gap 0.0) | 휴리스틱 121 | 학습 중앙 119 (110-121) 완주 30/30
+M= 4 seed 904: MILP 150 (재생 None, gap 0.0) | 휴리스틱 127 | 학습 중앙 120 (117-130) 완주 30/30
+M= 4 seed 905: MILP 110 (재생 109, gap 0.0) | 휴리스틱 118 | 학습 중앙 119 (109-197) 완주 30/30
+M= 4 seed 906: MILP 120 (재생 113, gap 0.0) | 휴리스틱 123 | 학습 중앙 114 (113-169) 완주 30/30
+M= 4 seed 907: MILP 100 (재생 97, gap 0.0) | 휴리스틱 124 | 학습 중앙 108 (87-115) 완주 30/30
+M= 4 seed 908: MILP 90 (재생 85, gap 0.0) | 휴리스틱 96 | 학습 중앙 86 (81-104) 완주 30/30
+M= 4 seed 909: MILP 100 (재생 98, gap 0.0) | 휴리스틱 106 | 학습 중앙 96 (85-120) 완주 30/30
+M= 4 seed 910: MILP 90 (재생 87, gap 0.0) | 휴리스틱 79 | 학습 중앙 77 (67-105) 완주 30/30
+M= 5 seed 901: MILP 150 (재생 156, gap 0.0) | 휴리스틱 171 | 학습 중앙 185 (154-316) 완주 30/30
+M= 5 seed 902: MILP 110 (재생 105, gap 0.0) | 휴리스틱 137 | 학습 중앙 114 (93-157) 완주 30/30
+M= 5 seed 903: MILP 120 (재생 116, gap 0.0) | 휴리스틱 133 | 학습 중앙 133 (114-168) 완주 30/30
+M= 5 seed 904: MILP 160 (재생 None, gap 0.0) | 휴리스틱 138 | 학습 중앙 130 (128-148) 완주 30/30
+M= 5 seed 905: MILP 130 (재생 128, gap 0.0) | 휴리스틱 134 | 학습 중앙 137 (126-233) 완주 30/30
+M= 5 seed 906: MILP 120 (재생 113, gap 0.0) | 휴리스틱 124 | 학습 중앙 138 (107-193) 완주 30/30
+M= 5 seed 907: MILP 110 (재생 114, gap 0.0) | 휴리스틱 146 | 학습 중앙 122 (108-132) 완주 30/30
+M= 5 seed 908: MILP 100 (재생 96, gap 0.0) | 휴리스틱 101 | 학습 중앙 93 (88-106) 완주 30/30
+M= 5 seed 909: MILP 120 (재생 117, gap 0.0) | 휴리스틱 143 | 학습 중앙 132 (106-178) 완주 30/30
+M= 5 seed 910: MILP 90 (재생 87, gap 0.0) | 휴리스틱 110 | 학습 중앙 98 (72-98) 완주 30/30
+저장: /home/kopt/drone/figures/toy_bfs_v5_26_10_19_22.csv

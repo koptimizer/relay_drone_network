@@ -1,0 +1,11 @@
+seed,optimal plan (MILP/BFS) makespan,optimal plan (MILP/BFS) dist,optimal plan (MILP/BFS) served,rule makespan,rule dist,rule served,search heuristic (ILS) makespan,search heuristic (ILS) dist,search heuristic (ILS) served,learned policy makespan,learned policy dist,learned policy served,optimal plan (MILP/BFS) audit,rule audit,search heuristic (ILS) audit,learned policy audit
+901,170,4247,6,250,5474,6,190,4427,6,240,5355,6,move0/conn0,move0/conn0,move0/conn0,move0/conn0
+902,120,3334,6,200,4915,6,170,3417,6,200,4323,6,move0/conn0,move0/conn0,move0/conn0,move0/conn0
+903,130,3504,6,250,4478,6,160,4255,6,210,4283,6,move0/conn3,move0/conn0,move0/conn0,move0/conn0
+904,180,3390,6,,3791,5,230,3537,6,260,4243,6,move0/conn0,move0/conn0,move0/conn0,move0/conn0
+905,140,3452,6,230,5544,6,150,3386,6,230,5191,6,move0/conn0,move0/conn0,move0/conn0,move0/conn0
+906,150,4150,6,240,4532,6,180,4610,6,250,5331,6,move0/conn0,move0/conn0,move0/conn0,move0/conn0
+907,130,3639,6,220,4771,6,180,3756,6,200,4315,6,move1/conn0,move0/conn0,move0/conn0,move0/conn0
+908,110,2694,6,180,5121,6,140,3689,6,180,4188,6,move0/conn0,move0/conn0,move0/conn0,move0/conn0
+909,140,3696,6,200,4825,6,190,4525,6,290,4954,6,move0/conn2,move0/conn0,move0/conn0,move0/conn0
+910,120,3061,6,220,4622,6,130,2901,6,200,3909,6,move1/conn0,move0/conn0,move0/conn0,move0/conn0

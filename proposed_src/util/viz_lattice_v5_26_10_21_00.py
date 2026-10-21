@@ -140,6 +140,8 @@ def main():
 		plan = np.load(jf.replace(".json", "_plan.npy"), allow_pickle=True).item()["plan"]
 		env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=4000,
 		                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=N, num_dests=M)
+		if "capacity" in d:
+			env.max_capacity = int(d["capacity"])
 		env.reset()
 		cc, dests = sample_instance(M, seed=seed, num_drones=N, comm_range=300.0, cc_pos=None)
 		ell, sp = env.max_speed * kappa, float(d["spacing"])

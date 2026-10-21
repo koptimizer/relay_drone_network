@@ -1,0 +1,97 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  rep0 seed901: 규칙 1481 학습 1152
+  rep0 seed902: 규칙 1675 학습 1112
+  rep0 seed903: 규칙 1375 학습 1004
+  rep0 seed904: 규칙 1157 학습 1133
+  rep0 seed905: 규칙 1666 학습 1149
+  rep0 seed906: 규칙 1958 학습 1309
+  rep0 seed907: 규칙 1367 학습 1163
+  rep0 seed908: 규칙 1089 학습 933
+  rep0 seed909: 규칙 1027 학습 951
+  rep0 seed910: 규칙 1160 학습 1077
+  rep0 seed911: 규칙 1087 학습 1069
+  rep0 seed912: 규칙 1530 학습 1257
+  rep0 seed913: 규칙 1301 학습 1036
+  rep0 seed914: 규칙 1349 학습 1149
+  rep0 seed915: 규칙 1286 학습 1117
+  rep0 seed916: 규칙 968 학습 1001
+  rep0 seed917: 규칙 935 학습 983
+  rep0 seed918: 규칙 1412 학습 1249
+  rep0 seed919: 규칙 1537 학습 1210
+  rep0 seed920: 규칙 1078 학습 961
+  rep0 seed921: 규칙 958 학습 917
+  rep0 seed922: 규칙 1277 학습 1120
+  rep0 seed923: 규칙 1641 학습 1263
+  rep0 seed924: 규칙 1193 학습 1046
+  rep0 seed925: 규칙 1247 학습 1058
+  rep0 seed926: 규칙 916 학습 931
+  rep0 seed927: 규칙 1532 학습 1292
+  rep0 seed928: 규칙 1051 학습 897
+  rep0 seed929: 규칙 988 학습 912
+  rep0 seed930: 규칙 1258 학습 1096
+  rep0 seed931: 규칙 1072 학습 948
+  rep0 seed932: 규칙 1206 학습 1051
+  rep0 seed933: 규칙 1234 학습 1166
+  rep0 seed934: 규칙 1284 학습 1141
+  rep0 seed935: 규칙 1026 학습 986
+  rep0 seed936: 규칙 1029 학습 1077
+  rep0 seed937: 규칙 898 학습 1107
+  rep0 seed938: 규칙 1272 학습 1068
+  rep0 seed939: 규칙 1310 학습 1058
+  rep0 seed940: 규칙 1128 학습 944
+  rep1 seed901: 규칙 1413 학습 1445
+  rep1 seed902: 규칙 1568 학습 1115
+  rep1 seed903: 규칙 1285 학습 1053
+  rep1 seed904: 규칙 938 학습 980
+  rep1 seed905: 규칙 1565 학습 1130
+  rep1 seed906: 규칙 1712 학습 1357
+  rep1 seed907: 규칙 1550 학습 1223
+  rep1 seed908: 규칙 1094 학습 1068
+  rep1 seed909: 규칙 1066 학습 1030
+  rep1 seed910: 규칙 1279 학습 1185
+  rep1 seed911: 규칙 1103 학습 1087
+  rep1 seed912: 규칙 1524 학습 1352
+  rep1 seed913: 규칙 1136 학습 1025
+  rep1 seed914: 규칙 1353 학습 1067
+  rep1 seed915: 규칙 1302 학습 1130
+  rep1 seed916: 규칙 910 학습 913
+  rep1 seed917: 규칙 940 학습 932
+  rep1 seed918: 규칙 1580 학습 1245
+  rep1 seed919: 규칙 1469 학습 1323
+  rep1 seed920: 규칙 999 학습 917
+  rep1 seed921: 규칙 1016 학습 1017
+  rep1 seed922: 규칙 1253 학습 1054
+  rep1 seed923: 규칙 1582 학습 1383
+  rep1 seed924: 규칙 1252 학습 1101
+  rep1 seed925: 규칙 1128 학습 1057
+  rep1 seed926: 규칙 936 학습 945
+  rep1 seed927: 규칙 1405 학습 1271
+  rep1 seed928: 규칙 963 학습 897
+  rep1 seed929: 규칙 1027 학습 1045
+  rep1 seed930: 규칙 1344 학습 1180
+  rep1 seed931: 규칙 1027 학습 967
+  rep1 seed932: 규칙 1275 학습 1043
+  rep1 seed933: 규칙 1155 학습 1150
+  rep1 seed934: 규칙 1372 학습 1015
+  rep1 seed935: 규칙 992 학습 983
+  rep1 seed936: 규칙 1035 학습 978
+  rep1 seed937: 규칙 948 학습 941
+  rep1 seed938: 규칙 1397 학습 1079
+  rep1 seed939: 규칙 1519 학습 1080
+  rep1 seed940: 규칙 1436 학습 951
+
+롤아웃 80개 (시드 901~940 x 2회, 드론 10 목적지 300)
+완주: 규칙+탈출 80 · 학습 80 · 둘 다 80
+
+[편향된 비교] 각자 완주한 것만 평균
+  규칙+탈출 1248   학습 1085   차이 -162
+
+[쌍별 비교] 둘 다 완주한 80개
+  규칙+탈출 1248   학습 1085   쌍별 차이 -162 (중앙값 -152)
+  학습이 빠른 경우 69 · 느린 경우 11 · 동점 0
+  윌콕슨 부호순위 p=0.0000
+
+저장: /home/kopt/drone/figures/paired_gen_d10m300_A4s1_v5_26_10_18_06.csv

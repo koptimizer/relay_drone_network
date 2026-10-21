@@ -1,0 +1,12 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[규칙+탈출] 배송 4/4 makespan 121 스텝
+[격자] 기간 10스텝(10초) 이동거리 138.9m 간격 98.2m 노드 81개 (목적지 4, 격자 76) 지평선 15기간
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Academic license 2561211 - for non-commercial use only - registered to ko___@korea.ac.kr
+[모형] 변수 85999 (이진 4113) 제약 93979 생성 1초
+[결과] 실행 가능해를 찾지 못했다
