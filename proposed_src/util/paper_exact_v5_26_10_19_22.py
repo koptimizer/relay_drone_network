@@ -97,12 +97,16 @@ def fig(d):
 		ax.errorbar(x + 0.18, lm, yerr=[np.maximum(0, lm - q1), np.maximum(0, q3 - lm)], fmt="^", ms=4,
 		            color=C_L, lw=0.8, capsize=1.5, label="learned, median (IQR of 30)")
 		# 축은 중앙값 기준으로 맞추고, 사분위 수염이 밖으로 나가면 잘라 표시한다
+		# 축은 최적·규칙·두 탐색으로 잡고, 학습 정책의 중앙값이나 수염이 벗어나면 상단 가장자리에 표시한다
 		vals = np.concatenate([[d[k]["opt"] for k in ks], [d[k]["rule"] for k in ks],
-		                       [d[k]["meta"] for k in ks], lm])
-		lo, hi = np.nanmin(vals) * 0.88, np.nanmax(vals) * 1.12
+		                       [d[k]["meta"] for k in ks], [d[k]["task"] for k in ks]])
+		lo, hi = np.nanmin(vals) * 0.88, np.nanmax(vals) * 1.15
 		ax.set_ylim(lo, hi)
-		for xi, q in zip(x + 0.18, q3):
-			if q > hi:
+		for xi, med, q in zip(x + 0.18, lm, q3):
+			if med > hi:
+				ax.plot([xi], [hi], marker="^", ms=5, color=C_L, clip_on=False)
+				ax.annotate(f"{med:.0f}", (xi, hi), xytext=(0, 3), textcoords="offset points", ha="center", fontsize=5.5, color=C_L)
+			elif q > hi:
 				ax.plot([xi], [hi], marker="^", ms=3, color=C_L, clip_on=False, alpha=0.5)
 		ax.set_title(f"$M$ = {M}" + (" ($Q$ = 2)" if M >= 7 else ""), fontsize=8); ax.set_xticks(x); ax.tick_params(labelsize=7)
 		ax.set_xlabel("instance", fontsize=7.5)
