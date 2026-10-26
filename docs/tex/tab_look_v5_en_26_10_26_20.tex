@@ -1,0 +1,11 @@
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+config. & inst. & rule & lookahead & learned & \multicolumn{2}{c}{vs rule} & \multicolumn{2}{c}{vs learned} & time \\
+\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+ & & & & & W--L & $p$ & W--L & $p$ & s/inst. \\
+\midrule
+3/30 & 40 & 600 (40/40) & 487 (40/40) & 620 (200/200) & 40--0 & $<10^{-4}$ & 39--1 & $<10^{-4}$ & 59 \\
+4/50 & 60 & 926 (59/60) & 690 (60/60) & 880 (480/480) & 59--0 & $<10^{-4}$ & 59--0 & $<10^{-4}$ & 302 \\
+5/50 & 40 & 669 (39/40) & 466 (40/40) & 536 (200/200) & 39--0 & $<10^{-4}$ & 38--1 & $<10^{-4}$ & 361 \\
+\bottomrule
+\end{tabular}%

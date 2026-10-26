@@ -114,6 +114,11 @@ P.add_argument("--pool", default="",
                help="교사 풀 JSON glob. 주면 에피소드마다 이 풀의 인스턴스를 뽑는다 (N, M, Q, 무작위 거점)")
 P.add_argument("--teacher", action="store_true",
                help="정규화 목표를 규칙 대신 풀의 탐색 휴리스틱 순서가 그 상태에서 내릴 옵션으로 바꾼다 (26-10-21)")
+P.add_argument("--capacity", type=int, default=0, help="0이면 환경 기본 용량. 양수면 모든 에피소드의 적재 용량")
+P.add_argument("--reload-above", type=int, default=0,
+               help="무작위 구성에서 목적지 수가 이 값을 넘으면 용량 2 (재적재 강제). 0이면 끔 (26-10-26, 사이클 30)")
+P.add_argument("--holdout-lattice", action="store_true",
+               help="홀드아웃을 격자 결정 공간(드론 3, 목적지 3-8, 거점 고정)에서 잰다. 관문 지표 = 최종 지표(격자 makespan)")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -327,8 +332,55 @@ def part_score(st):
 	return full, steps, 100.0 * full + (A.holdout_steps - steps) / A.holdout_steps * A.speed_weight
 
 
+def capacity_for(m):
+	"""목적지 수 m 인 에피소드의 적재 용량 (0이면 환경 기본값 유지)."""
+	if A.capacity > 0:
+		return A.capacity
+	if A.reload_above > 0 and m > A.reload_above:
+		return 2
+	return 0
+
+
+def holdout_lattice(actor, dev):
+	"""격자 결정 공간 홀드아웃: 드론 3, 목적지 3-8 (각 eval_n/6 건), 거점 고정, 시드는 정확해 인스턴스(901-910)와 겹치지 않는다."""
+	from pipeline.milp_v5_26_09_21_03 import build_nodes
+	from util.lattice_eval_v5_26_10_20_17 import hop_table, run as lat_run
+	st = []
+	kappa = 10
+	for i in range(A.eval_n):
+		m = 3 + i % 6
+		seed = A.eval_seed0 + 1800 + i
+		env = make_env(3, m)
+		q = capacity_for(m)
+		if q:
+			env.max_capacity = q
+		env.max_steps = A.holdout_steps
+		env.reset()
+		cc, d = sample_instance(m, seed=seed, num_drones=3, comm_range=env.comm_range, cc_pos=None)
+		ell = env.max_speed * kappa
+		sp = ell / np.sqrt(2.0)
+		pos, _nd = build_nodes(cc, d, ell, sp, env.comm_range, 3, hull_margin=sp / np.sqrt(2.0))
+		Dm = np.linalg.norm(pos[:, None, :] - pos[None, :, :], axis=2)
+		Aset = [np.flatnonzero(Dm[k] <= ell + 1e-6) for k in range(len(pos))]
+		ms = lat_run(env, lambda e: act(e, actor, dev)[0], seed, pos, Aset, kappa, hop_table(Aset, len(pos)))
+		s = env.episode_stats()
+		s["makespan"] = ms
+		s["steps"] = ms if ms else A.holdout_steps
+		st.append(s)
+	return st
+
+
 def holdout(actor, dev):
 	"""표준 구성(드론 4·목적지 50·CC 고정)에서 샘플링 평가. --holdout-mix면 절반을 3/30 무작위 CC로."""
+	if A.holdout_lattice:
+		st = holdout_lattice(actor, dev)
+		g = lambda k: float(np.mean([s[k] for s in st]))
+		out = {"delivered": g("delivered"), "delivered_sd": float(np.std([s["delivered"] for s in st])),
+		       "reloads": g("reloads"), "hop2plus": g("hop2plus"), "max_reach": g("max_reach"),
+		       "full": float(np.mean([1.0 if s["makespan"] else 0.0 for s in st])), "steps": g("steps")}
+		out["score"] = (100.0 * out["full"] + (A.holdout_steps - out["steps"]) / A.holdout_steps * A.speed_weight
+		                if A.select == "makespan" else out["delivered"])
+		return out
 	env = make_env(4, 50)
 	env.max_steps = A.holdout_steps
 	n2 = A.eval_n // 2 if A.holdout_mix else 0
@@ -454,6 +506,8 @@ def main():
 			                            drone_weights=A.drone_weights)
 			if (n, m) != (env.num_drones, env.num_dests):
 				env = make_env(n, m)
+			if capacity_for(m):
+				env.max_capacity = capacity_for(m)
 			env.cc_pos, env.dests_pos = cc, d
 		elif not A.fixed_instance:
 			env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=int(inst_rng.integers(0, 2 ** 31 - 1)),

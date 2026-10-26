@@ -6,208 +6,336 @@
   \def\href#1#2{#2} \def\path#1{#1}\fi
 
 \bibitem{chowdhury2017}
-S.~Chowdhury, A.~Emelogu, M.~Marufuzzaman, S.~G. Nurre, L.~Bian, Drones for disaster response and relief operations: A continuous approximation model, International Journal of Production Economics 188 (2017) 167--184.
+S.~Chowdhury, A.~Emelogu, M.~Marufuzzaman, S.~G. Nurre, L.~Bian, Drones for
+  disaster response and relief operations: A continuous approximation model,
+  International Journal of Production Economics 188 (2017) 167--184.
 
 \bibitem{rabta2018}
-B.~Rabta, C.~Wankm{\"u}ller, G.~Reiner, A drone fleet model for last-mile distribution in disaster relief operations, International Journal of Disaster Risk Reduction 28 (2018) 107--112.
+B.~Rabta, C.~Wankm{\"u}ller, G.~Reiner, A drone fleet model for last-mile
+  distribution in disaster relief operations, International Journal of Disaster
+  Risk Reduction 28 (2018) 107--112.
 
 \bibitem{erdelj2017}
-M.~Erdelj, E.~Natalizio, K.~R. Chowdhury, I.~F. Akyildiz, Help from the sky: Leveraging {UAVs} for disaster management, IEEE Pervasive Computing 16~(1) (2017) 24--32.
+M.~Erdelj, E.~Natalizio, K.~R. Chowdhury, I.~F. Akyildiz, Help from the sky:
+  Leveraging {UAVs} for disaster management, IEEE Pervasive Computing 16~(1)
+  (2017) 24--32.
 
 \bibitem{kim2017}
-S.~J. Kim, G.~J. Lim, J.~Cho, M.~J. C{\^o}t{\'e}, Drone-aided healthcare services for patients with chronic diseases in rural areas, Journal of Intelligent \& Robotic Systems 88 (2017) 163--180.
+S.~J. Kim, G.~J. Lim, J.~Cho, M.~J. C{\^o}t{\'e}, Drone-aided healthcare
+  services for patients with chronic diseases in rural areas, Journal of
+  Intelligent \& Robotic Systems 88 (2017) 163--180.
 
 \bibitem{ghelichi2021}
-Z.~Ghelichi, M.~Gentili, P.~B. Mirchandani, Logistics for a fleet of drones for medical item delivery: A case study for {Louisville, KY}, Computers \& Operations Research 135 (2021) 105443.
+Z.~Ghelichi, M.~Gentili, P.~B. Mirchandani, Logistics for a fleet of drones for
+  medical item delivery: A case study for {Louisville, KY}, Computers \&
+  Operations Research 135 (2021) 105443.
 
 \bibitem{murray2015}
-C.~C. Murray, A.~G. Chu, The flying sidekick traveling salesman problem: Optimization of drone-assisted parcel delivery, Transportation Research Part C: Emerging Technologies 54 (2015) 86--109.
-\newblock \href {https://doi.org/10.1016/j.trc.2015.03.005} {\path{doi:10.1016/j.trc.2015.03.005}}.
+C.~C. Murray, A.~G. Chu, The flying sidekick traveling salesman problem:
+  Optimization of drone-assisted parcel delivery, Transportation Research Part
+  C: Emerging Technologies 54 (2015) 86--109.
+\newblock \href {https://doi.org/10.1016/j.trc.2015.03.005}
+  {\path{doi:10.1016/j.trc.2015.03.005}}.
 
 \bibitem{otto2018}
-A.~Otto, N.~Agatz, J.~Campbell, B.~Golden, E.~Pesch, Optimization approaches for civil applications of unmanned aerial vehicles ({UAVs}) or aerial drones: A survey, Networks 72~(4) (2018) 411--458.
+A.~Otto, N.~Agatz, J.~Campbell, B.~Golden, E.~Pesch, Optimization approaches
+  for civil applications of unmanned aerial vehicles ({UAVs}) or aerial drones:
+  A survey, Networks 72~(4) (2018) 411--458.
 
 \bibitem{macrina2020}
-G.~Macrina, L.~Di~Puglia~Pugliese, F.~Guerriero, G.~Laporte, Drone-aided routing: A literature review, Transportation Research Part C: Emerging Technologies 120 (2020) 102762.
+G.~Macrina, L.~Di~Puglia~Pugliese, F.~Guerriero, G.~Laporte, Drone-aided
+  routing: A literature review, Transportation Research Part C: Emerging
+  Technologies 120 (2020) 102762.
 
 \bibitem{chung2020}
-S.~H. Chung, B.~Sah, J.~Lee, Optimization for drone and drone-truck combined operations: A review of the state of the art and future directions, Computers \& Operations Research 123 (2020) 105004.
+S.~H. Chung, B.~Sah, J.~Lee, Optimization for drone and drone-truck combined
+  operations: A review of the state of the art and future directions, Computers
+  \& Operations Research 123 (2020) 105004.
 
 \bibitem{zeng2016}
-Y.~Zeng, R.~Zhang, T.~J. Lim, Throughput maximization for {UAV}-enabled mobile relaying systems, IEEE Transactions on Communications 64~(12) (2016) 4983--4996.
-\newblock \href {https://doi.org/10.1109/TCOMM.2016.2611512} {\path{doi:10.1109/TCOMM.2016.2611512}}.
+Y.~Zeng, R.~Zhang, T.~J. Lim, Throughput maximization for {UAV}-enabled mobile
+  relaying systems, IEEE Transactions on Communications 64~(12) (2016)
+  4983--4996.
+\newblock \href {https://doi.org/10.1109/TCOMM.2016.2611512}
+  {\path{doi:10.1109/TCOMM.2016.2611512}}.
 
 \bibitem{mozaffari2019}
-M.~Mozaffari, W.~Saad, M.~Bennis, Y.-H. Nam, M.~Debbah, A tutorial on {UAVs} for wireless networks: Applications, challenges, and open problems, IEEE Communications Surveys \& Tutorials 21~(3) (2019) 2334--2360.
+M.~Mozaffari, W.~Saad, M.~Bennis, Y.-H. Nam, M.~Debbah, A tutorial on {UAVs}
+  for wireless networks: Applications, challenges, and open problems, IEEE
+  Communications Surveys \& Tutorials 21~(3) (2019) 2334--2360.
 
 \bibitem{burdakov2010}
-O.~Burdakov, P.~Doherty, K.~Holmberg, J.~Kvarnstr{\"o}m, P.-M. Olsson, Relay positioning for unmanned aerial vehicle surveillance, The International Journal of Robotics Research 29~(8) (2010) 1069--1087.
+O.~Burdakov, P.~Doherty, K.~Holmberg, J.~Kvarnstr{\"o}m, P.-M. Olsson, Relay
+  positioning for unmanned aerial vehicle surveillance, The International
+  Journal of Robotics Research 29~(8) (2010) 1069--1087.
 
 \bibitem{zavlanos2011}
-M.~M. Zavlanos, M.~B. Egerstedt, G.~J. Pappas, Graph-theoretic connectivity control of mobile robot networks, Proceedings of the IEEE 99~(9) (2011) 1525--1540.
+M.~M. Zavlanos, M.~B. Egerstedt, G.~J. Pappas, Graph-theoretic connectivity
+  control of mobile robot networks, Proceedings of the IEEE 99~(9) (2011)
+  1525--1540.
 
 \bibitem{dixon2009}
-C.~Dixon, E.~W. Frew, Maintaining optimal communication chains in robotic sensor networks using mobility control, Mobile Networks and Applications 14~(3) (2009) 281--291.
+C.~Dixon, E.~W. Frew, Maintaining optimal communication chains in robotic
+  sensor networks using mobility control, Mobile Networks and Applications
+  14~(3) (2009) 281--291.
 
 \bibitem{ford1962}
-L.~R. Ford, D.~R. Fulkerson, Flows in Networks, Princeton University Press, Princeton, NJ, 1962.
+L.~R. Ford, D.~R. Fulkerson, Flows in Networks, Princeton University Press,
+  Princeton, NJ, 1962.
 
 \bibitem{skutella2009}
-M.~Skutella, An introduction to network flows over time, in: Research Trends in Combinatorial Optimization, Springer, Berlin, 2009, pp. 451--482.
+M.~Skutella, An introduction to network flows over time, in: Research Trends in
+  Combinatorial Optimization, Springer, Berlin, 2009, pp. 451--482.
 
 \bibitem{roberti2021}
-R.~Roberti, M.~Ruthmair, Exact methods for the traveling salesman problem with drone, Transportation Science 55~(2) (2021) 315--335.
+R.~Roberti, M.~Ruthmair, Exact methods for the traveling salesman problem with
+  drone, Transportation Science 55~(2) (2021) 315--335.
 
 \bibitem{haarnoja2018}
-T.~Haarnoja, A.~Zhou, P.~Abbeel, S.~Levine, Soft actor-critic: Off-policy maximum entropy deep reinforcement learning with a stochastic actor, in: Proceedings of the 35th International Conference on Machine Learning, 2018, pp. 1861--1870.
+T.~Haarnoja, A.~Zhou, P.~Abbeel, S.~Levine, Soft actor-critic: Off-policy
+  maximum entropy deep reinforcement learning with a stochastic actor, in:
+  Proceedings of the 35th International Conference on Machine Learning, 2018,
+  pp. 1861--1870.
 
 \bibitem{kool2019}
-W.~Kool, H.~van Hoof, M.~Welling, Attention, learn to solve routing problems!, in: Proceedings of the 7th International Conference on Learning Representations, 2019.
+W.~Kool, H.~van Hoof, M.~Welling, Attention, learn to solve routing problems!,
+  in: Proceedings of the 7th International Conference on Learning
+  Representations, 2019.
 
 \bibitem{park2023}
-J.~Park, C.~Kwon, J.~Park, Learn to solve the min-max multiple traveling salesmen problem with reinforcement learning, in: Proceedings of the 22nd International Conference on Autonomous Agents and Multiagent Systems, 2023, pp. 878--886.
+J.~Park, C.~Kwon, J.~Park, Learn to solve the min-max multiple traveling
+  salesmen problem with reinforcement learning, in: Proceedings of the 22nd
+  International Conference on Autonomous Agents and Multiagent Systems, 2023,
+  pp. 878--886.
 
 \bibitem{dantzig1959}
-G.~B. Dantzig, J.~H. Ramser, The truck dispatching problem, Management Science 6~(1) (1959) 80--91.
+G.~B. Dantzig, J.~H. Ramser, The truck dispatching problem, Management Science
+  6~(1) (1959) 80--91.
 
 \bibitem{toth2014}
-P.~Toth, D.~Vigo (Eds.), Vehicle Routing: Problems, Methods, and Applications, 2nd Edition, SIAM, Philadelphia, PA, 2014.
+P.~Toth, D.~Vigo (Eds.), Vehicle Routing: Problems, Methods, and Applications,
+  2nd Edition, SIAM, Philadelphia, PA, 2014.
 
 \bibitem{kitjacharoenchai2019}
-P.~Kitjacharoenchai, M.~Ventresca, M.~Moshref-Javadi, S.~Lee, J.~M.~A. Tanchoco, P.~A. Brunese, Multiple traveling salesman problem with drones: Mathematical model and heuristic approach, Computers \& Industrial Engineering 129 (2019) 14--30.
+P.~Kitjacharoenchai, M.~Ventresca, M.~Moshref-Javadi, S.~Lee, J.~M.~A.
+  Tanchoco, P.~A. Brunese, Multiple traveling salesman problem with drones:
+  Mathematical model and heuristic approach, Computers \& Industrial
+  Engineering 129 (2019) 14--30.
 
 \bibitem{murray2020}
-C.~C. Murray, R.~Raj, The multiple flying sidekicks traveling salesman problem: Parcel delivery with multiple drones, Transportation Research Part C: Emerging Technologies 110 (2020) 368--398.
-\newblock \href {https://doi.org/10.1016/j.trc.2019.11.003} {\path{doi:10.1016/j.trc.2019.11.003}}.
+C.~C. Murray, R.~Raj, The multiple flying sidekicks traveling salesman problem:
+  Parcel delivery with multiple drones, Transportation Research Part C:
+  Emerging Technologies 110 (2020) 368--398.
+\newblock \href {https://doi.org/10.1016/j.trc.2019.11.003}
+  {\path{doi:10.1016/j.trc.2019.11.003}}.
 
 \bibitem{agatz2018}
-N.~Agatz, P.~Bouman, M.~Schmidt, Optimization approaches for the traveling salesman problem with drone, Transportation Science 52~(4) (2018) 965--981.
-\newblock \href {https://doi.org/10.1287/trsc.2017.0791} {\path{doi:10.1287/trsc.2017.0791}}.
+N.~Agatz, P.~Bouman, M.~Schmidt, Optimization approaches for the traveling
+  salesman problem with drone, Transportation Science 52~(4) (2018) 965--981.
+\newblock \href {https://doi.org/10.1287/trsc.2017.0791}
+  {\path{doi:10.1287/trsc.2017.0791}}.
 
 \bibitem{ha2018}
-Q.~M. Ha, Y.~Deville, Q.~D. Pham, M.~H. H{\`a}, On the min-cost traveling salesman problem with drone, Transportation Research Part C: Emerging Technologies 86 (2018) 597--621.
+Q.~M. Ha, Y.~Deville, Q.~D. Pham, M.~H. H{\`a}, On the min-cost traveling
+  salesman problem with drone, Transportation Research Part C: Emerging
+  Technologies 86 (2018) 597--621.
 
 \bibitem{dell2021}
-M.~Dell'Amico, R.~Montemanni, S.~Novellani, Drone-assisted deliveries: New formulations for the flying sidekick traveling salesman problem, Optimization Letters 15 (2021) 1617--1648.
+M.~Dell'Amico, R.~Montemanni, S.~Novellani, Drone-assisted deliveries: New
+  formulations for the flying sidekick traveling salesman problem, Optimization
+  Letters 15 (2021) 1617--1648.
 
 \bibitem{poikonen2017}
-S.~Poikonen, X.~Wang, B.~Golden, The vehicle routing problem with drones: Extended models and connections, Networks 70~(1) (2017) 34--43.
+S.~Poikonen, X.~Wang, B.~Golden, The vehicle routing problem with drones:
+  Extended models and connections, Networks 70~(1) (2017) 34--43.
 
 \bibitem{sacramento2019}
-D.~Sacramento, D.~Pisinger, S.~Ropke, An adaptive large neighborhood search metaheuristic for the vehicle routing problem with drones, Transportation Research Part C: Emerging Technologies 102 (2019) 289--315.
+D.~Sacramento, D.~Pisinger, S.~Ropke, An adaptive large neighborhood search
+  metaheuristic for the vehicle routing problem with drones, Transportation
+  Research Part C: Emerging Technologies 102 (2019) 289--315.
 
 \bibitem{schermer2019}
-D.~Schermer, M.~Moeini, O.~Wendt, A matheuristic for the vehicle routing problem with drones and its variants, Transportation Research Part C: Emerging Technologies 106 (2019) 166--204.
+D.~Schermer, M.~Moeini, O.~Wendt, A matheuristic for the vehicle routing
+  problem with drones and its variants, Transportation Research Part C:
+  Emerging Technologies 106 (2019) 166--204.
 
 \bibitem{dorling2017}
-K.~Dorling, J.~Heinrichs, G.~G. Messier, S.~Magierowski, Vehicle routing problems for drone delivery, IEEE Transactions on Systems, Man, and Cybernetics: Systems 47~(1) (2017) 70--85.
+K.~Dorling, J.~Heinrichs, G.~G. Messier, S.~Magierowski, Vehicle routing
+  problems for drone delivery, IEEE Transactions on Systems, Man, and
+  Cybernetics: Systems 47~(1) (2017) 70--85.
 
 \bibitem{pillac2013}
-V.~Pillac, M.~Gendreau, C.~Gu{\'e}ret, A.~L. Medaglia, A review of dynamic vehicle routing problems, European Journal of Operational Research 225~(1) (2013) 1--11.
+V.~Pillac, M.~Gendreau, C.~Gu{\'e}ret, A.~L. Medaglia, A review of dynamic
+  vehicle routing problems, European Journal of Operational Research 225~(1)
+  (2013) 1--11.
 
 \bibitem{bekmezci2013}
-{\.I}.~Bekmezci, O.~K. Sahingoz, {\c{S}}.~Temel, Flying ad-hoc networks ({FANETs}): A survey, Ad Hoc Networks 11~(3) (2013) 1254--1270.
+{\.I}.~Bekmezci, O.~K. Sahingoz, {\c{S}}.~Temel, Flying ad-hoc networks
+  ({FANETs}): A survey, Ad Hoc Networks 11~(3) (2013) 1254--1270.
 
 \bibitem{gupta2016}
-L.~Gupta, R.~Jain, G.~Vaszkun, Survey of important issues in {UAV} communication networks, IEEE Communications Surveys \& Tutorials 18~(2) (2016) 1123--1152.
+L.~Gupta, R.~Jain, G.~Vaszkun, Survey of important issues in {UAV}
+  communication networks, IEEE Communications Surveys \& Tutorials 18~(2)
+  (2016) 1123--1152.
 
 \bibitem{tekdas2010}
-O.~Tekdas, W.~Yang, V.~Isler, Robotic routers: Algorithms and implementation, The International Journal of Robotics Research 29~(1) (2010) 110--126.
+O.~Tekdas, W.~Yang, V.~Isler, Robotic routers: Algorithms and implementation,
+  The International Journal of Robotics Research 29~(1) (2010) 110--126.
 
 \bibitem{yanmaz2022}
-E.~Yanmaz, Positioning aerial relays to maintain connectivity during drone team missions, Ad Hoc Networks 128 (2022) 102800.
+E.~Yanmaz, Positioning aerial relays to maintain connectivity during drone team
+  missions, Ad Hoc Networks 128 (2022) 102800.
 
 \bibitem{zavlanos2007}
-M.~M. Zavlanos, G.~J. Pappas, Potential fields for maintaining connectivity of mobile networks, IEEE Transactions on Robotics 23~(4) (2007) 812--816.
+M.~M. Zavlanos, G.~J. Pappas, Potential fields for maintaining connectivity of
+  mobile networks, IEEE Transactions on Robotics 23~(4) (2007) 812--816.
 
 \bibitem{li2021}
-M.~Li, Y.~Jie, Y.~Kong, H.~Cheng, Decentralized global connectivity maintenance for multi-robot navigation: A reinforcement learning approach, arXiv:2109.08536 (2021).
+M.~Li, Y.~Jie, Y.~Kong, H.~Cheng, Decentralized global connectivity maintenance
+  for multi-robot navigation: A reinforcement learning approach,
+  arXiv:2109.08536 (2021).
 
 \bibitem{ding2022}
-R.~Ding, J.~Chen, W.~Wu, J.~Liu, F.~Gao, X.~Shen, Packet routing in dynamic multi-hop {UAV} relay network: A multi-agent learning approach, IEEE Transactions on Vehicular Technology 71~(9) (2022) 10059--10072.
+R.~Ding, J.~Chen, W.~Wu, J.~Liu, F.~Gao, X.~Shen, Packet routing in dynamic
+  multi-hop {UAV} relay network: A multi-agent learning approach, IEEE
+  Transactions on Vehicular Technology 71~(9) (2022) 10059--10072.
 
 \bibitem{mutto2024}
-\href{https://www.sciencedirect.com/science/article/abs/pii/S1570870524002130}{{MUTTO}: Multi-agent reinforcement learning for joint trajectory and transmit power optimisation of relay and mission {UAVs}}, Vehicular Communications (2024).
+\href{https://www.sciencedirect.com/science/article/abs/pii/S1570870524002130}{{MUTTO}:
+  Multi-agent reinforcement learning for joint trajectory and transmit power
+  optimisation of relay and mission {UAVs}}, Vehicular Communications (2024).
 \newline\urlprefix\url{https://www.sciencedirect.com/science/article/abs/pii/S1570870524002130}
 
 \bibitem{maen2024}
 {MAEN}: Multi-agent aerial relay networking, Proceedings of ACM MobiCom (2024).
-\newblock \href {https://doi.org/10.1145/3636534.3694730} {\path{doi:10.1145/3636534.3694730}}.
+\newblock \href {https://doi.org/10.1145/3636534.3694730}
+  {\path{doi:10.1145/3636534.3694730}}.
 
 \bibitem{dehoog2009}
-J.~De~Hoog, S.~Cameron, A.~Visser, Role-based autonomous multi-robot exploration, in: Proceedings of the International Conference on Advanced Cognitive Technologies and Applications, 2009.
+J.~De~Hoog, S.~Cameron, A.~Visser, Role-based autonomous multi-robot
+  exploration, in: Proceedings of the International Conference on Advanced
+  Cognitive Technologies and Applications, 2009.
 
 \bibitem{cesare2015}
-K.~Cesare, R.~Skeele, S.-H. Yoo, Y.~Zhang, G.~Hollinger, Multi-{UAV} exploration with limited communication and battery, in: Proceedings of the IEEE International Conference on Robotics and Automation, 2015, pp. 2230--2235.
-\newblock \href {https://doi.org/10.1109/ICRA.2015.7139494} {\path{doi:10.1109/ICRA.2015.7139494}}.
+K.~Cesare, R.~Skeele, S.-H. Yoo, Y.~Zhang, G.~Hollinger, Multi-{UAV}
+  exploration with limited communication and battery, in: Proceedings of the
+  IEEE International Conference on Robotics and Automation, 2015, pp.
+  2230--2235.
+\newblock \href {https://doi.org/10.1109/ICRA.2015.7139494}
+  {\path{doi:10.1109/ICRA.2015.7139494}}.
 
 \bibitem{boland2017}
-N.~Boland, M.~Hewitt, L.~Marshall, M.~Savelsbergh, The continuous-time service network design problem, Operations Research 65~(5) (2017) 1303--1321.
+N.~Boland, M.~Hewitt, L.~Marshall, M.~Savelsbergh, The continuous-time service
+  network design problem, Operations Research 65~(5) (2017) 1303--1321.
 
 \bibitem{richards2002}
-A.~Richards, J.~P. How, Aircraft trajectory planning with collision avoidance using mixed integer linear programming, in: Proceedings of the American Control Conference, 2002, pp. 1936--1941.
+A.~Richards, J.~P. How, Aircraft trajectory planning with collision avoidance
+  using mixed integer linear programming, in: Proceedings of the American
+  Control Conference, 2002, pp. 1936--1941.
 
 \bibitem{sherali2001}
-H.~D. Sherali, J.~C. Smith, Improving discrete model representations via symmetry considerations, Management Science 47~(10) (2001) 1396--1407.
+H.~D. Sherali, J.~C. Smith, Improving discrete model representations via
+  symmetry considerations, Management Science 47~(10) (2001) 1396--1407.
 
 \bibitem{margot2010}
-F.~Margot, Symmetry in integer linear programming, in: 50 Years of Integer Programming 1958--2008, Springer, Berlin, 2010, pp. 647--686.
+F.~Margot, Symmetry in integer linear programming, in: 50 Years of Integer
+  Programming 1958--2008, Springer, Berlin, 2010, pp. 647--686.
 
 \bibitem{vinyals2015}
-O.~Vinyals, M.~Fortunato, N.~Jaitly, Pointer networks, in: Advances in Neural Information Processing Systems 28, 2015, pp. 2692--2700.
+O.~Vinyals, M.~Fortunato, N.~Jaitly, Pointer networks, in: Advances in Neural
+  Information Processing Systems 28, 2015, pp. 2692--2700.
 
 \bibitem{nazari2018}
-M.~Nazari, A.~Oroojlooy, L.~V. Snyder, M.~Tak{\'a}{\v{c}}, Reinforcement learning for solving the vehicle routing problem, in: Advances in Neural Information Processing Systems 31, 2018, pp. 9839--9849.
+M.~Nazari, A.~Oroojlooy, L.~V. Snyder, M.~Tak{\'a}{\v{c}}, Reinforcement
+  learning for solving the vehicle routing problem, in: Advances in Neural
+  Information Processing Systems 31, 2018, pp. 9839--9849.
 
 \bibitem{bengio2021}
-Y.~Bengio, A.~Lodi, A.~Prouvost, Machine learning for combinatorial optimization: A methodological tour d'horizon, European Journal of Operational Research 290~(2) (2021) 405--421.
+Y.~Bengio, A.~Lodi, A.~Prouvost, Machine learning for combinatorial
+  optimization: A methodological tour d'horizon, European Journal of
+  Operational Research 290~(2) (2021) 405--421.
 
 \bibitem{mazyavkina2021}
-N.~Mazyavkina, S.~Sviridov, S.~Ivanov, E.~Burnaev, Reinforcement learning for combinatorial optimization: A survey, Computers \& Operations Research 134 (2021) 105400.
+N.~Mazyavkina, S.~Sviridov, S.~Ivanov, E.~Burnaev, Reinforcement learning for
+  combinatorial optimization: A survey, Computers \& Operations Research 134
+  (2021) 105400.
 
 \bibitem{guo2024}
-Y.~Guo, Z.~Ren, C.~Wang, {iMTSP}: Solving min-max multiple traveling salesman problem with imperative learning, arXiv:2405.00285 (2024).
+Y.~Guo, Z.~Ren, C.~Wang, {iMTSP}: Solving min-max multiple traveling salesman
+  problem with imperative learning, arXiv:2405.00285 (2024).
 
 \bibitem{zhu2026}
-Y.~Zhu, H.~Xu, A.~A. Malikopoulos, N.~Geroliminis, Dual-mission drone fleets: Delivery with secondary sensing tasks, arXiv:2604.02471 (2026).
+Y.~Zhu, H.~Xu, A.~A. Malikopoulos, N.~Geroliminis, Dual-mission drone fleets:
+  Delivery with secondary sensing tasks, arXiv:2604.02471 (2026).
 
 \bibitem{lowe2017}
-R.~Lowe, Y.~Wu, A.~Tamar, J.~Harb, P.~Abbeel, I.~Mordatch, Multi-agent actor-critic for mixed cooperative-competitive environments, in: Advances in Neural Information Processing Systems 30, 2017, pp. 6379--6390.
+R.~Lowe, Y.~Wu, A.~Tamar, J.~Harb, P.~Abbeel, I.~Mordatch, Multi-agent
+  actor-critic for mixed cooperative-competitive environments, in: Advances in
+  Neural Information Processing Systems 30, 2017, pp. 6379--6390.
 
 \bibitem{foerster2018}
-J.~Foerster, G.~Farquhar, T.~Afouras, N.~Nardelli, S.~Whiteson, Counterfactual multi-agent policy gradients, in: Proceedings of the 32nd AAAI Conference on Artificial Intelligence, 2018, pp. 2974--2982.
+J.~Foerster, G.~Farquhar, T.~Afouras, N.~Nardelli, S.~Whiteson, Counterfactual
+  multi-agent policy gradients, in: Proceedings of the 32nd AAAI Conference on
+  Artificial Intelligence, 2018, pp. 2974--2982.
 
 \bibitem{sunehag2018}
-P.~Sunehag, G.~Lever, A.~Gruslys, W.~M. Czarnecki, V.~Zambaldi, M.~Jaderberg, M.~Lanctot, N.~Sonnerat, J.~Z. Leibo, K.~Tuyls, T.~Graepel, Value-decomposition networks for cooperative multi-agent learning based on team reward, in: Proceedings of the 17th International Conference on Autonomous Agents and Multiagent Systems, 2018, pp. 2085--2087.
+P.~Sunehag, G.~Lever, A.~Gruslys, W.~M. Czarnecki, V.~Zambaldi, M.~Jaderberg,
+  M.~Lanctot, N.~Sonnerat, J.~Z. Leibo, K.~Tuyls, T.~Graepel,
+  Value-decomposition networks for cooperative multi-agent learning based on
+  team reward, in: Proceedings of the 17th International Conference on
+  Autonomous Agents and Multiagent Systems, 2018, pp. 2085--2087.
 
 \bibitem{rashid2018}
-T.~Rashid, M.~Samvelyan, C.~Schroeder~de Witt, G.~Farquhar, J.~Foerster, S.~Whiteson, {QMIX}: Monotonic value function factorisation for deep multi-agent reinforcement learning, in: Proceedings of the 35th International Conference on Machine Learning, 2018, pp. 4295--4304.
+T.~Rashid, M.~Samvelyan, C.~Schroeder~de Witt, G.~Farquhar, J.~Foerster,
+  S.~Whiteson, {QMIX}: Monotonic value function factorisation for deep
+  multi-agent reinforcement learning, in: Proceedings of the 35th International
+  Conference on Machine Learning, 2018, pp. 4295--4304.
 
 \bibitem{yu2022}
-C.~Yu, A.~Velu, E.~Vinitsky, J.~Gao, Y.~Wang, A.~Bayen, Y.~Wu, The surprising effectiveness of {PPO} in cooperative multi-agent games, arXiv:2103.01955 (2022).
+C.~Yu, A.~Velu, E.~Vinitsky, J.~Gao, Y.~Wang, A.~Bayen, Y.~Wu, The surprising
+  effectiveness of {PPO} in cooperative multi-agent games, arXiv:2103.01955
+  (2022).
 
 \bibitem{oroojlooy2023}
-A.~Oroojlooy, D.~Hajinezhad, A review of cooperative multi-agent deep reinforcement learning, Applied Intelligence 53 (2023) 13677--13722.
+A.~Oroojlooy, D.~Hajinezhad, A review of cooperative multi-agent deep
+  reinforcement learning, Applied Intelligence 53 (2023) 13677--13722.
 
 \bibitem{sutton1999}
-R.~S. Sutton, D.~Precup, S.~Singh, Between {MDPs} and semi-{MDPs}: A framework for temporal abstraction in reinforcement learning, Artificial Intelligence 112~(1--2) (1999) 181--211.
+R.~S. Sutton, D.~Precup, S.~Singh, Between {MDPs} and semi-{MDPs}: A framework
+  for temporal abstraction in reinforcement learning, Artificial Intelligence
+  112~(1--2) (1999) 181--211.
 
 \bibitem{bacon2017}
-P.-L. Bacon, J.~Harb, D.~Precup, The option-critic architecture, in: Proceedings of the 31st AAAI Conference on Artificial Intelligence, 2017, pp. 1726--1734.
+P.-L. Bacon, J.~Harb, D.~Precup, The option-critic architecture, in:
+  Proceedings of the 31st AAAI Conference on Artificial Intelligence, 2017, pp.
+  1726--1734.
 
 \bibitem{vezhnevets2017}
-A.~S. Vezhnevets, S.~Osindero, T.~Schaul, N.~Heess, M.~Jaderberg, D.~Silver, K.~Kavukcuoglu, {FeUdal} networks for hierarchical reinforcement learning, in: Proceedings of the 34th International Conference on Machine Learning, 2017, pp. 3540--3549.
+A.~S. Vezhnevets, S.~Osindero, T.~Schaul, N.~Heess, M.~Jaderberg, D.~Silver,
+  K.~Kavukcuoglu, {FeUdal} networks for hierarchical reinforcement learning,
+  in: Proceedings of the 34th International Conference on Machine Learning,
+  2017, pp. 3540--3549.
 
 \bibitem{huang2022}
-S.~Huang, S.~Onta{\~n}{\'o}n, A closer look at invalid action masking in policy gradient algorithms, in: Proceedings of the International FLAIRS Conference, Vol.~35, 2022.
+S.~Huang, S.~Onta{\~n}{\'o}n, A closer look at invalid action masking in policy
+  gradient algorithms, in: Proceedings of the International FLAIRS Conference,
+  Vol.~35, 2022.
 
 \bibitem{dalal2018}
-G.~Dalal, K.~Dvijotham, M.~Vecerik, T.~Hester, C.~Paduraru, Y.~Tassa, Safe exploration in continuous action spaces, arXiv:1801.08757 (2018).
+G.~Dalal, K.~Dvijotham, M.~Vecerik, T.~Hester, C.~Paduraru, Y.~Tassa, Safe
+  exploration in continuous action spaces, arXiv:1801.08757 (2018).
 
 \bibitem{ng1999}
-A.~Y. Ng, D.~Harada, S.~Russell, Policy invariance under reward transformations: Theory and application to reward shaping, in: Proceedings of the 16th International Conference on Machine Learning, 1999, pp. 278--287.
+A.~Y. Ng, D.~Harada, S.~Russell, Policy invariance under reward
+  transformations: Theory and application to reward shaping, in: Proceedings of
+  the 16th International Conference on Machine Learning, 1999, pp. 278--287.
+
+\bibitem{bertsekas1997rollout}
+D.~P. Bertsekas, J.~N. Tsitsiklis, C.~Wu, Rollout algorithms for combinatorial
+  optimization, Journal of Heuristics 3~(3) (1997) 245--262.
 
 \bibitem{gurobi}
-{Gurobi Optimization, LLC}, Gurobi optimizer reference manual, version 13, \url{https://www.gurobi.com} (2026).
+{Gurobi Optimization, LLC}, Gurobi optimizer reference manual, version 13,
+  \url{https://www.gurobi.com} (2026).
 
 \end{thebibliography}

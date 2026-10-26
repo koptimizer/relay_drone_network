@@ -1,0 +1,16 @@
+{
+ "drones": 3,
+ "dests": 7,
+ "seed": 902,
+ "kappa": 10,
+ "spacing": 98.2,
+ "capacity": 2,
+ "nodes": 50,
+ "method": "bfs-cargo-wait",
+ "status": "optimal",
+ "gap": 0.0,
+ "milp_periods": 16,
+ "milp_steps": 160,
+ "bound_steps": 160,
+ "solve_sec": 601.1
+}

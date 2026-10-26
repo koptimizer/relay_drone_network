@@ -94,17 +94,26 @@ def lattice_step(env, node, pos, A, hop, cc, R):
 			c = [int(v) for v in A[node[i]]]
 			c.sort(key=lambda v: (int(hop[v, gn[i]]), float(np.linalg.norm(pos[v] - env.goal_pos[i]))))
 			opts.append(c[:6])        # 목표에 가까운 6개면 충분하다 (조합 216개)
-	best, bs = None, None
-	for a0 in opts[0]:
-		for b0 in (opts[1] if N > 1 else [0]):
-			for c0 in (opts[2] if N > 2 else [0]):
-				t = np.array([a0, b0, c0][:N], dtype=int)
-				if not persist_connected(node, t, pos, cc, R):
-					continue
-				sc = sum(int(hop[t[i], gn[i]]) for i in range(N))
-				if bs is None or sc < bs:
-					best, bs = t, sc
-	return best if best is not None else np.asarray(node, dtype=int)
+	# 조합 전체를 벡터로 평가한다 (열거 순서와 첫 최소 선택은 이전 반복 구현과 같다).
+	grids = np.meshgrid(*[np.asarray(o, dtype=int) for o in opts], indexing="ij")
+	T = np.stack([g.ravel() for g in grids], 1)                      # (조합 수, N)
+	P0 = np.vstack([cc[None, :], pos[np.asarray(node, dtype=int)]])
+	L0 = np.linalg.norm(P0[:, None, :] - P0[None, :, :], axis=2) <= R + 1e-6
+	V = N + 1
+	Q = np.concatenate([np.full((len(T), 1, 2), cc, dtype=float), pos[T]], 1)   # (조합, V, 2)
+	L1 = np.linalg.norm(Q[:, :, None, :] - Q[:, None, :, :], axis=3) <= R + 1e-6
+	E = L1 & L0[None, :, :]
+	Rch = E.copy()
+	for _ in range(V - 1):
+		Rch = Rch | (np.matmul(Rch.astype(np.uint8), E.astype(np.uint8)) > 0)
+	ok = Rch[:, 0, :].all(1)
+	if not ok.any():
+		return np.asarray(node, dtype=int)
+	sc = np.zeros(len(T), dtype=np.int64)
+	for i in range(N):
+		sc += hop[T[:, i], gn[i]]
+	sc = np.where(ok, sc, np.iinfo(np.int64).max)
+	return T[int(np.argmin(sc))].astype(int)
 
 
 def resolve(tgt, cur, pos, cc, R):
