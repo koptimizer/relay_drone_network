@@ -23,7 +23,7 @@ from env.disaster_relay_env_v5_26_09_15_22 import GOAL_DELIVER, GOAL_RELAY, Disa
 from pipeline.common_v5_26_09_15_22 import chain_escape_manager
 from pipeline.milp_v5_26_09_21_03 import build_nodes
 from util.instance_generator_v5_26_09_15_22 import sample_instance
-from util.lattice_eval_v5_26_10_20_17 import hop_table, lattice_rollout, lattice_step, serve_at_boundary
+from util.lattice_eval_v5_26_10_20_17 import hop_table, lattice_jam, lattice_rollout, lattice_step, serve_at_boundary
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -31,14 +31,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 def continue_lattice(env, node, setter, pos, A, hop, kappa, hl_every=20, horizon=None):
 	"""현재 상태에서 격자 모드로 끝까지 (horizon 이 있으면 그 스텝까지) 굴려 makespan(미완주면 None)을 돌려준다."""
 	lim = env.max_steps if horizon is None else min(env.max_steps, env.current_step + horizon)
+	jam_run = 0
 	while env.makespan is None and env.current_step < lim:
 		serve_at_boundary(env, node, node, kappa)
 		if env.makespan is not None:
 			break
 		tgt = lattice_step(env, node, pos, A, hop, env.cc_pos, env.comm_range)
+		jam = lattice_jam(env, node, tgt, pos)
 		stp = (pos[tgt] - pos[node]) / (kappa * env.max_speed)
 		for _ in range(kappa):
 			env.step(stp)
+			jam_run = jam_run + 1 if jam else 0; env.deadlock_run = jam_run
 			if env.current_step % hl_every == 0 or env.goal_invalid().any():
 				setter(env)
 		node = tgt

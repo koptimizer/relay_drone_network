@@ -1,0 +1,6 @@
+drones,dests,seed,nodes,beam,beam_sec,beam_chk,rule,learned_median,learned_complete
+3,30,501,93,750,24.5,29/30 msNone loss0,,1280,4/5
+3,30,502,90,950,24.3,29/30 msNone loss0,920,900,5/5
+3,30,503,102,770,21.8,26/30 msNone loss0,1140,1020,5/5
+3,30,504,79,900,32.8,28/30 msNone loss0,940,910,5/5
+3,30,505,100,940,30.8,24/30 msNone loss0,770,820,5/5

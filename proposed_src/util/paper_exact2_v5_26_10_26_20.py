@@ -43,13 +43,14 @@ def rows(pats):
 
 
 def load(ft_runs):
-	lat = rows(["lattice_eval_v5_26_10_21_03.csv", "lattice_m[78]q2_SWa_v5_26_10_21_17.csv"])
-	look = rows(["rule2_union_m[3-6]_v5_26_10_26_20.csv", "rule2_union_m[78]q2_v5_26_10_26_20.csv"])
-	hyb = rows(["rule2_lhSWa_m[3-6]_v5_26_10_26_20.csv", "rule2_lhSWa_m[78]q2_v5_26_10_26_20.csv"])
+	# 26-10-27: 격자 모드 교착 감지를 고친 평가 틀로 다시 잰 파일 (규칙·탐색 값은 그대로, 학습 꼬리만 달라진다)
+	lat = rows(["lattice_eval3_m36_v5_26_10_27_00.csv", "lattice_eval3_m78_v5_26_10_27_00.csv"])
+	look = rows(["rule2_union2_m[3-6]_v5_26_10_27_00.csv", "rule2_union2_m[78]q2_v5_26_10_27_00.csv"])
+	hyb = rows(["rule2_lhSWa2_m[3-6]_v5_26_10_27_00.csv", "rule2_lhSWa2_m[78]q2_v5_26_10_27_00.csv"])
 	order = rows(["meta2_ils_m*_v5_26_10_21_03.csv", "meta_m[78]q2_v5_26_10_21_17.csv"])
 	task = rows(["taskseq_m[3-6]_v5_26_10_22_14.csv", "taskseq_m[78]q2_big_v5_26_10_22_16.csv"])
 	beam = rows(["beam_m36_e2_v5_26_10_26_20.csv", "beam_m78q2_e2_v5_26_10_26_20.csv"])
-	fts = [rows([f"lattice_c30_{r}_m36_v5_26_10_26_20.csv", f"lattice_c30_{r}_m78_v5_26_10_26_20.csv"]) for r in ft_runs]
+	fts = [rows([f"lattice_c30b_{r}_m36_v5_26_10_27_00.csv", f"lattice_c30b_{r}_m78_v5_26_10_27_00.csv"]) for r in ft_runs]
 	out = {}
 	for k, x in lat.items():
 		if k not in task:

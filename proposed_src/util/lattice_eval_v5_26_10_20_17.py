@@ -159,6 +159,19 @@ def serve_at_boundary(env, node, tgt, kappa, force=True):
 			env.reloads[i] += 1
 
 
+def lattice_jam(env, node, tgt, pos):
+	"""격자 모드의 부분 교착 판정: 목표 노드로 가려는 드론 중 한 대를 뺀 나머지가 전부 제자리면 교착.
+
+	연속 공간에서는 투영이 막은 이동으로 env.step 이 deadlock_run 을 세지만, 격자 모드에서는 막힌 드론의
+	명령 추력이 0 이라 세지지 않아 규칙의 교착 복구가 조용히 꺼져 있었다 (26-10-27 발견). 여기서 기간마다
+	같은 기준으로 판정해 deadlock_run 을 kappa 씩 올린다.
+	"""
+	gn = [goal_node(env, i, pos) for i in range(env.num_drones)]
+	movers = [i for i in range(env.num_drones) if gn[i] != node[i] and env.drones_timer[i] == 0]
+	blocked = sum(1 for i in movers if tgt[i] == node[i])
+	return len(movers) > 0 and blocked >= max(1, len(movers) - 1)
+
+
 def lattice_rollout(env, setter, seed, pos, A, kappa, hop=None, hl_every=20):
 	"""격자 결정 공간에서 한 인스턴스를 굴린다. setter(env)가 목표를 세운다."""
 	env.cc_pos, env.dests_pos = sample_instance(env.num_dests, seed=seed, num_drones=env.num_drones,
@@ -174,6 +187,7 @@ def lattice_rollout(env, setter, seed, pos, A, kappa, hop=None, hl_every=20):
 	env.drones_pos[:] = pos[0]
 	setter(env)
 	t = 0
+	jam_run = 0
 	while env.makespan is None and t < env.max_steps:
 		# 서비스를 먼저 확정해야 lattice_step 이 머무는 드론을 고정한 채 연결성을 검사한다.
 		# 순서가 뒤바뀌면 검사한 배치와 실제 배치가 달라져 연결이 끊긴 전이가 통과한다.
@@ -181,9 +195,11 @@ def lattice_rollout(env, setter, seed, pos, A, kappa, hop=None, hl_every=20):
 		if env.makespan is not None:
 			break
 		tgt = lattice_step(env, node, pos, A, hop, env.cc_pos, env.comm_range)
+		jam = lattice_jam(env, node, tgt, pos)
 		stp = (pos[tgt] - pos[node]) / (kappa * env.max_speed)
 		for _ in range(kappa):
 			env.step(stp)
+			jam_run = jam_run + 1 if jam else 0; env.deadlock_run = jam_run
 			t += 1
 			if t % hl_every == 0 or env.goal_invalid().any():
 				setter(env)

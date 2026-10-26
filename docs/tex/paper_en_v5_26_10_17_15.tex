@@ -64,7 +64,7 @@ rule, which evaluates each candidate assignment by simulating the rule to comple
 rule to 14\% at tens of seconds per instance, offline searches over visit orders and over task
 sequences are 23\% and 6\% above it, and a beam search in the model's state space is 0.4\%
 above it, returning the proven optimum on 46 of 50 instances. The same lookahead applied to the
-learned policy brings it to 18\%, whereas fine-tuning it on the small instances removes its tail
+learned policy brings it to 19\%, whereas fine-tuning it on the small instances removes its tail
 but not its median gap. In the continuous space the lookahead rule is also 13--25\% faster than
 both online controllers on every configuration tested, at 1--6 minutes per instance against
 milliseconds per decision, so the learned policy's advantage is its latency and its scaling
@@ -164,7 +164,7 @@ is 23\% above it and a search over task sequences that also decides the relays i
 so the distance is first the myopic choice of targets and then the parked relays; a one-step
 rollout lookahead on the rule closes the first part (14\% above the optimum), a beam search in the
 model's state space reaches the optimum on 46 of 50 instances (0.4\%), and the lookahead applied to
-the learned policy brings it to 18\%, while fine-tuning the policy on the small instances removes
+the learned policy brings it to 19\%, while fine-tuning the policy on the small instances removes
 its tail but not its median (RQ2). The two controllers
 divide the configuration space by fleet size: the rule is faster with three drones, the two
 are statistically indistinguishable with four, and the learned policy is faster with five or more,
@@ -980,12 +980,16 @@ minimising the total remaining periods to the drones' goals, subject to connecti
 so the measured gap reflects goal selection and not a clumsy execution layer. The implementation
 is verified by replaying each optimal plan through the same machinery: on all forty instances the
 replay reproduces the model's optimum exactly, so the optimum is a valid lower bound for every
-controller in this space.
+controller in this space. One detail matters for the controllers: in the continuous space a
+stalled drone is one whose commanded move the projection scales away, and that signal drives both
+the rule's recovery trigger and the stall feature the learned policy observes; on the lattice a
+blocked drone simply receives no move, so the same partial-deadlock test, all movers but one held
+in place, is evaluated once per period and fed to both.
 
 \paragraph{Result}
 Table~\ref{tab:exact} and Figure~\ref{fig:exact} give the gap of each method to the optimum. No
 run of any method beats the optimum. Over the 47 instances all methods complete, the rule is
-55.3\% above the optimum and the learned policy 54.9\%, indistinguishable ($p = 0.66$); the
+55.3\% above the optimum and the learned policy 56.0\%, indistinguishable ($p = 0.60$); the
 lookahead rule is 14.3\% above it, the visit-order search 23.2\%, the task-sequence search
 5.9\% and the beam search 0.4\%, and every one of these is better than the next weaker method at
 $p < 10^{-4}$ (Wilcoxon). The beam search with $B = 30{,}000$ returns the proven optimum on 39 of
@@ -997,7 +1001,7 @@ partly for want of budget (its gap there falls from 21\% to 12\% when the budget
 2{,}400 to 9{,}000 simulations) and partly because the rule's run, from which it starts, fails to
 complete on 4 of the 10. The lookahead rule completes all 50, is within 7--15\% of the optimum
 without reloading and 19--29\% with it, and returns the optimum on six instances; its cost is
-19 seconds per instance without reloading and five minutes with it.
+33 seconds per instance without reloading and seven minutes with it.
 
 The methods decompose the gap. Freeing the visit order removes 32 of the rule's 55 points, so the
 rule's myopic choice of targets is the largest single cost; the lookahead rule, which frees the
@@ -1014,26 +1018,26 @@ beam search are the joint timing that only a search over the state itself resolv
 
 \paragraph{Fine-tuning the learned policy on the small instances}
 The learned policy was meant to make the target choice and on these instances it does not: it
-sits with the rule, and on one six-point instance it takes 5{,}040 steps where the optimum takes
+sits with the rule, and on one six-point instance it takes 5{,}180 steps where the optimum takes
 180, which dominates its mean for that row. We therefore continued its training from the proposed
 weights on the distribution of these instances, three drones, three to eight demand points with
 capacity 2 above six, random depots, with the validation score measured in the model's decision
 space so that the selection criterion is the final one, in four runs (two seeds each at
 regularisation weight 2.0 and 0.5, 600--1{,}000 episodes to early stopping). All four runs
-remove the tail, the worst instance falling from 5{,}040 to at most 400 steps, and none moves
-the median: the mean gap over the 47 instances is 54.9\% before and after ($p = 0.84$), and the
-per-row medians are unchanged. The policy's option set admits the visit-order search's 23\%, so
+remove the tail, the worst per-instance median falling from 5{,}180 to at most 600 steps, and none
+moves the median: the mean gap over the 47 instances is 56.0\% before and after ($p = 0.83$), and
+the per-row medians are unchanged. The policy's option set admits the visit-order search's 23\%, so
 the ceiling is not the interface; within the budget we use, the learner does not find the
 non-myopic order.
 
 \paragraph{The learned policy with lookahead}
 Running the rollout lookahead with the proposed learned policy as its base policy, so that the
 policy proposes the candidate assignments and the rollouts that score them, brings it from
-54.9\% to 18.4\% above the optimum ($p < 10^{-4}$), close to the lookahead rule's 14.3\%
-($p = 0.014$ in the rule's favour), at 71 seconds per instance without reloading and three
-minutes with it. The gain comes from the search, not from the learner: the fine-tuned weights as
-base policy give 13.5\% without reloading and 41--49\% with it, the original weights 15.9\% and
-29--32\%, and the rule 12.4\% and 19--29\%. The learning-plus-search combination is therefore a
+56.0\% to 18.9\% above the optimum ($p < 10^{-4}$), close to the lookahead rule's 14.3\%
+($p = 0.011$ in the rule's favour), at 136 seconds per instance without reloading and six
+minutes with it. The gain comes from the search, not from the learner: with the learned weights
+as base policy the lookahead is 15.4\% above the optimum without reloading and 36--37\% with it,
+with the rule 12.4\% and 19--35\%. The learning-plus-search combination is therefore a
 way to spend compute when it is available, and the quantity it buys is the one the policy alone
 does not learn.
 
@@ -1054,7 +1058,7 @@ straight-line flight on a 98\,m lattice with ten-step periods.
 The searches buy their points with computation: the visit-order search takes a mean of
 345\,s per instance without reloading and 20 minutes with it, the task-sequence search 298\,s
 and 76 minutes (9{,}000 simulations), the beam search 43\,s and two minutes, the lookahead
-rule 19\,s and five minutes, against 0.05--0.12\,ms per decision for the rule and
+rule 33\,s and seven minutes, against 0.05--0.12\,ms per decision for the rule and
 2.7--7.4\,ms for the learned policy (Table~\ref{tab:latency}); all of them need the instance in
 advance or a simulator of it. The exact search needs 0--11\,s without reloading and 4--26 minutes
 with it. On these instances the beam search is therefore both the closest to the optimum and
@@ -1514,7 +1518,7 @@ search in the model's state space 0.4\%, returning the proven optimum on 46 of 5
 The headroom lies first in choosing targets and then in moving relays, and simulation supplies
 the first part to either base policy: the lookahead rule is also 13--30\% faster than both
 online controllers in the continuous space, at minutes per instance, and the learned policy with
-the same lookahead is 18\% above the optimum, whereas fine-tuning the policy on the exact
+the same lookahead is 19\% above the optimum, whereas fine-tuning the policy on the exact
 instances removes its tail and not its median. The case for the learned policy is therefore its
 millisecond latency and its transfer to large fleets, where neither the exact search nor the beam
 search reaches. The natural next step is a policy whose output is a team assignment rather than a

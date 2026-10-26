@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv, N_MAX
 from model.hier_net_v5_26_09_15_23 import SetManagerActor, SetManagerTwinQ
-from pipeline.common_v5_26_09_15_22 import escape_wrap, action_mask, chain_manager, straight_worker
+from pipeline.common_v5_26_09_15_22 import chain_escape_manager, escape_wrap, action_mask, chain_manager, straight_worker
 from util.metaheur_v5_26_10_20_17 import seq_actions
 from util.instance_generator_v5_26_09_15_22 import sample_config, sample_instance
 
@@ -119,6 +119,12 @@ P.add_argument("--reload-above", type=int, default=0,
                help="무작위 구성에서 목적지 수가 이 값을 넘으면 용량 2 (재적재 강제). 0이면 끔 (26-10-26, 사이클 30)")
 P.add_argument("--holdout-lattice", action="store_true",
                help="홀드아웃을 격자 결정 공간(드론 3, 목적지 3-8, 거점 고정)에서 잰다. 관문 지표 = 최종 지표(격자 makespan)")
+P.add_argument("--teacher-lookahead", action="store_true",
+               help="정규화 목표를 규칙 대신 '규칙 위의 한 수 롤아웃 선견'이 그 상태에서 고르는 배정으로 한다 (사이클 31, 26-10-27). "
+                    "선견은 정책과 같은 선택지(후보 수요지·복귀·중계) 안에서 고르므로 라벨이 항상 행동 공간 안에 있다")
+P.add_argument("--la-workers", type=int, default=8, help="선견 롤아웃을 돌리는 프로세스 수")
+P.add_argument("--la-k", type=int, default=3, help="선견이 드론마다 보는 가까운 후보 수")
+P.add_argument("--la-horizon", type=int, default=1000, help="선견 롤아웃 상한 스텝. 미완주면 상한 + 50 x 남은 수요지")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -302,6 +308,48 @@ def act_teacher(env, order, st):
 	return lab
 
 
+def _la_roll(args):
+	"""선견 롤아웃 작업자: 배정을 걸고 규칙(+복구)으로 끝까지 굴린 값을 돌려준다."""
+	env, acts, dests, horizon, hl = args
+	env.set_goals(acts, dests)
+	mf = chain_escape_manager()
+	t0, done = env.current_step, False
+	while not done and env.current_step < min(env.max_steps, t0 + horizon):
+		_o, _w, _r, done = env.step(straight_worker(env))
+		if env.current_step % hl == 0 or env.goal_invalid().any():
+			env.set_goals(mf(env))
+	return float(env.makespan) if env.makespan is not None else env.current_step + 50.0 * float(env.dests_active.sum())
+
+
+def act_lookahead(env, pool):
+	"""선견 교사: 규칙 배정과 '드론 i 를 가까운 후보 j 로' 덮어쓴 배정들을 롤아웃으로 평가해 가장 좋은 것의 라벨을 돌려준다."""
+	import copy
+	N = env.num_drones
+	acts0 = chain_manager(env).astype(np.int64)
+	d0 = np.array([int(env.candidates(i)[a]) if 0 <= a < env.n_cand else -1 for i, a in enumerate(acts0)])
+	opts = [(acts0, None)]
+	for i in range(N):
+		if env.drones_capacity[i] == 0:
+			continue
+		for j in [int(x) for x in env.candidates(i)[:A.la_k] if x >= 0]:
+			if j == d0[i] or j in d0:
+				continue
+			acts = acts0.copy(); dests = -np.ones(N, dtype=np.int64); acts[i], dests[i] = 0, j
+			opts.append((acts, dests))
+	if len(opts) > 1:
+		vals = pool.map(_la_roll, [(copy.deepcopy(env), a, d, A.la_horizon, A.hl_every) for a, d in opts])
+		acts, dests = opts[int(np.argmin(vals))]
+	else:
+		acts, dests = opts[0]
+	lab = acts.copy()
+	if dests is not None:
+		for i in range(N):
+			if dests[i] >= 0:
+				hit = np.flatnonzero(np.asarray(env.candidates(i)) == dests[i])
+				lab[i] = int(hit[0]) if len(hit) else -1
+	return lab
+
+
 def act_rule(env):
 	"""규칙 행동 (정규화용). 마스크에 걸리면 정규화 표적에서 제외되도록 -1."""
 	ra = chain_manager(env).astype(np.int64)
@@ -411,8 +459,16 @@ def holdout(actor, dev):
 	return out
 
 
+LA_POOL = None
+
+
 def main():
 	"""집합 상위 정책을 학습한다."""
+	global LA_POOL
+	if A.teacher_lookahead:
+		# CUDA 초기화 전에 fork 해야 자식이 GPU 문맥을 물려받지 않는다
+		import multiprocessing as mp
+		LA_POOL = mp.get_context("fork").Pool(A.la_workers)
 	torch.manual_seed(A.seed)
 	np.random.seed(A.seed)
 	if A.mix_critic and A.per_drone_reward:
@@ -433,6 +489,8 @@ def main():
 	tch = {"order": None, "st": {"esc": 0, "n": 0}}
 	lab_tot, lab_miss = 0, 0
 	rule_or_teacher = (lambda e: act_teacher(e, tch["order"], tch["st"])) if A.teacher else act_rule
+	if A.teacher_lookahead:
+		rule_or_teacher = lambda e: act_lookahead(e, LA_POOL)
 	actor = SetManagerActor(advice=A.rule_obs, autoregressive=A.autoregressive, ar_near=A.ar_near).to(dev)
 	mq = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
 	mq_t = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
