@@ -64,8 +64,8 @@ rule, which evaluates each candidate assignment by simulating the rule to comple
 rule to 14\% at tens of seconds per instance, offline searches over visit orders and over task
 sequences are 23\% and 6\% above it, and a beam search in the model's state space is 0.4\%
 above it, returning the proven optimum on 46 of 50 instances. The same lookahead applied to the
-learned policy brings it to 19\%, whereas fine-tuning it on the small instances removes its tail
-but not its median gap. In the continuous space the lookahead rule is also 13--25\% faster than
+learned policy brings it to 19\%, whereas neither fine-tuning it on the small instances nor
+training it towards the lookahead's choices reduces its median gap. In the continuous space the lookahead rule is also 13--25\% faster than
 both online controllers on every configuration tested, at 1--6 minutes per instance against
 milliseconds per decision, so the learned policy's advantage is its latency and its scaling
 rather than its proximity to the optimum.
@@ -164,8 +164,8 @@ is 23\% above it and a search over task sequences that also decides the relays i
 so the distance is first the myopic choice of targets and then the parked relays; a one-step
 rollout lookahead on the rule closes the first part (14\% above the optimum), a beam search in the
 model's state space reaches the optimum on 46 of 50 instances (0.4\%), and the lookahead applied to
-the learned policy brings it to 19\%, while fine-tuning the policy on the small instances removes
-its tail but not its median (RQ2). The two controllers
+the learned policy brings it to 19\%, while neither fine-tuning the policy on the small instances
+nor training it towards the lookahead's choices moves its median (RQ2). The two controllers
 divide the configuration space by fleet size: the rule is faster with three drones, the two
 are statistically indistinguishable with four, and the learned policy is faster with five or more,
 by 62 to 178 steps up to ten drones and 76 at twelve; the three-drone deficit is a single
@@ -1041,6 +1041,34 @@ with the rule 12.4\% and 19--35\%. The learning-plus-search combination is there
 way to spend compute when it is available, and the quantity it buys is the one the policy alone
 does not learn.
 
+\paragraph{Teaching the policy the lookahead's choices}
+Since the lookahead supplies what the policy lacks, we tried to train it in. In two runs of the
+proposed recipe the regularisation target was the assignment the lookahead would choose at each
+decision point instead of the rule's, computed online by simulating each candidate with the rule;
+the target always lies in the policy's option set. Both runs are slower than the proposed policy
+on all three main configurations, by 38 to 140 steps in paired median ($p \le 6 \times 10^{-4}$).
+A diagnostic shows why. At 445 states along the proposed policy's own trajectories on $3/30$
+where the two targets differ, the lookahead's choice shortens the remaining time by 33 steps on
+average when the rule completes the episode but by 16 when the learned policy does, it is worse
+than the rule's choice in 44\% of those states, and the two gains are uncorrelated ($r = 0.02$):
+the target is right for a policy that will continue like the rule and close to a coin toss for
+one that will not. Scoring the candidates with the policy itself as the continuation, as in
+expert iteration, removes that mismatch but meets noise: from the same state one rollout of the
+stochastic policy varies with a median standard deviation of 54 steps, more than the differences
+to be detected. We therefore let the rule's lookahead propose one alternative and kept it as a
+target, at five times the regularisation weight, only where six paired rollouts of the current
+policy confirmed a gain of more than 20 steps ($t < -2$), which happened at about 7\% of the
+decision points examined; elsewhere the rule's assignment stayed the target. Two such runs started
+from the proposed weights, alongside two control runs that omit these targets. In one run of each
+pair no checkpoint ever scored above the starting weights on validation; in the other pair the
+targets have no measurable effect, the run and its control being indistinguishable on all three
+configurations ($p \ge 0.39$), and continued training from the proposed weights is itself
+harmful: both are 55--78 steps slower than the proposed policy ($p \le 10^{-4}$), whereas
+re-evaluating the unchanged weights reproduces the proposed policy's values to within 17 steps.
+Choosing options by the trained critic's action values instead of the actor does not help either
+(1{,}022--1{,}208 steps on $3/30$ against 620). Within this framework the lookahead's gain is
+available at decision time and not through training.
+
 \paragraph{What the continuous measurement adds}
 A separate measurement runs the rule and the learned policy in the continuous space they are
 designed for, against the same lattice optima of the forty instances without reloading. There the
@@ -1476,8 +1504,11 @@ half of it. The deficit is therefore best understood as an interaction between t
 fixed point under this objective and the geometry of the constraint, not as a shortcoming that
 more training or a better critic would fix. The same reading applies to the gap to the optimum:
 fine-tuning on the exact instances removes the policy's tail and leaves its median where the rule
-is, while a one-step lookahead removes most of the gap from either base policy, so what the
-learner lacks is the non-myopic target choice that simulation supplies. For a practitioner the
+is, training it towards the lookahead's choices fails twice, once because the target assumes the
+rule's continuation and once because the verified signal is sparse and continued training costs
+more than it adds, and a one-step lookahead at decision time removes most of the gap from either
+base policy. What the learner lacks is the non-myopic target choice that simulation supplies, and
+in this framework simulation has to supply it when the decision is made. For a practitioner the
 actionable consequence is the one above: pick the controller by the latency budget first and by
 regime second.
 
@@ -1490,16 +1521,23 @@ exact optimum is that of a discretised model at a single lattice spacing: the 98
 the ten-step period leave a quantisation that refining to 49\,m shrinks by 7--9\% but that we
 cannot afford on every instance, so the measured gaps understate the true ones, and beyond eight
 demand points only solver incumbents with a remaining optimality gap are available. The beam
-search inherits the exact solver's state representation and does not extend to large fleets; the
-lookahead rule does, but at a cost that grows with the episode length and the fleet. The
+search inherits the exact solver's state representation; a version that keeps only a few moves per
+drone runs on $3/30$ and $5/50$, but there its plans are about as long as the rule's and 70\% longer
+than the learned policy's respectively, so it is a reference only where it nearly enumerates the
+state space. The lookahead rule extends to large fleets, at a cost that grows with the episode
+length and the fleet. The
 rule's novelty lies in the recovery mechanism and the adaptive relay count rather than in the
 chain geometry itself.
 
 \paragraph{Methodological notes}
 Three practices mattered for the conclusions. Completed-episode averages favour the controller that
 gives up, so comparisons must be paired. Forty runs cannot support claims about tails; several
-of our own interim conclusions reversed when the sample grew. And a pre-check that uses a different
-metric from the final judgement will pass interventions that the final judgement rejects.
+of our own interim conclusions reversed when the sample grew. A pre-check that uses a different
+metric from the final judgement will pass interventions that the final judgement rejects. And
+checkpoint selection on a validation set with one sampled run per instance cannot see a
+degradation of 55--78 steps that a paired evaluation on other instances detects at
+$p < 10^{-4}$; validation scores of runs started from identical weights spread over two points,
+as much as separates a good checkpoint from a poor one.
 
 % =====================================================================================
 \section{Conclusion}
@@ -1519,11 +1557,13 @@ The headroom lies first in choosing targets and then in moving relays, and simul
 the first part to either base policy: the lookahead rule is also 13--30\% faster than both
 online controllers in the continuous space, at minutes per instance, and the learned policy with
 the same lookahead is 19\% above the optimum, whereas fine-tuning the policy on the exact
-instances removes its tail and not its median. The case for the learned policy is therefore its
-millisecond latency and its transfer to large fleets, where neither the exact search nor the beam
-search reaches. The natural next step is a policy whose output is a team assignment rather than a
-set of per-drone options, so that the relay identity becomes a coordinate the critic can value
-directly, trained with the lookahead's choices as its target.
+instances removes its tail and not its median, and training it towards the lookahead's choices,
+with the rule or the policy itself completing the rollouts, does not reduce its median either.
+The case for the learned policy is therefore its millisecond latency and its transfer to large
+fleets, where neither the exact search nor the beam search reaches. The natural next step is to
+separate imitation from reinforcement: distil verified lookahead choices offline, without
+further policy-gradient updates, into a policy whose output is a team assignment rather than a set
+of per-drone options, so that the relay identity becomes a coordinate a critic can value directly.
 
 \section*{Acknowledgements}
 \pending{To be added.}
