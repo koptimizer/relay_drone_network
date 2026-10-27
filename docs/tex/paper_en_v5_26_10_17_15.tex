@@ -1092,7 +1092,8 @@ advance or a simulator of it. The exact search needs 0--11\,s without reloading 
 with it. On these instances the beam search is therefore both the closest to the optimum and
 cheaper than every other search, because the state space of three drones on fifty nodes is small;
 its expansion grows as the move set to the power of the fleet size, so it does not extend to the
-fleets of Section~\ref{sec:rq3}, whereas the lookahead rule does (Table~\ref{tab:look}).
+fleets of Section~\ref{sec:rq3} unpruned, and pruned to a few moves per drone it loses its edge
+(Section~\ref{sec:discussion}), whereas the lookahead rule extends (Table~\ref{tab:look}).
 
 \paragraph{Where the reference stops}
 The exact search is limited by its state space, which grows as $2^M$ in the demand points and
@@ -1530,7 +1531,7 @@ rule's novelty lies in the recovery mechanism and the adaptive relay count rathe
 chain geometry itself.
 
 \paragraph{Methodological notes}
-Three practices mattered for the conclusions. Completed-episode averages favour the controller that
+Four practices mattered for the conclusions. Completed-episode averages favour the controller that
 gives up, so comparisons must be paired. Forty runs cannot support claims about tails; several
 of our own interim conclusions reversed when the sample grew. A pre-check that uses a different
 metric from the final judgement will pass interventions that the final judgement rejects. And
