@@ -123,6 +123,15 @@ P.add_argument("--teacher-lookahead", action="store_true",
                help="정규화 목표를 규칙 대신 '규칙 위의 한 수 롤아웃 선견'이 그 상태에서 고르는 배정으로 한다 (사이클 31, 26-10-27). "
                     "선견은 정책과 같은 선택지(후보 수요지·복귀·중계) 안에서 고르므로 라벨이 항상 행동 공간 안에 있다")
 P.add_argument("--la-workers", type=int, default=8, help="선견 롤아웃을 돌리는 프로세스 수")
+P.add_argument("--teacher-policy", action="store_true",
+               help="선견 롤아웃의 뒤를 규칙 대신 현재 정책(표본)이 잇는다 (정책 반복 / expert iteration, 사이클 31b, 26-10-27). "
+                    "후보 = 정책 자신의 표본, 규칙 배정, 표본에서 드론 하나를 가까운 후보로 바꾼 배정. 이긴 후보가 바꾼 드론에만 그 "
+                    "라벨을 주고 나머지는 규칙 라벨(SWa 와 같음). 사이클 31 진단: 규칙이 잇는다는 가정의 라벨은 정책이 이을 때 "
+                    "44%%의 상태에서 손해였다")
+P.add_argument("--la-frac", type=float, default=1.0, help="선견 라벨을 계산할 결정 시점의 비율 (나머지는 규칙 라벨)")
+P.add_argument("--la-reps", type=int, default=6, help="정책 연속 검증에서 후보마다 굴리는 공통 난수 롤아웃 수")
+P.add_argument("--la-margin", type=float, default=20.0, help="정책 연속 검증에서 대안이 이겨야 하는 최소 평균 차 (스텝)")
+P.add_argument("--la-weight", type=float, default=1.0, help="검증된 정책 반복 라벨의 정규화 가중 배수 (규칙 라벨 = 1)")
 P.add_argument("--la-k", type=int, default=3, help="선견이 드론마다 보는 가까운 후보 수")
 P.add_argument("--la-horizon", type=int, default=1000, help="선견 롤아웃 상한 스텝. 미완주면 상한 + 50 x 남은 수요지")
 P.add_argument("--rule-reg", type=float, default=0.0,
@@ -321,6 +330,92 @@ def _la_roll(args):
 	return float(env.makespan) if env.makespan is not None else env.current_step + 50.0 * float(env.dests_active.sum())
 
 
+_POL = {"mtime": None, "net": None}
+LA_BIG = 100            # 검증된 정책 반복 라벨 표시: 행동 번호에 더해 버퍼에 넣는다 (손실에서 풀고 la_weight 를 곱한다)
+LAST = {"a": None}
+LA_W = {"path": None}
+LA_STAT = {"n": 0, "chg": 0}
+
+
+def _la_roll_pol(args):
+	"""정책 반복 선견 작업자: 배정을 걸고 현재 정책(파일로 받은 가중치, 표본)으로 끝까지 굴린 값을 돌려준다."""
+	env, acts, horizon, hl, wpath, seed = args
+	if _POL["net"] is None:
+		torch.set_num_threads(1)
+		_POL["net"] = SetManagerActor(autoregressive=A.autoregressive, ar_near=A.ar_near)
+	mt = os.path.getmtime(wpath)
+	if _POL["mtime"] != mt:
+		_POL["net"].load_state_dict(torch.load(wpath, map_location="cpu"))
+		_POL["net"].eval()
+		_POL["mtime"] = mt
+	net, cpu = _POL["net"], torch.device("cpu")
+
+	def pol(e):
+		o = {k: torch.as_tensor(v).unsqueeze(0) for k, v in e.manager_set_obs().items()}
+		with torch.no_grad():
+			a, _p, _ = net(o, action_mask(e, cpu, **MASK_KW).unsqueeze(0))
+		return a[0].numpy()
+	# 같은 라벨의 후보들은 같은 난수열을 쓴다 (공통 난수: 비교 잡음을 줄인다)
+	torch.manual_seed(seed)
+	np.random.seed(seed)
+	env.set_goals(acts)
+	t0, done = env.current_step, False
+	while not done and env.current_step < min(env.max_steps, t0 + horizon):
+		_o, _w, _r, done = env.step(straight_worker(env))
+		if env.current_step % hl == 0 or env.goal_invalid().any():
+			env.set_goals(pol(env))
+	return float(env.makespan) if env.makespan is not None else env.current_step + 50.0 * float(env.dests_active.sum())
+
+
+def act_lookahead_policy(env, pool):
+	"""정책 반복 교사 (제안 + 검증). 기본 라벨은 규칙(SWa 와 같음).
+
+	la_frac 비율의 결정에서 (1) 규칙 연속 선견으로 정책 표본과 다른 대안 하나를 고르고 (결정론에 가까워 싸고 깨끗하다),
+	(2) 그 대안과 정책 표본을 현재 정책 연속으로 공통 난수 la_reps 쌍씩 굴려, 평균이 la_margin 스텝 넘게 짧고 t < -2 일
+	때만 대안이 바꾼 드론에 그 라벨을 준다. 정책 연속의 롤아웃 한 번은 잡음이 크다 (같은 후보 표준편차 중앙 54스텝,
+	26-10-27 측정): 한 번씩 굴려 고르면 덮어쓰기가 70% 이기는데 대부분 잡음이다.
+	"""
+	import copy
+	ra = act_rule(env)
+	if LAST["a"] is None or np.random.random() >= A.la_frac:
+		return ra
+	N = env.num_drones
+	base = np.asarray(LAST["a"]).astype(np.int64).copy()
+	cand = [np.asarray(env.candidates(i)) for i in range(N)]
+	d0 = [int(cand[i][a]) if 0 <= a < env.n_cand else -1 for i, a in enumerate(base)]
+	opts = []
+	if not np.array_equal(ra, base):
+		opts.append(ra.copy())
+	for i in range(N):
+		if env.drones_capacity[i] == 0:
+			continue
+		for c in range(min(A.la_k, env.n_cand)):
+			j = int(cand[i][c])
+			if j < 0 or j == d0[i] or j in d0:
+				continue
+			acts = base.copy(); acts[i] = c
+			opts.append(acts)
+	LA_STAT["n"] += 1
+	if not opts:
+		return ra
+	vals = pool.map(_la_roll, [(copy.deepcopy(env), a, None, A.la_horizon, A.hl_every) for a in opts])
+	alt = opts[int(np.argmin(vals))]
+	R = A.la_reps
+	seeds = [int(x) for x in np.random.randint(1 << 30, size=R)]
+	jobs = [(copy.deepcopy(env), base, A.la_horizon, A.hl_every, LA_W["path"], sd) for sd in seeds]
+	jobs += [(copy.deepcopy(env), alt, A.la_horizon, A.hl_every, LA_W["path"], sd) for sd in seeds]
+	v = np.asarray(pool.map(_la_roll_pol, jobs))
+	d = v[R:] - v[:R]
+	m, se = float(d.mean()), float(d.std(ddof=1) / np.sqrt(R)) if R > 1 else 1e9
+	if m < -A.la_margin and (se == 0.0 or m / se < -2.0):
+		lab = ra.copy()
+		ch = alt != base
+		lab[ch] = alt[ch] + LA_BIG
+		LA_STAT["chg"] += 1
+		return lab
+	return ra
+
+
 def act_lookahead(env, pool):
 	"""선견 교사: 규칙 배정과 '드론 i 를 가까운 후보 j 로' 덮어쓴 배정들을 롤아웃으로 평가해 가장 좋은 것의 라벨을 돌려준다."""
 	import copy
@@ -491,6 +586,10 @@ def main():
 	rule_or_teacher = (lambda e: act_teacher(e, tch["order"], tch["st"])) if A.teacher else act_rule
 	if A.teacher_lookahead:
 		rule_or_teacher = lambda e: act_lookahead(e, LA_POOL)
+	if A.teacher_lookahead and A.teacher_policy:
+		rule_or_teacher = lambda e: act_lookahead_policy(e, LA_POOL)
+		os.makedirs(os.path.join(ROOT, "runs", A.tag), exist_ok=True)
+		LA_W["path"] = os.path.join(ROOT, "runs", A.tag, "la_actor.pth")
 	actor = SetManagerActor(advice=A.rule_obs, autoregressive=A.autoregressive, ar_near=A.ar_near).to(dev)
 	mq = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
 	mq_t = SetManagerTwinQ(K, advice=A.rule_obs, joint=A.joint_critic, mix=A.mix_critic, n_max=N_MAX).to(dev)
@@ -541,6 +640,11 @@ def main():
 	env = make_env(A.num_drones, A.num_dests)
 
 	for ep in range(start_ep, A.max_episodes + 1):
+		if A.teacher_lookahead and A.teacher_policy:
+			# 작업자가 쓸 현재 정책 가중치를 원자적으로 갱신한다 (에피소드마다)
+			tmp = LA_W["path"] + ".tmp"
+			torch.save({k: v.detach().cpu() for k, v in actor.state_dict().items()}, tmp)
+			os.replace(tmp, LA_W["path"])
 		# 엔트로피 목표를 선형 감쇠시킨다. 초반에는 넓게 탐색하고 후반에는 정책을 날카롭게 한다
 		if ep == 1 and A.escape_in_loop:
 			_hold = {"a": None}
@@ -578,6 +682,7 @@ def main():
 			a, o0, m0 = act(env, actor, dev)
 		if A.escape_in_loop:
 			a = esc_fn(env, a)
+		LAST["a"] = a
 		r0 = rule_or_teacher(env)
 		lab_tot += len(r0); lab_miss += int((r0 < 0).sum())
 		env.set_goals(a)
@@ -609,6 +714,7 @@ def main():
 					a2, o2, m2 = act(env, actor, dev)
 					if A.escape_in_loop:
 						a2 = esc_fn(env, a2)
+					LAST["a"] = a2
 					r2 = rule_or_teacher(env)
 					lab_tot += len(r2); lab_miss += int((r2 < 0).sum())
 					buf.push(o0, a, m0, opt_r, o2, m2, GAMMA ** opt_k, float(done), ra=r0, rv=opt_rv)
@@ -656,8 +762,11 @@ def main():
 					qmin = torch.min(qd1, qd2)[bi, b["j"]]
 				la = (p * (al_e * lp - qmin)).sum(-1).mean()
 				if A.rule_reg > 0.0:
-					rac = b["ra"].clamp_min(0)
-					ok = b["mask"].gather(-1, rac.unsqueeze(-1)).squeeze(-1).float() * (b["ra"] >= 0).float()
+					raw = b["ra"]
+					big = raw >= LA_BIG
+					rac = torch.where(big, raw - LA_BIG, raw).clamp_min(0)
+					ok = b["mask"].gather(-1, rac.unsqueeze(-1)).squeeze(-1).float() * (raw >= 0).float()
+					ok = ok * torch.where(big, A.la_weight, 1.0)
 					nll = -lp.gather(-1, rac.unsqueeze(-1)).squeeze(-1)
 					la = la + A.rule_reg * (nll * ok).sum() / ok.sum().clamp_min(1.0)
 				a_opt.zero_grad(); la.backward(); nn.utils.clip_grad_norm_(actor.parameters(), 1.0); a_opt.step()
@@ -723,13 +832,17 @@ def main():
 				la = ((p * (alpha * lp - qmin)).sum(-1) * dm).sum() / dm.sum()
 				if A.rule_reg > 0.0:
 					# 규칙 행동이 마스크 안에 있는 드론만 정규화한다
-					rac = b["ra"].clamp_min(0)
-					ok = dm * b["mask"].gather(-1, rac.unsqueeze(-1)).squeeze(-1).float() * (b["ra"] >= 0).float()
+					raw = b["ra"]
+					big = raw >= LA_BIG
+					rac = torch.where(big, raw - LA_BIG, raw).clamp_min(0)
+					ok = dm * b["mask"].gather(-1, rac.unsqueeze(-1)).squeeze(-1).float() * (raw >= 0).float()
+					# 검증된 정책 반복 라벨(LA_BIG 을 더해 저장)은 la_weight 배로 센다
+					ok = ok * torch.where(big, A.la_weight, 1.0)
 					nll = -lp.gather(-1, rac.unsqueeze(-1)).squeeze(-1)
 					# 중계 지시에 더 큰 가중치를 줄 수 있다 — 드론이 부족한 구성에서 정책이
 					# 중계를 규칙의 절반만 쓰고(0.78 대 1.39) 투영에 막혀 시간을 잃는다 (26-09-27 측정)
 					if A.relay_reg != 1.0:
-						ok = ok * torch.where(b["ra"] == b["mask"].shape[-1] - 1, A.relay_reg, 1.0)
+						ok = ok * torch.where(rac == b["mask"].shape[-1] - 1, A.relay_reg, 1.0)
 					la = la + A.rule_reg * (nll * ok).sum() / ok.sum().clamp_min(1.0)
 				a_opt.zero_grad(); la.backward(); nn.utils.clip_grad_norm_(actor.parameters(), 1.0); a_opt.step()
 				ent = (-(p * lp).sum(-1) * dm).sum() / dm.sum()
@@ -761,7 +874,8 @@ def main():
 		row_alpha = float(log_alpha.exp())
 		print(f"Ep {ep} | 드론{env.num_drones} 목적지{env.num_dests:2d} | {t:4d}스텝 | 배송 {st['delivered']:2d}/{env.num_dests} "
 		      f"| 재적재 {st['reloads']:2d} | 중계율 {row['relay_frac']:.2f} | alpha {row_alpha:.3f} | {st['term_reason']}"
-		      + (f" | 라벨없음 {lab_miss / max(1, lab_tot):.2f}" if A.pool else ""), flush=True)
+		      + (f" | 라벨없음 {lab_miss / max(1, lab_tot):.2f}" if A.pool else "")
+		      + (f" | 선견변경 {LA_STAT['chg']}/{LA_STAT['n']}" if A.teacher_policy else ""), flush=True)
 
 		if ep % CKPT_EVERY == 0:
 			torch.save(actor.state_dict(), os.path.join(W_DIR, f"manager_ep{ep}.pth"))
