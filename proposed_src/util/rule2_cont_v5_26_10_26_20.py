@@ -36,7 +36,7 @@ def continue_cont(env, setter, hl_every, horizon):
 	return float(env.current_step) + 50.0 * float(env.dests_active.sum())
 
 
-def lookahead_cont(hl_every, horizon, k_cand=5, follow=False, commit=False, log=None, la_every=0):
+def lookahead_cont(hl_every, horizon, k_cand=5, follow=False, commit=False, log=None, la_every=0, toggles=True):
 	"""연속 공간 한 수 선견 설정자 (격자판과 같은 후보 열거: 드론 i 에 후보 j, 중계 선행 토글).
 
 	la_every > 0 이면 선견 평가는 그 주기(또는 목표 무효화 시)에만 하고 사이는 규칙(+따라가기)으로 잇는다.
@@ -44,7 +44,8 @@ def lookahead_cont(hl_every, horizon, k_cand=5, follow=False, commit=False, log=
 	"""
 	base = chain_escape_manager()
 	st = {"pin": None, "last": -10 ** 9}
-	relay_opts = (False,) if follow else (False, True)
+	# toggles=False 면 중계 선행 토글을 후보에서 뺀다 (학습 정책의 옵션으로 표현할 수 없는 선택이라 증류 교사에서는 끈다)
+	relay_opts = (False,) if (follow or not toggles) else (False, True)
 
 	def decide(env):
 		N = env.num_drones
@@ -127,6 +128,7 @@ def main():
 	p.add_argument("--methods", default="rule,follow,la_follow")
 	p.add_argument("--la-every", type=int, default=100, help="선견 평가 주기 (스텝). 0이면 모든 결정 시점")
 	p.add_argument("--k-cand", type=int, default=3)
+	p.add_argument("--no-toggle", action="store_true", help="중계 선행 토글을 후보에서 뺀다 (증류 교사와 같은 설정)")
 	p.add_argument("--out", default="rule2_cont_v5_26_10_26_20")
 	A_ = p.parse_args()
 	cc = "random" if A_.random_cc else None
@@ -145,7 +147,7 @@ def main():
 				s = rule_setter(chain_escape_manager(), True)
 			else:
 				s = lookahead_cont(A_.hl_every, A_.horizon, k_cand=A_.k_cand, follow="follow" in m,
-				                   commit="commit" in m, la_every=A_.la_every)
+				                   commit="commit" in m, la_every=A_.la_every, toggles=not A_.no_toggle)
 			row[m] = run(env, s, seed, cc, A_.hl_every)
 			row[f"{m}_sec"] = round(time.time() - t0, 1)
 		rows.append(row)

@@ -134,6 +134,15 @@ P.add_argument("--la-margin", type=float, default=20.0, help="정책 연속 검�
 P.add_argument("--la-weight", type=float, default=1.0, help="검증된 정책 반복 라벨의 정규화 가중 배수 (규칙 라벨 = 1)")
 P.add_argument("--la-k", type=int, default=3, help="선견이 드론마다 보는 가까운 후보 수")
 P.add_argument("--la-horizon", type=int, default=1000, help="선견 롤아웃 상한 스텝. 미완주면 상한 + 50 x 남은 수요지")
+P.add_argument("--makespan-reward", action="store_true",
+               help="팀 보상을 makespan 정렬 보상(스텝당 -ms_scale + 잠재 기반 보강, 잠재 = -ms_scale x 남은 시간 추정)으로 "
+                    "바꾸고 다른 보너스·벌점을 끈다. 잠재 보강의 할인율은 --gamma 와 같게 둔다 (사이클 32, 26-11-09)")
+P.add_argument("--ms-scale", type=float, default=0.1, help="makespan 정렬 보상의 스텝당 비용")
+P.add_argument("--val-paired", action="store_true",
+               help="체크포인트 선택을 쌍별 검증으로 한다: 3/30·5/50·4/50 각 20건 x val_samples 회, 공통 난수, "
+                    "인스턴스별 중앙 makespan / SWa 기준 중앙값의 평균 비율 (낮을수록 좋다). 점수 = 100 x (2 - 비율)")
+P.add_argument("--val-samples", type=int, default=3)
+P.add_argument("--val-margin", type=float, default=0.5, help="쌍별 검증 점수가 최고보다 이만큼 넘어야 갱신한다 (점수 단위 = 비율 %%)")
 P.add_argument("--rule-reg", type=float, default=0.0,
                help="actor 손실에 lambda x (규칙 행동의 음의 로그확률)을 더한다. 정책이 규칙 근처에 머물되 Q가 강하게 반대할 때만 벗어난다")
 P.add_argument("--holdout-steps", type=int, default=1000, help="홀드아웃 상한. makespan 사이클은 3000")
@@ -151,6 +160,14 @@ MASK_KW = dict(no_relay=A.no_relay, commit=A.commit)
 
 def make_env(n, m):
 	"""주어진 구성의 환경을 만든다."""
+	e = _make_env(n, m)
+	if A.makespan_reward:
+		e.makespan_reward, e.ms_scale, e.ms_gamma = True, A.ms_scale, A.gamma
+	return e
+
+
+def _make_env(n, m):
+	"""주어진 구성의 환경을 만든다 (보상 설정 전)."""
 	return DisasterRelayDroneEnv(map_path="", comm_range=A.comm_range, cluster_penalty=False,
 	                             max_steps=A.max_steps, deadlock_limit=10 ** 9,
 	                             no_progress_limit=A.no_progress_limit, arrive_once=False,
@@ -513,6 +530,26 @@ def holdout_lattice(actor, dev):
 	return st
 
 
+VAL = {"ref": None}
+
+
+def holdout_paired(actor, dev):
+	"""쌍별 검증 (val_paired 모듈). 학습 쪽 난수 상태는 검증 전후로 보존한다."""
+	from util.val_paired_v5_26_11_09_17 import evaluate, load_ref, summarize
+	if VAL["ref"] is None:
+		VAL["ref"] = load_ref()
+	st = (np.random.get_state(), torch.get_rng_state(),
+	      torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None)
+	runs = evaluate(lambda e: act(e, actor, dev)[0], A.val_samples)
+	np.random.set_state(st[0]); torch.set_rng_state(st[1])
+	if st[2] is not None:
+		torch.cuda.set_rng_state_all(st[2])
+	sm = summarize(runs, VAL["ref"])
+	return {"delivered": 0.0, "delivered_sd": 0.0, "reloads": 0.0, "hop2plus": 0.0, "max_reach": 0.0,
+	        "full": sm["full"], "steps": sm["mean_med"], "score": 100.0 * (2.0 - sm["ratio"]),
+	        "ratio": sm["ratio"], "r3_30": sm["r3_30"], "r5_50": sm["r5_50"], "r4_50": sm["r4_50"]}
+
+
 def holdout(actor, dev):
 	"""표준 구성(드론 4·목적지 50·CC 고정)에서 샘플링 평가. --holdout-mix면 절반을 3/30 무작위 CC로."""
 	if A.holdout_lattice:
@@ -606,6 +643,8 @@ def main():
 	cols = ["episode", "n_drones", "n_dests", "steps", "team_reward", "delivered", "makespan", "reloads",
 	        "hop2plus", "max_reach", "stall_ratio", "max_stall_run", "term_reason", "relay_frac", "wall_sec"]
 	ecols = ["episode", "delivered", "delivered_sd", "reloads", "hop2plus", "max_reach", "full", "steps", "score", "is_best", "wall_sec"]
+	if A.val_paired:
+		ecols = ecols[:-2] + ["ratio", "r3_30", "r5_50", "r4_50"] + ecols[-2:]
 
 	start_ep, best, best_ep, stale = 1, -1.0, 0, 0
 	last_lq, last_y = 0.0, 0.0   # 혼합망 발산 감시용 (critic 손실·목표값 크기)
@@ -886,8 +925,8 @@ def main():
 			os.replace(tmp, latest)
 
 		if ep % A.eval_every == 0 and len(buf) > WARMUP:
-			ev = holdout(actor, dev)
-			is_best = ev["score"] > best
+			ev = holdout_paired(actor, dev) if A.val_paired else holdout(actor, dev)
+			is_best = ev["score"] > best + (A.val_margin if A.val_paired else 0.0)
 			if is_best:
 				best, best_ep, stale = ev["score"], ep, 0
 				torch.save(actor.state_dict(), os.path.join(W_DIR, "best_manager.pth"))
@@ -899,6 +938,8 @@ def main():
 				writer.add_scalar(f"holdout/{k}", v, ep)
 			mix = (f" [4/50 {ev['full4']:.2f}·{ev['steps4']:.0f} | 3/30 {ev['full3']:.2f}·{ev['steps3']:.0f}]"
 			       if "full3" in ev else "")
+			if "ratio" in ev:
+				mix = f" [기준 대비 비율 {ev['ratio']:.3f} | 3/30 {ev['r3_30']:.3f} 5/50 {ev['r5_50']:.3f} 4/50 {ev['r4_50']:.3f}]"
 			print(f"  [홀드아웃] 배송 {ev['delivered']:.1f}±{ev['delivered_sd']:.1f} 완주 {ev['full']:.2f} 스텝 {ev['steps']:.0f} 점수 {ev['score']:.1f} "
 			      f"재적재 {ev['reloads']:.1f} 2홉+ {ev['hop2plus']:.2f}{mix} | 최고 {best:.1f}@ep{best_ep} 정체 {stale}/{A.patience}"
 			      f"{'  ← 갱신' if is_best else ''}", flush=True)

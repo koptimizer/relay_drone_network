@@ -58,6 +58,15 @@ class DisasterRelayDroneEnv:
 		self.no_project = False           # 참이면 매 스텝 연결성 투영을 끈다 (격자 모드: 기간 경계에서만 판정)
 		self.no_service = False           # 참이면 자동 배송/재적재를 끈다 (격자 모드: 기간 경계에서만 서비스)
 		self.relay_lookahead = False      # 참이면 슬롯에 도착한 중계를 다음 전선 기준 슬롯으로 미리 보낸다
+		# makespan 정렬 보상 (사이클 32, 26-11-09). 참이면 팀 보상을 '스텝당 -ms_scale + 잠재 기반 보강
+		# ms_gamma*Phi(s') - Phi(s)' 하나로 바꾸고 배송·재적재 보너스와 다른 벌점을 모두 끈다. Phi = -ms_scale x
+		# 남은 시간 추정이므로 수익은 -ms_scale x makespan 에 수렴하고(완주 시 Phi=0, 잘리면 남은 추정만큼 벌),
+		# 잠재 기반이라 최적 정책을 바꾸지 않는다 (Ng et al. 1999). 기존 보상은 재적재 보너스(+30)가 느린 정책에
+		# 상을 주고 시간 항이 수익의 약 4%뿐이었다 (3/30 12건 진단: SWa 가 규칙보다 58스텝 느린데 수익은 +8.9).
+		self.makespan_reward = False
+		self.ms_scale = 0.1
+		self.ms_gamma = 0.999
+		self._phi = None
 		# 부분 교착이 이만큼 이어지면 모든 드론의 목표를 무효화해 상위가 다시 결정한다 (0이면 끔)
 		self.stall_redecide = stall_redecide
 		self.redecide_run = 0
@@ -134,8 +143,34 @@ class DisasterRelayDroneEnv:
 
 	# ---------- 리셋 및 상태 ----------
 
+	def remaining_estimate(self):
+		"""남은 시간(스텝) 추정: 미배송 수요지마다 가장 빨리 닿는 드론의 도달 시간으로 임계 경로 + 일의 양/N + 재적재 왕복.
+
+		격자 빔 탐색에서 검증한 추정(est2)을 연속 공간 단위로 옮긴 것이다. 잠재 함수로만 쓰므로 정확할 필요는 없다.
+		"""
+		act = np.flatnonzero(self.dests_active)
+		U = len(act)
+		if U == 0:
+			return 0.0
+		v, svc, N = self.max_speed, float(self.unload_time), self.num_drones
+		busy = np.maximum(self.drones_timer, 0).astype(float)
+		d_dest = np.linalg.norm(self.drones_pos[:, None, :] - self.dests_pos[act][None, :, :], axis=2) / v   # (N, U)
+		d_cc = np.linalg.norm(self.drones_pos - self.cc_pos, axis=1) / v                                      # (N,)
+		cc_dest = np.linalg.norm(self.dests_pos[act] - self.cc_pos, axis=1) / v                               # (U,)
+		has = (self.drones_capacity > 0)[:, None]
+		t = np.where(has, busy[:, None] + d_dest, busy[:, None] + d_cc[:, None] + svc + cc_dest[None, :])
+		dmin = t.min(0)
+		need = max(0, U - int(self.drones_capacity.sum()))
+		trips = int(np.ceil(need / max(1, self.max_capacity)))
+		return float(dmin.max() + svc + (dmin.sum() + U * svc) / N + trips * (2.0 * cc_dest.mean() + svc) / N)
+
+	def _potential(self):
+		"""makespan 정렬 보상의 잠재 함수 Phi(s) = -ms_scale x 남은 시간 추정."""
+		return -self.ms_scale * self.remaining_estimate()
+
 	def reset(self):
 		"""에피소드를 초기화하고 하위 관측을 반환한다."""
+		self._phi = None
 		self.dests_active = np.ones(self.num_dests, dtype=bool)
 		self.drones_pos = np.tile(self.cc_pos, (self.num_drones, 1)).astype(float)
 		self.drones_capacity = np.full(self.num_drones, self.max_capacity)
@@ -503,6 +538,9 @@ class DisasterRelayDroneEnv:
 
 	def step(self, thrust):
 		"""2D 추력을 받아 한 스텝 진행하고 (하위 관측, 하위 보상, 팀 보상, 종료)를 반환한다."""
+		if self.makespan_reward:
+			# 상태가 바뀌기 전의 잠재값 (직전 스텝에서 구한 값을 재사용하되, 목표·위치가 밖에서 바뀌었을 수 있어 다시 잰다)
+			self._phi_prev = self._potential()
 		self.current_step += 1
 		self.goal_age += 1
 		w_rew = np.zeros(self.num_drones)   # 하위: 목표 진척
@@ -664,6 +702,11 @@ class DisasterRelayDroneEnv:
 			team -= self.incomplete_penalty * float(self.dests_active.sum())
 		if done and self.term_reason == "complete" and self.complete_bonus > 0.0:
 			team += self.complete_bonus * max(0.0, 1.0 - self.current_step / self.max_steps)
+		if self.makespan_reward:
+			# 이번 스텝의 다른 보상 항은 모두 버리고 정렬 보상 하나만 낸다 (Phi_prev 는 스텝 시작에서 구해 두었다)
+			phi_next = self._potential()
+			team = -self.ms_scale + self.ms_gamma * phi_next - self._phi_prev
+			self._phi = phi_next
 		if self.render_mode == "human":
 			self.render()
 		return self.worker_obs(), w_rew, team, done
