@@ -66,8 +66,13 @@ def rule_value(env, horizon):
 	return float(env.current_step) + 50.0 * float(env.dests_active.sum())
 
 
-def expert_label(env, base, k_cand, horizon):
-	"""교사의 옵션 라벨 (드론별 0..K-1): 규칙 배정과 드론 하나를 가까운 후보로 바꾼 배정 중 규칙 롤아웃이 가장 짧은 것."""
+def expert_label(env, base, k_cand, horizon, margin=0.0, reps=1):
+	"""교사의 옵션 라벨 (드론별 0..K-1): 규칙 배정과 드론 하나를 가까운 후보로 바꾼 배정 중 규칙 롤아웃이 가장 짧은 것.
+
+	reps > 1 이면 후보마다 공통 난수 reps 회로 굴려 평균하고, 규칙 배정보다 margin 스텝 넘게 짧을 때만 그 후보를 고른다
+	(그 밖은 규칙 배정). 같은 상태에서 동률 깨기 난수만 바꿔도 단일 롤아웃 라벨은 33%가 바뀌고, 이탈 이득은 중앙
+	4스텝이다 (26-11-09 측정) — 라벨 대부분이 잡음이라 DA2 부터 정제한다.
+	"""
 	N = env.num_drones
 	acts0 = np.asarray(base(env)).astype(np.int64).copy()
 	cand = [np.asarray(env.candidates(i)) for i in range(N)]
@@ -82,19 +87,27 @@ def expert_label(env, base, k_cand, horizon):
 				continue
 			a = acts0.copy(); a[i] = c
 			opts.append(a)
-	best, bv = 0, None
-	for k, a in enumerate(opts):
-		e = copy.deepcopy(env)
-		e.set_goals(a)
-		v = rule_value(e, horizon)
-		if bv is None or v < bv:
-			best, bv = k, v
+	vals = []
+	seeds = [int(env.rng.integers(1 << 31)) for _ in range(reps)] if reps > 1 else [None]
+	for a in opts:
+		vs = []
+		for sd in seeds:
+			e = copy.deepcopy(env)
+			if sd is not None:
+				e.rng = np.random.default_rng(sd)
+			e.set_goals(a)
+			vs.append(rule_value(e, horizon))
+		vals.append(float(np.mean(vs)))
+	best = int(np.argmin(vals))
+	if vals[0] - vals[best] <= margin:
+		best = 0
 	return opts[best], len(opts)
 
 
 def episode(args):
 	"""작업자: 학생·교사 혼합으로 한 에피소드를 굴리며 모든 결정 시점에 교사 라벨을 단다."""
-	seed, wpath, beta, k_cand, horizon, max_steps = args
+	seed, wpath, beta, k_cand, horizon, max_steps = args[:6]
+	margin, reps = (args[6], args[7]) if len(args) >= 8 else (0.0, 1)
 	torch.set_num_threads(1)
 	rng = np.random.default_rng(seed)
 	np.random.seed(seed % (2 ** 31))
@@ -115,7 +128,7 @@ def episode(args):
 
 	def decide():
 		nonlocal n_opts, n_exp
-		lab, no = expert_label(env, base, k_cand, horizon)
+		lab, no = expert_label(env, base, k_cand, horizon, margin, reps)
 		n_opts += no
 		o = pad_obs(env.manager_set_obs(), n)
 		mk = padded_mask(env)
@@ -239,6 +252,9 @@ def main():
 	p.add_argument("--batch", type=int, default=256)
 	p.add_argument("--lr", type=float, default=1e-4)
 	p.add_argument("--val-samples", type=int, default=3)
+	p.add_argument("--label-margin", type=float, default=10.0,
+	               help="교사가 규칙 배정에서 벗어나려면 이만큼(스텝) 넘게 짧아야 한다. 26-11-09 DA2 부터 기본 10 — DA1 은 0")
+	p.add_argument("--label-reps", type=int, default=2, help="교사 후보마다 공통 난수 롤아웃 수 (평균). DA2 부터 기본 2 — DA1 은 1")
 	p.add_argument("--holdout-frac", type=float, default=0.1,
 	               help="에피소드의 이 비율을 보류해 학습 조기 종료에 쓴다 (0 이면 끔). 26-11-09 DA2 부터 기본 0.1 — DA1 은 끈 상태로 돌았다")
 	A = p.parse_args()
@@ -271,7 +287,8 @@ def main():
 		      f"4/50 {sm['r4_50']:.3f} | 완주 {sm['full']:.3f}", flush=True)
 		return sm
 
-	print(f"증류 {A.tag} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}) | "
+	print(f"증류 {A.tag} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}, "
+	      f"이탈 여유폭 {A.label_margin}스텝, 후보당 롤아웃 {A.label_reps}회) | "
 	      f"학생 초기 {A.init} | beta {A.betas} | 반복당 {A.episodes} 에피소드 | 학습 최대 {A.train_steps} 스텝 | "
 	      f"보류 {A.holdout_frac} (조기 종료 {'켬' if A.holdout_frac > 0 else '끔'})", flush=True)
 	sm0 = validate("초기(SWa)")
@@ -284,7 +301,7 @@ def main():
 		t0 = time.time()
 		save_student()
 		seeds = [int(A.seed * 1_000_000 + it * 10_000 + e) for e in range(A.episodes)]
-		res = pool.map(episode, [(s, wpath, beta, A.k_cand, A.horizon, A.max_steps) for s in seeds])
+		res = pool.map(episode, [(s, wpath, beta, A.k_cand, A.horizon, A.max_steps, A.label_margin, A.label_reps) for s in seeds])
 		for smp, _info in res:
 			if A.holdout_frac > 0 and hrng.random() < A.holdout_frac:
 				held += smp
