@@ -148,13 +148,39 @@ def stack(data):
 	return O, np.stack([x[1] for x in data]), np.stack([x[2] for x in data])
 
 
-def train(actor, data, steps, batch, lr, dev, rng):
-	"""모은 전체 데이터로 교차 엔트로피 학습 (자기회귀 교사 강제). (평균 손실, 라벨 일치율) 을 돌려준다."""
+def ce_eval(actor, data, dev, cap=6000):
+	"""보류 데이터의 교차 엔트로피와 라벨 일치율 (자기회귀 교사 강제, 일치율은 argmax)."""
+	if not data:
+		return None, None
+	O, Mk, Y = stack(data[:cap])
+	tot, ok_sum, hit = 0.0, 0.0, 0.0
+	with torch.no_grad():
+		for i in range(0, len(Y), 1024):
+			o = {k: torch.as_tensor(v[i:i + 1024], device=dev) for k, v in O.items()}
+			mk = torch.as_tensor(Mk[i:i + 1024], device=dev); y = torch.as_tensor(Y[i:i + 1024], device=dev)
+			_a, p, lp = actor(o, mk, given=y)
+			ok = o["drone_mask"].float() * mk.gather(-1, y.unsqueeze(-1)).squeeze(-1).float()
+			tot += float(-(lp.gather(-1, y.unsqueeze(-1)).squeeze(-1) * ok).sum())
+			hit += float(((p.argmax(-1) == y).float() * ok).sum())
+			ok_sum += float(ok.sum())
+	return tot / max(1.0, ok_sum), hit / max(1.0, ok_sum)
+
+
+def train(actor, data, steps, batch, lr, dev, rng, val=None, check=200, patience=3):
+	"""모은 전체 데이터로 교차 엔트로피 학습 (자기회귀 교사 강제). (평균 손실, 라벨 일치율) 을 돌려준다.
+
+	val (보류 에피소드의 표본) 을 주면 check 스텝마다 보류 손실을 재어 가장 낮을 때의 가중치로 되돌리고, patience 번
+	연속 나아지지 않으면 멈춘다. DA1(조기 종료 없음)은 학습 데이터 일치 0.998 대 새 상태 일치 0.78 로 외워 버렸다.
+	"""
 	O, Mk, Y = stack(data)
 	S = len(Y)
 	opt = torch.optim.Adam(actor.parameters(), lr=lr)
 	actor.train()
 	losses, accs = [], []
+	best_v, best_sd, bad = None, None, 0
+	if val:
+		actor.eval(); best_v, _ = ce_eval(actor, val, dev); actor.train()
+		best_sd = {k: v.detach().clone() for k, v in actor.state_dict().items()}
 	for st in range(steps):
 		idx = rng.integers(S, size=min(batch, S))
 		o = {k: torch.as_tensor(v[idx], device=dev) for k, v in O.items()}
@@ -168,11 +194,24 @@ def train(actor, data, steps, batch, lr, dev, rng):
 		loss.backward()
 		torch.nn.utils.clip_grad_norm_(actor.parameters(), 1.0)
 		opt.step()
-		if st >= steps - 200:
-			losses.append(float(loss))
-			accs.append(float(((p.argmax(-1) == y).float() * ok).sum() / ok.sum().clamp_min(1.0)))
+		losses.append(float(loss.detach()))
+		accs.append(float(((p.argmax(-1) == y).float() * ok).sum() / ok.sum().clamp_min(1.0)))
+		if val and (st + 1) % check == 0:
+			actor.eval(); v, _ = ce_eval(actor, val, dev); actor.train()
+			if v < best_v - 1e-4:
+				best_v, best_sd, bad = v, {k: t.detach().clone() for k, t in actor.state_dict().items()}, 0
+			else:
+				bad += 1
+				if bad >= patience:
+					break
+	if val:
+		actor.load_state_dict(best_sd)
 	actor.eval()
-	return float(np.mean(losses)), float(np.mean(accs))
+	TRAIN_INFO["steps"] = st + 1
+	return float(np.mean(losses[-200:])), float(np.mean(accs[-200:]))
+
+
+TRAIN_INFO = {"steps": 0}
 
 
 def val_job(args):
@@ -200,6 +239,8 @@ def main():
 	p.add_argument("--batch", type=int, default=256)
 	p.add_argument("--lr", type=float, default=1e-4)
 	p.add_argument("--val-samples", type=int, default=3)
+	p.add_argument("--holdout-frac", type=float, default=0.1,
+	               help="에피소드의 이 비율을 보류해 학습 조기 종료에 쓴다 (0 이면 끔). 26-11-09 DA2 부터 기본 0.1 — DA1 은 끈 상태로 돌았다")
 	A = p.parse_args()
 	os.chdir(ROOT)
 	from util.val_paired_v5_26_11_09_17 import instances, load_ref, summarize
@@ -231,32 +272,41 @@ def main():
 		return sm
 
 	print(f"증류 {A.tag} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}) | "
-	      f"학생 초기 {A.init} | beta {A.betas} | 반복당 {A.episodes} 에피소드 | 학습 {A.train_steps} 스텝", flush=True)
+	      f"학생 초기 {A.init} | beta {A.betas} | 반복당 {A.episodes} 에피소드 | 학습 최대 {A.train_steps} 스텝 | "
+	      f"보류 {A.holdout_frac} (조기 종료 {'켬' if A.holdout_frac > 0 else '끔'})", flush=True)
 	sm0 = validate("초기(SWa)")
 	best, best_it = sm0["ratio"], 0
 	torch.save(actor.state_dict(), os.path.join(W_DIR, "best_manager.pth"))
 	log.write(json.dumps(dict(it=0, **sm0)) + "\n"); log.flush()
-	data = []
+	data, held = [], []
+	hrng = np.random.default_rng(A.seed + 777)
 	for it, beta in enumerate([float(x) for x in A.betas.split(",")], start=1):
 		t0 = time.time()
 		save_student()
 		seeds = [int(A.seed * 1_000_000 + it * 10_000 + e) for e in range(A.episodes)]
 		res = pool.map(episode, [(s, wpath, beta, A.k_cand, A.horizon, A.max_steps) for s in seeds])
 		for smp, _info in res:
-			data += smp
+			if A.holdout_frac > 0 and hrng.random() < A.holdout_frac:
+				held += smp
+			else:
+				data += smp
 		infos = [x[1] for x in res]
 		done = [x for x in infos if x["makespan"]]
 		print(f"반복 {it} (beta {beta}): 에피소드 {len(infos)} | 완주 {len(done)}/{len(infos)} | 결정 {sum(x['decisions'] for x in infos)} "
-		      f"(후보 평균 {np.mean([x['opts'] for x in infos]):.1f}) | 데이터 {len(data)} | 수집 {time.time() - t0:.0f}초", flush=True)
-		loss, acc = train(actor, data, A.train_steps, A.batch, A.lr, dev, rng)
-		print(f"  학습: 손실 {loss:.3f}, 라벨 일치 {acc:.3f}", flush=True)
+		      f"(후보 평균 {np.mean([x['opts'] for x in infos]):.1f}) | 데이터 {len(data)} (보류 {len(held)}) | 수집 {time.time() - t0:.0f}초", flush=True)
+		vs = [held[i] for i in rng.permutation(len(held))[:6000]] if held else None
+		loss, acc = train(actor, data, A.train_steps, A.batch, A.lr, dev, rng, val=vs)
+		hv, ha = ce_eval(actor, vs, dev) if vs else (None, None)
+		print(f"  학습: {TRAIN_INFO['steps']} 스텝, 손실 {loss:.3f}, 라벨 일치 {acc:.3f}"
+		      + (f" | 보류 손실 {hv:.3f}, 보류 일치 {ha:.3f}" if vs else ""), flush=True)
 		torch.save(actor.state_dict(), os.path.join(W_DIR, f"manager_it{it}.pth"))
 		sm = validate(f"반복 {it}")
 		is_best = sm["ratio"] < best - 0.005
 		if is_best:
 			best, best_it = sm["ratio"], it
 			torch.save(actor.state_dict(), os.path.join(W_DIR, "best_manager.pth"))
-		log.write(json.dumps(dict(it=it, beta=beta, data=len(data), loss=loss, acc=acc, is_best=int(is_best), **sm,
+		log.write(json.dumps(dict(it=it, beta=beta, data=len(data), held=len(held), loss=loss, acc=acc, held_loss=hv, held_acc=ha,
+		                          steps=TRAIN_INFO["steps"], is_best=int(is_best), **sm,
 		                          collect=[dict(n=x["n"], m=x["m"], makespan=x["makespan"], decisions=x["decisions"]) for x in infos])) + "\n")
 		log.flush()
 		print(f"  최고 비율 {best:.3f} @반복 {best_it}{'  ← 갱신' if is_best else ''}", flush=True)
