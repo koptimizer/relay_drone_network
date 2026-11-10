@@ -108,11 +108,12 @@ def episode(args):
 	"""작업자: 학생·교사 혼합으로 한 에피소드를 굴리며 모든 결정 시점에 교사 라벨을 단다."""
 	seed, wpath, beta, k_cand, horizon, max_steps = args[:6]
 	margin, reps = (args[6], args[7]) if len(args) >= 8 else (0.0, 1)
+	drones, dests = (args[8], args[9]) if len(args) >= 10 else ((3, 4), (20, 80))
 	torch.set_num_threads(1)
 	rng = np.random.default_rng(seed)
 	np.random.seed(seed % (2 ** 31))
 	torch.manual_seed(seed)
-	n, m, cc, d = sample_config(rng, (3, 4), (20, 80), random_cc=True)
+	n, m, cc, d = sample_config(rng, drones, dests, random_cc=True)
 	env = DisasterRelayDroneEnv(map_path="", comm_range=300.0, cluster_penalty=False, max_steps=max_steps,
 	                            deadlock_limit=10 ** 9, no_progress_limit=10 ** 9, num_drones=n, num_dests=m)
 	env.cc_pos, env.dests_pos = cc, d
@@ -255,6 +256,8 @@ def main():
 	p.add_argument("--label-margin", type=float, default=10.0,
 	               help="교사가 규칙 배정에서 벗어나려면 이만큼(스텝) 넘게 짧아야 한다. 26-11-09 DA2 부터 기본 10 — DA1 은 0")
 	p.add_argument("--label-reps", type=int, default=2, help="교사 후보마다 공통 난수 롤아웃 수 (평균). DA2 부터 기본 2 — DA1 은 1")
+	p.add_argument("--drones-range", type=int, nargs=2, default=[3, 4], help="수집 에피소드의 드론 수 범위 (사이클 33: 3 6)")
+	p.add_argument("--dests-range", type=int, nargs=2, default=[20, 80], help="수집 에피소드의 수요지 수 범위 (사이클 33: 20 150)")
 	p.add_argument("--holdout-frac", type=float, default=0.1,
 	               help="에피소드의 이 비율을 보류해 학습 조기 종료에 쓴다 (0 이면 끔). 26-11-09 DA2 부터 기본 0.1 — DA1 은 끈 상태로 돌았다")
 	A = p.parse_args()
@@ -287,7 +290,7 @@ def main():
 		      f"4/50 {sm['r4_50']:.3f} | 완주 {sm['full']:.3f}", flush=True)
 		return sm
 
-	print(f"증류 {A.tag} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}, "
+	print(f"증류 {A.tag} | 구성 드론 {A.drones_range} 수요지 {A.dests_range} 상한 {A.max_steps} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}, "
 	      f"이탈 여유폭 {A.label_margin}스텝, 후보당 롤아웃 {A.label_reps}회) | "
 	      f"학생 초기 {A.init} | beta {A.betas} | 반복당 {A.episodes} 에피소드 | 학습 최대 {A.train_steps} 스텝 | "
 	      f"보류 {A.holdout_frac} (조기 종료 {'켬' if A.holdout_frac > 0 else '끔'})", flush=True)
@@ -301,7 +304,8 @@ def main():
 		t0 = time.time()
 		save_student()
 		seeds = [int(A.seed * 1_000_000 + it * 10_000 + e) for e in range(A.episodes)]
-		res = pool.map(episode, [(s, wpath, beta, A.k_cand, A.horizon, A.max_steps, A.label_margin, A.label_reps) for s in seeds])
+		res = pool.map(episode, [(s, wpath, beta, A.k_cand, A.horizon, A.max_steps, A.label_margin, A.label_reps,
+		                          tuple(A.drones_range), tuple(A.dests_range)) for s in seeds])
 		for smp, _info in res:
 			if A.holdout_frac > 0 and hrng.random() < A.holdout_frac:
 				held += smp
