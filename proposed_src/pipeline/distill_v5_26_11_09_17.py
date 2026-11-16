@@ -162,6 +162,14 @@ def stack(data):
 	return O, np.stack([x[1] for x in data]), np.stack([x[2] for x in data])
 
 
+def episode_weights(data):
+	"""표본별 추출 확률: 에피소드마다 합이 같도록 1/(그 에피소드의 표본 수). 표본에 에피소드 번호가 없으면 균등."""
+	ep = np.array([x[3] if len(x) > 3 else i for i, x in enumerate(data)])
+	_u, inv, cnt = np.unique(ep, return_inverse=True, return_counts=True)
+	w = 1.0 / cnt[inv]
+	return w / w.sum()
+
+
 def ce_eval(actor, data, dev, cap=6000):
 	"""보류 데이터의 교차 엔트로피와 라벨 일치율 (자기회귀 교사 강제, 일치율은 argmax)."""
 	if not data:
@@ -180,7 +188,7 @@ def ce_eval(actor, data, dev, cap=6000):
 	return tot / max(1.0, ok_sum), hit / max(1.0, ok_sum)
 
 
-def train(actor, data, steps, batch, lr, dev, rng, val=None, check=200, patience=3):
+def train(actor, data, steps, batch, lr, dev, rng, val=None, check=200, patience=3, balanced=False):
 	"""모은 전체 데이터로 교차 엔트로피 학습 (자기회귀 교사 강제). (평균 손실, 라벨 일치율) 을 돌려준다.
 
 	val (보류 에피소드의 표본) 을 주면 check 스텝마다 보류 손실을 재어 가장 낮을 때의 가중치로 되돌리고, patience 번
@@ -188,6 +196,7 @@ def train(actor, data, steps, batch, lr, dev, rng, val=None, check=200, patience
 	"""
 	O, Mk, Y = stack(data)
 	S = len(Y)
+	pw = episode_weights(data) if balanced else None
 	opt = torch.optim.Adam(actor.parameters(), lr=lr)
 	actor.train()
 	losses, accs = [], []
@@ -196,7 +205,7 @@ def train(actor, data, steps, batch, lr, dev, rng, val=None, check=200, patience
 		actor.eval(); best_v, _ = ce_eval(actor, val, dev); actor.train()
 		best_sd = {k: v.detach().clone() for k, v in actor.state_dict().items()}
 	for st in range(steps):
-		idx = rng.integers(S, size=min(batch, S))
+		idx = rng.choice(S, size=min(batch, S), p=pw) if pw is not None else rng.integers(S, size=min(batch, S))
 		o = {k: torch.as_tensor(v[idx], device=dev) for k, v in O.items()}
 		mk = torch.as_tensor(Mk[idx], device=dev)
 		y = torch.as_tensor(Y[idx], device=dev)
@@ -258,6 +267,10 @@ def main():
 	p.add_argument("--label-reps", type=int, default=2, help="교사 후보마다 공통 난수 롤아웃 수 (평균). DA2 부터 기본 2 — DA1 은 1")
 	p.add_argument("--drones-range", type=int, nargs=2, default=[3, 4], help="수집 에피소드의 드론 수 범위 (사이클 33: 3 6)")
 	p.add_argument("--dests-range", type=int, nargs=2, default=[20, 80], help="수집 에피소드의 수요지 수 범위 (사이클 33: 20 150)")
+	p.add_argument("--mix", default="", help="수집 혼합 명세 '드론lo,드론hi,수요지lo,수요지hi,에피소드수;...' (주면 --drones-range/--dests-range/--episodes 대신)")
+	p.add_argument("--balanced", action="store_true", help="학습 표본 추출을 에피소드별 균형 가중(1/표본 수)으로 한다 (사이클 33b)")
+	p.add_argument("--patience", type=int, default=3, help="보류 손실 조기 종료 인내 (200스텝 검사 횟수)")
+	p.add_argument("--save-data", action="store_true", help="반복마다 모은 학습 데이터를 runs/<tag>/data_it{it}.npz 로 저장한다")
 	p.add_argument("--holdout-frac", type=float, default=0.1,
 	               help="에피소드의 이 비율을 보류해 학습 조기 종료에 쓴다 (0 이면 끔). 26-11-09 DA2 부터 기본 0.1 — DA1 은 끈 상태로 돌았다")
 	A = p.parse_args()
@@ -290,7 +303,7 @@ def main():
 		      f"4/50 {sm['r4_50']:.3f} | 완주 {sm['full']:.3f}", flush=True)
 		return sm
 
-	print(f"증류 {A.tag} | 구성 드론 {A.drones_range} 수요지 {A.dests_range} 상한 {A.max_steps} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}, "
+	print(f"증류 {A.tag} | 구성 {A.mix if A.mix else (A.drones_range, A.dests_range, A.episodes)} 상한 {A.max_steps} 균형가중 {A.balanced} 인내 {A.patience} | 교사: 규칙 위 한 수 롤아웃 선견 (후보 {A.k_cand}곳, 토글 없음, 지평 {A.horizon}, "
 	      f"이탈 여유폭 {A.label_margin}스텝, 후보당 롤아웃 {A.label_reps}회) | "
 	      f"학생 초기 {A.init} | beta {A.betas} | 반복당 {A.episodes} 에피소드 | 학습 최대 {A.train_steps} 스텝 | "
 	      f"보류 {A.holdout_frac} (조기 종료 {'켬' if A.holdout_frac > 0 else '끔'})", flush=True)
@@ -303,20 +316,34 @@ def main():
 	for it, beta in enumerate([float(x) for x in A.betas.split(",")], start=1):
 		t0 = time.time()
 		save_student()
-		seeds = [int(A.seed * 1_000_000 + it * 10_000 + e) for e in range(A.episodes)]
-		res = pool.map(episode, [(s, wpath, beta, A.k_cand, A.horizon, A.max_steps, A.label_margin, A.label_reps,
-		                          tuple(A.drones_range), tuple(A.dests_range)) for s in seeds])
-		for smp, _info in res:
+		specs = [(tuple(A.drones_range), tuple(A.dests_range), A.episodes)]
+		if A.mix:
+			# "3,4,20,80,96;5,6,30,100,32" = (드론 lo, hi, 수요지 lo, hi, 에피소드 수) 묶음
+			specs = [((int(a), int(b)), (int(c), int(d)), int(e)) for a, b, c, d, e in (x.split(",") for x in A.mix.split(";"))]
+		jobs = []
+		e_id = 0
+		for dr, de, n_ep in specs:
+			for _ in range(n_ep):
+				jobs.append((int(A.seed * 1_000_000 + it * 10_000 + e_id), wpath, beta, A.k_cand, A.horizon, A.max_steps,
+				             A.label_margin, A.label_reps, dr, de))
+				e_id += 1
+		res = pool.map(episode, jobs)
+		for j, (smp, _info) in enumerate(res):
+			eid = it * 10_000 + j
+			smp = [(o, mk, lp, eid) for o, mk, lp in smp]
 			if A.holdout_frac > 0 and hrng.random() < A.holdout_frac:
 				held += smp
 			else:
 				data += smp
+		if A.save_data:
+			O, Mk, Y = stack(data)
+			np.savez_compressed(os.path.join(R_DIR, f"data_it{it}.npz"), mask=Mk, label=Y, episode=np.array([x[3] for x in data]), **O)
 		infos = [x[1] for x in res]
 		done = [x for x in infos if x["makespan"]]
 		print(f"반복 {it} (beta {beta}): 에피소드 {len(infos)} | 완주 {len(done)}/{len(infos)} | 결정 {sum(x['decisions'] for x in infos)} "
 		      f"(후보 평균 {np.mean([x['opts'] for x in infos]):.1f}) | 데이터 {len(data)} (보류 {len(held)}) | 수집 {time.time() - t0:.0f}초", flush=True)
 		vs = [held[i] for i in rng.permutation(len(held))[:6000]] if held else None
-		loss, acc = train(actor, data, A.train_steps, A.batch, A.lr, dev, rng, val=vs)
+		loss, acc = train(actor, data, A.train_steps, A.batch, A.lr, dev, rng, val=vs, patience=A.patience, balanced=A.balanced)
 		hv, ha = ce_eval(actor, vs, dev) if vs else (None, None)
 		print(f"  학습: {TRAIN_INFO['steps']} 스텝, 손실 {loss:.3f}, 라벨 일치 {acc:.3f}"
 		      + (f" | 보류 손실 {hv:.3f}, 보류 일치 {ha:.3f}" if vs else ""), flush=True)
