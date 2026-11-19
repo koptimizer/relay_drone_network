@@ -370,6 +370,7 @@ def main():
 	m.Params.MIPGap = A.mip_gap
 	m.Params.Symmetry = 2
 	build_sec = time.time() - t0
+	m.update()
 	print(f"  변수 {m.NumVars} (이진 {m.NumBinVars}) 제약 {m.NumConstrs} 2차제약 {m.NumQConstrs} | 생성 {build_sec:.0f}초", flush=True)
 	m.optimize()
 	sec = time.time() - t0
