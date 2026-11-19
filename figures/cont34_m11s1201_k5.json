@@ -1,0 +1,108 @@
+{
+ "drones": 3,
+ "dests": 11,
+ "capacity": 3,
+ "seed": 1201,
+ "kappa": 5,
+ "sigma": 2,
+ "horizon": 109,
+ "norm": "poly",
+ "ngon": 64,
+ "comm_inner": true,
+ "solver": "gurobi",
+ "status": "time_limit",
+ "solve_sec": 3604.3,
+ "rule_makespan": 425,
+ "far_R": 11,
+ "far_2R": 7,
+ "num_vars": 7165,
+ "num_bin": 4542,
+ "num_constrs": 360104,
+ "obj": 370.0,
+ "bound": 80.0,
+ "gap": 0.7837837837837838,
+ "replay": {
+  "delivered": 11,
+  "makespan": 370,
+  "comm_loss": 0,
+  "max_dev": 0.4,
+  "bad_services": 0,
+  "steps": 545
+ },
+ "services": [
+  [
+   2,
+   2,
+   7
+  ],
+  [
+   1,
+   5,
+   9
+  ],
+  [
+   2,
+   7,
+   10
+  ],
+  [
+   2,
+   1,
+   15
+  ],
+  [
+   0,
+   3,
+   24
+  ],
+  [
+   1,
+   9,
+   30
+  ],
+  [
+   1,
+   6,
+   33
+  ],
+  [
+   0,
+   4,
+   47
+  ],
+  [
+   2,
+   8,
+   57
+  ],
+  [
+   0,
+   0,
+   71
+  ],
+  [
+   1,
+   10,
+   74
+  ]
+ ],
+ "reloads": [
+  [
+   2,
+   38
+  ],
+  [
+   1,
+   65
+  ]
+ ],
+ "replay_uniform": {
+  "delivered": 11,
+  "makespan": 370,
+  "comm_loss": 0,
+  "max_dev": 0.4,
+  "bad_services": 0,
+  "steps": 545,
+  "knots_over_R": 4
+ }
+}

@@ -55,18 +55,22 @@ def rule_makespan(cc, dests, N, Q, R, max_steps=3000):
 	return env.makespan, env.max_speed
 
 
-def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None, comm_inner=True):
+def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None, comm_inner=True, margin=0.1):
 	"""모형을 만든다. (model, vars) 를 돌려준다.
 
-	comm_inner=True (기본): 통신 반경만 내접 다각형(R·cos(π/n))으로 두어 해의 모든 링크가 환경의 반경 R 안에 들어가게 한다.
-	환경의 연결성 투영은 반경을 조금이라도 넘으면 이동을 통째로 막으므로(26-11-19: 64각형 바깥 근사에서 한 기간 이동이
-	막혀 추종 오차 139.6 m, 배송 실패), 통신만은 보수적으로 둔다. 이동·서비스 반경은 바깥 근사(완화)를 유지한다 — 그 초과분은
-	기간당 0.17 m, 서비스 0.03 m 로 재생 허용 오차 안이다. 따라서 모형값은 통신 반경 0.12% 축소를 제외하면 κ 해상도 문제의 하한이다.
+	comm_inner=True (기본): 통신·서비스 반경은 (반경 − margin), 이동 한계는 L 의 내접 다각형으로 둔다 (다각형 ⊂ 원판). 그러면 해의
+	모든 링크·서비스·변위가 환경의 판정 반경 안에 엄격히 들어가 계획이 환경에서 그대로 실행된다. 26-11-19 바깥 근사에서는
+	링크 하나가 R 을 0.12% 넘어 환경의 연결성 투영이 이동을 막았고(추종 오차 139.6 m), 통신만 내접(여유 0)으로 둔 뒤에도 다각형
+	꼭짓점 방향의 링크가 정확히 R 에 놓여 부동소수 오차로 판정에 걸렸다(26-11-20). margin=0.1 m (R 의 0.03%) 로 그 경계를 피한다.
+	실행 가능 집합이 줄어드는 쪽이므로 모형값은 κ 해상도 문제의 최적값보다 작지 않다 (반경 0.1 m 축소 + 다각형 0.12% 의 영향만큼).
+	comm_inner=False: 모두 바깥 근사 (순수 완화, 하한 성질; 해가 환경에서 막힐 수 있다).
 	"""
 	import gurobipy as gp
 	from gurobipy import GRB
 	M = len(dests)
 	L = v * kappa
+	shrink = math.cos(math.pi / ngon) if norm == "poly" else 1.0
+	Lc, Rc, RHOc = (L * shrink, (R - margin) * shrink, (RHO - margin) * shrink) if comm_inner else (L, R, RHO)
 	sigma = int(math.ceil(SERVICE / kappa))
 	Mbig = big_m if big_m else 1.5 * MAP
 	nodes = list(range(N + 1))                      # 0 = 거점
@@ -111,9 +115,8 @@ def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None, comm
 	# (2) 이동
 	for i in range(1, N + 1):
 		for t in range(T):
-			norm_le(px[i, t + 1] - px[i, t], py[i, t + 1] - py[i, t], L * (1 - w(i, t)), f"mv{i}_{t}")
+			norm_le(px[i, t + 1] - px[i, t], py[i, t + 1] - py[i, t], Lc * (1 - w(i, t)), f"mv{i}_{t}")
 	# (3) 통신: 기간 양 끝 (내접 다각형이면 반경을 R·cos(π/n) 으로)
-	Rc = R * math.cos(math.pi / ngon) if (comm_inner and norm == "poly") else R
 	for (a, b) in pairs:
 		for t in range(T):
 			for tt in (t, t + 1):
@@ -130,8 +133,8 @@ def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None, comm
 	for i in range(1, N + 1):
 		for t in TS:
 			for j in range(M):
-				norm_le(px[i, t] - dests[j][0], py[i, t] - dests[j][1], RHO + Mbig * (1 - s[i, j, t]), f"sv{i}_{j}_{t}")
-			norm_le(px[i, t] - cc[0], py[i, t] - cc[1], RHO + Mbig * (1 - r[i, t]), f"rl{i}_{t}")
+				norm_le(px[i, t] - dests[j][0], py[i, t] - dests[j][1], RHOc + Mbig * (1 - s[i, j, t]), f"sv{i}_{j}_{t}")
+			norm_le(px[i, t] - cc[0], py[i, t] - cc[1], RHOc + Mbig * (1 - r[i, t]), f"rl{i}_{t}")
 		for t in range(T):
 			m.addConstr(w(i, t) <= 1, name=f"win{i}_{t}")
 	# (6) 수요지마다 한 번
@@ -251,6 +254,62 @@ def extract_scip(m, V, N, M, T):
 	return P, sorted(serv, key=lambda x: x[2]), sorted(rel, key=lambda x: x[1])
 
 
+def load_plan(js, kappa):
+	"""이전 결과 JSON 과 궤적을 읽고, 더 거친 κ 의 해면 선형 보간으로 세분한다 (거친 κ 의 실행 가능해는 세분 모형에서도 실행 가능)."""
+	path = os.path.join(ROOT, "figures", js) if not os.path.isabs(js) else js
+	d = json.load(open(path))
+	P = np.load(path.replace(".json", "_traj.npy"), allow_pickle=True).item()["P"]
+	services, reloads = d.get("services", []), d.get("reloads", [])
+	k0 = int(round(d["kappa"] / kappa)) if d.get("kappa") else 1
+	if k0 > 1:
+		P0 = P; P = np.zeros(((P0.shape[0] - 1) * k0 + 1, P0.shape[1], 2))
+		for t in range(P0.shape[0] - 1):
+			for u in range(k0):
+				P[k0 * t + u] = P0[t] + (u / k0) * (P0[t + 1] - P0[t])
+		P[-1] = P0[-1]
+		services = [(i, j, k0 * t) for (i, j, t) in services]
+		reloads = [(i, k0 * t) for (i, t) in reloads]
+	return d, P, services, reloads, k0
+
+
+def repair_start(m, V, js, N, M, Q, T, kappa, shift=2, time_limit=120.0):
+	"""이전 해(여유·κ 가 다른 모형의 해일 수 있음)를 새 모형의 실행 가능해로 고쳐 모든 변수의 시작값으로 준다.
+
+	서비스·재적재의 (드론, 대상) 배정은 유지하고 시작 기간만 [t0, t0+shift] 안에서 움직이게 임시 제약을 건 뒤 짧게 풀어 그 해를
+	Start 로 넣고 임시 제약을 뗀다. 반경 여유가 달라져 옛 해가 그대로는 실행 불가능한 경우(꼭짓점 링크·꽉 찬 이동)를 흡수한다.
+	"""
+	import gurobipy as gp
+	d, P, services, reloads, k0 = load_plan(js, kappa)
+	TS = set(V["TS"])
+	tmp = []
+	for (i, j, t) in services:
+		rng = [tt for tt in range(t, t + shift + 1) if tt in TS]
+		if rng:
+			tmp.append(m.addConstr(gp.quicksum(V["s"][i + 1, j, tt] for tt in rng) == 1))
+	for (i, t) in reloads:
+		rng = [tt for tt in range(t, t + shift + 1) if tt in TS]
+		if rng:
+			tmp.append(m.addConstr(gp.quicksum(V["r"][i + 1, tt] for tt in rng) >= 1))
+	Tp = min(T, P.shape[0] - 1)
+	for i in range(1, N + 1):
+		for t in range(T + 1):
+			V["px"][i, t].Start = float(P[min(t, Tp), i - 1, 0]); V["py"][i, t].Start = float(P[min(t, Tp), i - 1, 1])
+	m.Params.TimeLimit = time_limit
+	m.optimize()
+	ok = m.SolCount > 0
+	xs = {vv: vv.X for vv in m.getVars()} if ok else {}
+	obj = m.ObjVal if ok else None
+	m.remove(tmp)
+	m.update()
+	for vv, x in xs.items():
+		vv.Start = x
+	if ok:
+		print(f"  시작해 복구: {js} (옛 목적 {d.get('obj')}, κ {d.get('kappa')} → {kappa}) → 새 모형 목적 {obj:.0f} ({m.Runtime:.0f}초)", flush=True)
+	else:
+		print(f"  시작해 복구 실패: {js} ({m.Runtime:.0f}초, 상태 {m.Status}) — 위치 힌트만 남긴다", flush=True)
+	return ok
+
+
 def extract(V, N, M, T):
 	"""해에서 매듭 위치와 서비스 열을 읽는다."""
 	P = np.zeros((T + 1, N, 2))
@@ -286,10 +345,10 @@ def replay(P, cc, dests, N, Q, R, kappa, v, services=(), reloads=(), tol=None):
 	for t in range(0, P.shape[0]):
 		if t > 0:
 			tgt = P[t]
-			for _ in range(kappa):
-				vec = tgt - env.drones_pos
+			for k in range(kappa):                      # 남은 스텝에 균등 분배 → 매듭 사이 직선·등속 (모형의 볼록성 논거와 같은 궤적)
+				vec = (tgt - env.drones_pos) / (kappa - k)
 				nrm = np.linalg.norm(vec, axis=1, keepdims=True)
-				thr = np.where(nrm > 1e-9, vec / np.maximum(nrm, 1e-9), 0.0) * np.minimum(1.0, nrm / v)
+				thr = vec / v * np.minimum(1.0, v / np.maximum(nrm, 1e-9))
 				env.step(thr)
 			max_dev = max(max_dev, float(np.max(np.linalg.norm(env.drones_pos - P[t], axis=1))))
 		for i, j in sv_at.get(t, []):
@@ -332,7 +391,16 @@ def main():
 	p.add_argument("--out", default="")
 	p.add_argument("--select", action="store_true", help="모형을 풀지 않고 인스턴스의 원거리 수요지 수만 출력한다")
 	p.add_argument("--solver", choices=["gurobi", "scip"], default="gurobi")
+	p.add_argument("--margin", type=float, default=0.1, help="내접 근사 때 반경에서 빼는 여유 (m). 0.1 = R 의 0.03%")
 	p.add_argument("--comm-outer", action="store_true", help="통신 반경도 바깥 근사로 둔다 (순수 완화·하한, 해가 환경에서 막힐 수 있다)")
+	p.add_argument("--mip-focus", type=int, default=0, help="Gurobi MIPFocus (2·3: 하한 개선 우선 — 미증명 건의 2차 풀이용)")
+	p.add_argument("--cutoff", type=float, default=0.0, help="양수면 이 값 이상의 해를 버린다 (이전 해 − 1 로 두면 '더 좋은 해 없음' = 이전 해가 최적)")
+	p.add_argument("--start-json", default="", help="이전 결과 JSON 의 궤적(_traj.npy)과 서비스 열을 MIP 시작해로 준다")
+	p.add_argument("--grb-log", default="", help="Gurobi 로그 파일 경로 (시작해 수용·하한 추이 확인용)")
+	p.add_argument("--horizon-slack", type=int, default=2, help="단축 지평에 더하는 기간 수 (새 모형에서 옛 해가 한두 기간 늦어질 수 있음)")
+	p.add_argument("--start-shift", type=int, default=2, help="시작해 복구 때 서비스·재적재 시작을 뒤로 미룰 수 있는 기간 수")
+	p.add_argument("--start-repair-sec", type=float, default=180.0, help="시작해 복구 풀이 시간 상한 (초)")
+	p.add_argument("--tight-horizon", action="store_true", help="--start-json 의 incumbent 로 지평을 T=⌈obj/κ⌉+σ 로 줄인다 (최적 ≤ incumbent 이므로 최적성 손실 없음)")
 	A = p.parse_args()
 	N, M, Q, R, kappa = A.num_drones, A.num_dests, A.capacity, A.comm_range, A.kappa
 	cc, dests = sample_instance(M, seed=A.seed, num_drones=N, comm_range=R, cc_pos=None)
@@ -342,7 +410,13 @@ def main():
 		return
 	ms_rule, v = rule_makespan(cc, dests, N, Q, R)
 	sigma = int(math.ceil(SERVICE / kappa))
-	T = A.horizon if A.horizon > 0 else int(math.ceil(A.horizon_factor * (ms_rule if ms_rule else 1500) / kappa)) + sigma
+	T0 = A.horizon if A.horizon > 0 else int(math.ceil(A.horizon_factor * (ms_rule if ms_rule else 1500) / kappa)) + sigma
+	T = T0
+	if A.tight_horizon and A.start_json:
+		inc = json.load(open(A.start_json if os.path.isabs(A.start_json) else os.path.join(ROOT, "figures", A.start_json))).get("obj")
+		if inc:
+			T = min(T0, int(math.ceil(inc / kappa)) + sigma + A.horizon_slack)
+			print(f"  지평 단축: incumbent {inc} → T={T} 기간 (여유 {A.horizon_slack}; 실행 불가능하면 T={T0} 으로 복귀)", flush=True)
 	print(f"[연속 모형] N={N} M={M} Q={Q} κ={kappa} σ={sigma} | 규칙 makespan {ms_rule} → 지평 T={T} 기간 ({T * kappa}스텝) | "
 	      f"원거리 수요지 >R {fr}, >2·0.9R {fr2} | 노름 {A.norm}{'' if A.norm == 'soc' else A.ngon}", flush=True)
 	t0 = time.time()
@@ -372,20 +446,35 @@ def main():
 			if m.getNSols() > 0:
 				np.save(os.path.join(ROOT, "figures", f"{A.out}_traj.npy"), dict(P=P, cc=cc, dests=dests), allow_pickle=True)
 		return
-	m, V = build(cc, dests, N, Q, R, kappa, T, v, norm=A.norm, ngon=A.ngon, comm_inner=not A.comm_outer)
-	m.Params.TimeLimit = A.time_limit
-	m.Params.Threads = A.threads
-	m.Params.MIPGap = A.mip_gap
-	m.Params.Symmetry = 2
-	build_sec = time.time() - t0
-	m.update()
-	print(f"  변수 {m.NumVars} (이진 {m.NumBinVars}) 제약 {m.NumConstrs} 2차제약 {m.NumQConstrs} | 생성 {build_sec:.0f}초", flush=True)
-	m.optimize()
-	sec = time.time() - t0
 	from gurobipy import GRB
+	horizons = [T] if T == T0 else [T, T0]
+	for hi, Th in enumerate(horizons):
+		m, V = build(cc, dests, N, Q, R, kappa, Th, v, norm=A.norm, ngon=A.ngon, comm_inner=not A.comm_outer, margin=A.margin)
+		m.Params.Threads = A.threads
+		m.Params.MIPGap = A.mip_gap
+		m.Params.Symmetry = 2
+		if A.mip_focus:
+			m.Params.MIPFocus = A.mip_focus
+		if A.grb_log:                                     # OutputFlag 0 이면 파일 로그도 꺼지므로 콘솔만 끄고 파일로 쓴다
+			m.Params.OutputFlag = 1; m.Params.LogToConsole = 0; m.Params.LogFile = A.grb_log
+		if A.start_json and hi == 0:
+			repair_start(m, V, A.start_json, N, M, Q, Th, kappa, shift=A.start_shift,
+			             time_limit=max(30.0, min(A.start_repair_sec, 0.2 * (A.time_limit - (time.time() - t0)))))
+		if A.cutoff > 0:
+			m.Params.Cutoff = A.cutoff
+		m.Params.TimeLimit = max(60.0, A.time_limit - (time.time() - t0))
+		build_sec = time.time() - t0
+		m.update()
+		print(f"  변수 {m.NumVars} (이진 {m.NumBinVars}) 제약 {m.NumConstrs} 2차제약 {m.NumQConstrs} | 생성 {build_sec:.0f}초 | T={Th}", flush=True)
+		m.optimize()
+		T = Th
+		if m.Status not in (GRB.INFEASIBLE, GRB.INF_OR_UNBD) or hi == len(horizons) - 1:
+			break
+		print(f"  단축 지평 T={Th} 에서 실행 불가능 → 기본 지평 T={T0} 으로 다시 푼다", flush=True)
+	sec = time.time() - t0
 	status = {GRB.OPTIMAL: "optimal", GRB.TIME_LIMIT: "time_limit", GRB.INFEASIBLE: "infeasible"}.get(m.Status, str(m.Status))
 	res = dict(drones=N, dests=M, capacity=Q, seed=A.seed, kappa=kappa, sigma=sigma, horizon=T, norm=A.norm, ngon=A.ngon,
-	           comm_inner=not A.comm_outer, solver="gurobi",
+	           comm_inner=not A.comm_outer, margin=A.margin, horizon0=T0, solver="gurobi",
 	           status=status, solve_sec=round(sec, 1), rule_makespan=ms_rule, far_R=fr, far_2R=fr2,
 	           num_vars=m.NumVars, num_bin=m.NumBinVars, num_constrs=m.NumConstrs)
 	if m.SolCount > 0:

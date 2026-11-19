@@ -7,16 +7,17 @@
  "sigma": 1,
  "horizon": 17,
  "norm": "poly",
- "ngon": 32,
- "solver": "scip",
+ "ngon": 64,
+ "comm_inner": true,
+ "solver": "gurobi",
  "status": "optimal",
- "solve_sec": 144.8,
+ "solve_sec": 64.2,
  "rule_makespan": 121,
  "far_R": 4,
  "far_2R": 1,
- "num_vars": 922,
- "num_bin": 531,
- "num_constrs": 22724,
+ "num_vars": 1030,
+ "num_bin": 612,
+ "num_constrs": 49915,
  "obj": 80.0,
  "bound": 80.0,
  "gap": 0.0,
@@ -24,24 +25,24 @@
   "delivered": 9,
   "makespan": 80,
   "comm_loss": 0,
-  "max_dev": 9.1,
+  "max_dev": 0.5,
   "bad_services": 0,
   "steps": 170
  },
  "services": [
   [
    0,
-   6,
+   3,
    2
   ],
   [
    2,
-   1,
+   5,
    2
   ],
   [
    0,
-   3,
+   6,
    3
   ],
   [
@@ -51,7 +52,7 @@
   ],
   [
    2,
-   5,
+   1,
    4
   ],
   [
@@ -67,7 +68,7 @@
   [
    1,
    8,
-   8
+   7
   ],
   [
    2,
@@ -75,5 +76,14 @@
    8
   ]
  ],
- "reloads": []
+ "reloads": [],
+ "replay_uniform": {
+  "delivered": 9,
+  "makespan": 80,
+  "comm_loss": 0,
+  "max_dev": 0.5,
+  "bad_services": 0,
+  "steps": 170,
+  "knots_over_R": 0
+ }
 }
