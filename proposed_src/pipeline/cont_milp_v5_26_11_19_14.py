@@ -55,8 +55,14 @@ def rule_makespan(cc, dests, N, Q, R, max_steps=3000):
 	return env.makespan, env.max_speed
 
 
-def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None):
-	"""모형을 만든다. (model, vars) 를 돌려준다."""
+def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None, comm_inner=True):
+	"""모형을 만든다. (model, vars) 를 돌려준다.
+
+	comm_inner=True (기본): 통신 반경만 내접 다각형(R·cos(π/n))으로 두어 해의 모든 링크가 환경의 반경 R 안에 들어가게 한다.
+	환경의 연결성 투영은 반경을 조금이라도 넘으면 이동을 통째로 막으므로(26-11-19: 64각형 바깥 근사에서 한 기간 이동이
+	막혀 추종 오차 139.6 m, 배송 실패), 통신만은 보수적으로 둔다. 이동·서비스 반경은 바깥 근사(완화)를 유지한다 — 그 초과분은
+	기간당 0.17 m, 서비스 0.03 m 로 재생 허용 오차 안이다. 따라서 모형값은 통신 반경 0.12% 축소를 제외하면 κ 해상도 문제의 하한이다.
+	"""
 	import gurobipy as gp
 	from gurobipy import GRB
 	M = len(dests)
@@ -106,12 +112,13 @@ def build(cc, dests, N, Q, R, kappa, T, v, norm="soc", ngon=32, big_m=None):
 	for i in range(1, N + 1):
 		for t in range(T):
 			norm_le(px[i, t + 1] - px[i, t], py[i, t + 1] - py[i, t], L * (1 - w(i, t)), f"mv{i}_{t}")
-	# (3) 통신: 기간 양 끝
+	# (3) 통신: 기간 양 끝 (내접 다각형이면 반경을 R·cos(π/n) 으로)
+	Rc = R * math.cos(math.pi / ngon) if (comm_inner and norm == "poly") else R
 	for (a, b) in pairs:
 		for t in range(T):
 			for tt in (t, t + 1):
 				ax, ay = X(a, tt); bx, by = X(b, tt)
-				norm_le(ax - bx, ay - by, R + Mbig * (1 - y[a, b, t]), f"cm{a}_{b}_{t}_{tt}")
+				norm_le(ax - bx, ay - by, Rc + Mbig * (1 - y[a, b, t]), f"cm{a}_{b}_{t}_{tt}")
 	# (4) 연결성 유량
 	for t in range(T):
 		for (a, b) in pairs:
@@ -325,6 +332,7 @@ def main():
 	p.add_argument("--out", default="")
 	p.add_argument("--select", action="store_true", help="모형을 풀지 않고 인스턴스의 원거리 수요지 수만 출력한다")
 	p.add_argument("--solver", choices=["gurobi", "scip"], default="gurobi")
+	p.add_argument("--comm-outer", action="store_true", help="통신 반경도 바깥 근사로 둔다 (순수 완화·하한, 해가 환경에서 막힐 수 있다)")
 	A = p.parse_args()
 	N, M, Q, R, kappa = A.num_drones, A.num_dests, A.capacity, A.comm_range, A.kappa
 	cc, dests = sample_instance(M, seed=A.seed, num_drones=N, comm_range=R, cc_pos=None)
@@ -364,7 +372,7 @@ def main():
 			if m.getNSols() > 0:
 				np.save(os.path.join(ROOT, "figures", f"{A.out}_traj.npy"), dict(P=P, cc=cc, dests=dests), allow_pickle=True)
 		return
-	m, V = build(cc, dests, N, Q, R, kappa, T, v, norm=A.norm, ngon=A.ngon)
+	m, V = build(cc, dests, N, Q, R, kappa, T, v, norm=A.norm, ngon=A.ngon, comm_inner=not A.comm_outer)
 	m.Params.TimeLimit = A.time_limit
 	m.Params.Threads = A.threads
 	m.Params.MIPGap = A.mip_gap
@@ -377,6 +385,7 @@ def main():
 	from gurobipy import GRB
 	status = {GRB.OPTIMAL: "optimal", GRB.TIME_LIMIT: "time_limit", GRB.INFEASIBLE: "infeasible"}.get(m.Status, str(m.Status))
 	res = dict(drones=N, dests=M, capacity=Q, seed=A.seed, kappa=kappa, sigma=sigma, horizon=T, norm=A.norm, ngon=A.ngon,
+	           comm_inner=not A.comm_outer, solver="gurobi",
 	           status=status, solve_sec=round(sec, 1), rule_makespan=ms_rule, far_R=fr, far_2R=fr2,
 	           num_vars=m.NumVars, num_bin=m.NumBinVars, num_constrs=m.NumConstrs)
 	if m.SolCount > 0:
