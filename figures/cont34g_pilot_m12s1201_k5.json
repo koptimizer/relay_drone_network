@@ -1,0 +1,23 @@
+{
+ "drones": 3,
+ "dests": 12,
+ "capacity": 3,
+ "seed": 1201,
+ "kappa": 5,
+ "sigma": 2,
+ "horizon": 110,
+ "norm": "soc",
+ "ngon": 32,
+ "status": "time_limit",
+ "solve_sec": 900.2,
+ "rule_makespan": 431,
+ "far_R": 12,
+ "far_2R": 8,
+ "num_vars": 13459,
+ "num_bin": 4911,
+ "num_constrs": 12922,
+ "obj": null,
+ "bound": 65.0,
+ "gap": null,
+ "replay": null
+}

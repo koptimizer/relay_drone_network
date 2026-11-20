@@ -1,0 +1,102 @@
+{
+ "drones": 3,
+ "dests": 12,
+ "capacity": 3,
+ "seed": 1201,
+ "kappa": 5,
+ "sigma": 2,
+ "horizon": 74,
+ "norm": "poly",
+ "ngon": 64,
+ "comm_inner": true,
+ "margin": 0.1,
+ "horizon0": 111,
+ "solver": "gurobi",
+ "status": "time_limit",
+ "solve_sec": 7200.8,
+ "rule_makespan": 436,
+ "far_R": 12,
+ "far_2R": 8,
+ "num_vars": 5074,
+ "num_bin": 3291,
+ "num_constrs": 257965,
+ "obj": 345.0,
+ "bound": 100.0,
+ "gap": 0.7101449275362319,
+ "replay": {
+  "delivered": 12,
+  "makespan": 345,
+  "comm_loss": 0,
+  "max_dev": 0.0,
+  "bad_services": 0,
+  "steps": 370
+ },
+ "services": [
+  [
+   2,
+   8,
+   10
+  ],
+  [
+   0,
+   11,
+   11
+  ],
+  [
+   2,
+   7,
+   20
+  ],
+  [
+   0,
+   6,
+   22
+  ],
+  [
+   0,
+   9,
+   24
+  ],
+  [
+   2,
+   5,
+   40
+  ],
+  [
+   0,
+   2,
+   48
+  ],
+  [
+   1,
+   1,
+   48
+  ],
+  [
+   1,
+   4,
+   56
+  ],
+  [
+   0,
+   10,
+   58
+  ],
+  [
+   1,
+   0,
+   61
+  ],
+  [
+   0,
+   3,
+   69
+  ]
+ ],
+ "reloads": [
+  [
+   0,
+   37
+  ]
+ ]
+}

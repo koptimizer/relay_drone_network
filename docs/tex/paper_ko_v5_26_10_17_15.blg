@@ -6,45 +6,45 @@ Database file #1: paper_v5_26_10_17_15.bib
 Warning--empty pages in kool2019
 Warning--empty pages in dehoog2009
 Warning--empty pages in huang2022
-You've used 66 entries,
+You've used 67 entries,
             2952 wiz_defined-function locations,
-            1045 strings with 17503 characters,
-and the built_in function-call counts, 22509 in all, are:
-= -- 2151
-> -- 750
+            1051 strings with 17665 characters,
+and the built_in function-call counts, 22817 in all, are:
+= -- 2182
+> -- 760
 < -- 18
-+ -- 293
-- -- 227
-* -- 1528
-:= -- 2922
-add.period$ -- 72
-call.type$ -- 66
-change.case$ -- 66
++ -- 297
+- -- 230
+* -- 1553
+:= -- 2964
+add.period$ -- 73
+call.type$ -- 67
+change.case$ -- 67
 chr.to.int$ -- 6
-cite$ -- 69
-duplicate$ -- 735
-empty$ -- 2533
-format.name$ -- 287
-if$ -- 5843
+cite$ -- 70
+duplicate$ -- 743
+empty$ -- 2566
+format.name$ -- 291
+if$ -- 5920
 int.to.chr$ -- 0
-int.to.str$ -- 66
-missing$ -- 59
-newline$ -- 213
-num.names$ -- 65
-pop$ -- 469
+int.to.str$ -- 67
+missing$ -- 60
+newline$ -- 216
+num.names$ -- 66
+pop$ -- 474
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 1498
+skip$ -- 1516
 stack$ -- 0
-substring$ -- 1523
-swap$ -- 220
+substring$ -- 1548
+swap$ -- 221
 text.length$ -- 16
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 3
-while$ -- 181
-width$ -- 68
-write$ -- 561
+while$ -- 184
+width$ -- 69
+write$ -- 569
 (There were 3 warnings)
