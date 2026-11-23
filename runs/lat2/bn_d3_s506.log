@@ -1,0 +1,10 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+3/30 s506: 노드 98 | 빔 730 (27초, 24/30 msNone loss0) | 규칙 860 | 학습+복구 중앙 940 (5/5)
+3/30 s507: 노드 101 | 빔 630 (23초, 25/30 msNone loss0) | 규칙 None | 학습+복구 중앙 900 (5/5)
+3/30 s508: 노드 97 | 빔 680 (21초, 25/30 msNone loss0) | 규칙 760 | 학습+복구 중앙 940 (5/5)
+3/30 s509: 노드 91 | 빔 840 (30초, 25/30 msNone loss0) | 규칙 980 | 학습+복구 중앙 900 (5/5)
+3/30 s510: 노드 111 | 빔 790 (24초, 27/30 msNone loss0) | 규칙 780 | 학습+복구 중앙 840 (5/5)
+저장: /home/kopt/drone/figures/beam_n_d3_s506_v5_26_10_27_00.csv

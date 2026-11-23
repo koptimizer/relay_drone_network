@@ -1,0 +1,76 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+증류 v5_26_11_09_17_DA2 | 교사: 규칙 위 한 수 롤아웃 선견 (후보 3곳, 토글 없음, 지평 1000, 이탈 여유폭 10.0스텝, 후보당 롤아웃 2회) | 학생 초기 weights/v5_26_09_23_18_SWa/best_manager.pth | beta 1.0,0.5,0.25,0.0,0.0,0.0,0.0,0.0 | 반복당 96 에피소드 | 학습 최대 3000 스텝 | 보류 0.1 (조기 종료 켬)
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+  [검증 초기(SWa)] 기준 대비 비율 1.019 | 3/30 1.022 5/50 0.999 4/50 1.037 | 완주 1.000
+반복 1 (beta 1.0): 에피소드 96 | 완주 92/96 | 결정 9597 (후보 평균 5.1) | 데이터 8438 (보류 1159) | 수집 2553초
+  학습: 1200 스텝, 손실 0.044, 라벨 일치 0.993 | 보류 손실 0.465, 보류 일치 0.890
+  [검증 반복 1] 기준 대비 비율 0.979 | 3/30 0.944 5/50 1.008 4/50 0.984 | 완주 0.989
+  최고 비율 0.979 @반복 1  ← 갱신
+반복 2 (beta 0.5): 에피소드 96 | 완주 89/96 | 결정 8970 (후보 평균 5.5) | 데이터 16406 (보류 2161) | 수집 3292초
+  학습: 1000 스텝, 손실 0.215, 라벨 일치 0.941 | 보류 손실 0.660, 보류 일치 0.837
+  [검증 반복 2] 기준 대비 비율 0.989 | 3/30 0.948 5/50 1.010 4/50 1.008 | 완주 0.994
+  최고 비율 0.979 @반복 1
+반복 3 (beta 0.25): 에피소드 96 | 완주 82/96 | 결정 9179 (후보 평균 5.3) | 데이터 24545 (보류 3201) | 수집 3293초
+  학습: 2000 스텝, 손실 0.236, 라벨 일치 0.931 | 보류 손실 0.685, 보류 일치 0.820
+  [검증 반복 3] 기준 대비 비율 1.057 | 3/30 1.023 5/50 1.014 4/50 1.135 | 완주 0.978
+  최고 비율 0.979 @반복 1
+반복 4 (beta 0.0): 에피소드 96 | 완주 82/96 | 결정 9001 (후보 평균 5.5) | 데이터 32815 (보류 3932) | 수집 2995초
+  학습: 1800 스텝, 손실 0.307, 라벨 일치 0.907 | 보류 손실 0.727, 보류 일치 0.804
+  [검증 반복 4] 기준 대비 비율 1.042 | 3/30 1.036 5/50 1.079 4/50 1.012 | 완주 0.994
+  최고 비율 0.979 @반복 1
+반복 5 (beta 0.0): 에피소드 96 | 완주 84/96 | 결정 9350 (후보 평균 5.3) | 데이터 41163 (보류 4934) | 수집 3267초
+  학습: 2000 스텝, 손실 0.343, 라벨 일치 0.893 | 보류 손실 0.780, 보류 일치 0.793
+  [검증 반복 5] 기준 대비 비율 1.006 | 3/30 0.979 5/50 1.012 4/50 1.027 | 완주 1.000
+  최고 비율 0.979 @반복 1
+반복 6 (beta 0.0): 에피소드 96 | 완주 79/96 | 결정 9919 (후보 평균 5.4) | 데이터 49754 (보류 6262) | 수집 3359초
+  학습: 2000 스텝, 손실 0.378, 라벨 일치 0.882 | 보류 손실 0.806, 보류 일치 0.783
+  [검증 반복 6] 기준 대비 비율 1.021 | 3/30 0.978 5/50 1.057 4/50 1.029 | 완주 1.000
+  최고 비율 0.979 @반복 1
+반복 7 (beta 0.0): 에피소드 96 | 완주 81/96 | 결정 9585 (후보 평균 5.3) | 데이터 57907 (보류 7694) | 수집 3370초
+  학습: 2200 스텝, 손실 0.389, 라벨 일치 0.877 | 보류 손실 0.790, 보류 일치 0.783
+  [검증 반복 7] 기준 대비 비율 1.025 | 3/30 0.981 5/50 1.079 4/50 1.015 | 완주 0.983
+  최고 비율 0.979 @반복 1
+반복 8 (beta 0.0): 에피소드 96 | 완주 86/96 | 결정 9284 (후보 평균 5.2) | 데이터 66073 (보류 8812) | 수집 3013초
+  학습: 2600 스텝, 손실 0.399, 라벨 일치 0.873 | 보류 손실 0.802, 보류 일치 0.780
+  [검증 반복 8] 기준 대비 비율 1.016 | 3/30 0.964 5/50 1.049 4/50 1.036 | 완주 1.000
+  최고 비율 0.979 @반복 1
+증류 종료. 최고 비율 0.979 @반복 1
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[2026-11-10 05:51:12] 증류 감시 종료

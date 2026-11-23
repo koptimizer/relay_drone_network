@@ -1,0 +1,10 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M= 7 s901: 최적 240 | 규칙 330 | 학습 350 (26/30) | 복구 340
+M= 7 s902: 최적 160 | 규칙 240 | 학습 250 (30/30) | 복구 250
+M= 7 s903: 최적 160 | 규칙 290 | 학습 335 (30/30) | 복구 325
+M= 7 s904: 최적 240 | 규칙 None | 학습 1050 (25/30) | 복구 610
+M= 7 s905: 최적 180 | 규칙 350 | 학습 330 (30/30) | 복구 375
+저장: /home/kopt/drone/figures/lattice_m7q2_SWa_v5_26_10_21_17.csv

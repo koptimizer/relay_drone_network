@@ -1,0 +1,11 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[연속 모형] N=3 M=12 Q=3 κ=5 σ=2 | 규칙 makespan 431 → 지평 T=110 기간 (550스텝) | 원거리 수요지 >R 12, >2·0.9R 8 | 노름 soc
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Academic license 2561211 - for non-commercial use only - registered to ko___@korea.ac.kr
+  변수 0 (이진 0) 제약 0 2차제약 0 | 생성 0초
+[결과] time_limit | 해 없음 (900초) | 하한 65.0

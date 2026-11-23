@@ -1,0 +1,11 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[연속 모형] N=3 M=9 Q=3 κ=10 σ=1 | 규칙 makespan 277 → 지평 T=36 기간 (360스텝) | 원거리 수요지 >R 9, >2·0.9R 6 | 노름 poly64
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Academic license 2561211 - for non-commercial use only - registered to ko___@korea.ac.kr
+  변수 2170 (이진 1296) 제약 105680 2차제약 0 | 생성 1초
+[결과] time_limit | 목적 190 하한 120 격차 36.84% (3601초) | 재생: 배송 9/9 makespan 190 단절 0 추종오차 0.7m 불량서비스 0 | 규칙 277

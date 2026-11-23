@@ -1,0 +1,20 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M=7 s901: 최적 240 | 규칙+따라가기 None | 학습+따라가기 3190 (13/30) | 복구+따라가기 1675
+M=7 s902: 최적 160 | 규칙+따라가기 None | 학습+따라가기 310 (21/30) | 복구+따라가기 290
+M=7 s903: 최적 160 | 규칙+따라가기 None | 학습+따라가기 340 (29/30) | 복구+따라가기 340
+M=7 s904: 최적 240 | 규칙+따라가기 None | 학습+따라가기 845 (10/30) | 복구+따라가기 890
+M=7 s905: 최적 180 | 규칙+따라가기 None | 학습+따라가기 405 (20/30) | 복구+따라가기 395
+M=7 s906: 최적 170 | 규칙+따라가기 None | 학습+따라가기 285 (24/30) | 복구+따라가기 280
+M=7 s907: 최적 210 | 규칙+따라가기 None | 학습+따라가기 590 (18/30) | 복구+따라가기 1430
+M=7 s908: 최적 140 | 규칙+따라가기 270 | 학습+따라가기 235 (30/30) | 복구+따라가기 230
+M=7 s909: 최적 170 | 규칙+따라가기 None | 학습+따라가기 1270 (29/30) | 복구+따라가기 1235
+M=7 s910: 최적 170 | 규칙+따라가기 None | 학습+따라가기 340 (18/30) | 복구+따라가기 510
+M=8 s901: 최적 250 | 규칙+따라가기 None | 학습+따라가기 705 (24/30) | 복구+따라가기 1460
+M=8 s902: 최적 190 | 규칙+따라가기 None | 학습+따라가기 310 (25/30) | 복구+따라가기 450
+M=8 s903: 최적 190 | 규칙+따라가기 None | 학습+따라가기 370 (19/30) | 복구+따라가기 360
+M=8 s904: 최적 280 | 규칙+따라가기 None | 학습+따라가기 1170 (19/30) | 복구+따라가기 705
+M=8 s905: 최적 260 | 규칙+따라가기 None | 학습+따라가기 450 (27/30) | 복구+따라가기 475
+저장: /home/kopt/drone/figures/lattice_follow_m78_v5_26_10_26_20.csv

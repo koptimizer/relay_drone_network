@@ -1,0 +1,20 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M=7 s901: 최적 240 | critic 810 | critic+복구 810
+M=7 s902: 최적 160 | critic 620 | critic+복구 620
+M=7 s903: 최적 160 | critic 370 | critic+복구 370
+M=7 s904: 최적 240 | critic 1070 | critic+복구 1070
+M=7 s905: 최적 180 | critic 1900 | critic+복구 1900
+M=7 s906: 최적 170 | critic 500 | critic+복구 500
+M=7 s907: 최적 210 | critic 450 | critic+복구 450
+M=7 s908: 최적 140 | critic 350 | critic+복구 350
+M=7 s909: 최적 170 | critic 430 | critic+복구 430
+M=7 s910: 최적 170 | critic 270 | critic+복구 270
+M=8 s901: 최적 250 | critic 1800 | critic+복구 1800
+M=8 s902: 최적 190 | critic 520 | critic+복구 520
+M=8 s903: 최적 190 | critic 740 | critic+복구 740
+M=8 s904: 최적 280 | critic 590 | critic+복구 590
+M=8 s905: 최적 260 | critic 880 | critic+복구 880
+저장: /home/kopt/drone/figures/critic_lat_m78_v5_26_10_27_00.csv

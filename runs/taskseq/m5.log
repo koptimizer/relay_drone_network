@@ -1,0 +1,15 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M= 5 s901: 최적 160 | 초기(규칙 열) 230 → 작업열 탐색 160 (2405회, 407초)
+M= 5 s902: 최적 110 | 초기(규칙 열) 160 → 작업열 탐색 120 (2410회, 287초)
+M= 5 s903: 최적 120 | 초기(규칙 열) 230 → 작업열 탐색 120 (2404회, 342초)
+M= 5 s904: 최적 170 | 초기(규칙 열) 180 → 작업열 탐색 180 (2411회, 303초)
+M= 5 s905: 최적 130 | 초기(규칙 열) 180 → 작업열 탐색 130 (2418회, 336초)
+M= 5 s906: 최적 120 | 초기(규칙 열) 200 → 작업열 탐색 130 (2416회, 355초)
+M= 5 s907: 최적 110 | 초기(규칙 열) 200 → 작업열 탐색 130 (2409회, 252초)
+M= 5 s908: 최적 110 | 초기(규칙 열) 160 → 작업열 탐색 110 (2412회, 190초)
+M= 5 s909: 최적 120 | 초기(규칙 열) 180 → 작업열 탐색 130 (2404회, 239초)
+M= 5 s910: 최적 90 | 초기(규칙 열) 140 → 작업열 탐색 110 (2409회, 154초)
+저장: /home/kopt/drone/figures/taskseq_m5_v5_26_10_22_14.csv

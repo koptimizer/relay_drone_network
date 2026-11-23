@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: paper_ko_v5_26_11_23_09.aux
+The style file: elsarticle-num.bst
+Database file #1: paper_v5_26_10_17_15.bib
+Warning--empty pages in kool2019
+Warning--empty pages in dehoog2009
+Warning--empty pages in huang2022
+You've used 69 entries,
+            2952 wiz_defined-function locations,
+            1064 strings with 18218 characters,
+and the built_in function-call counts, 23899 in all, are:
+= -- 2291
+> -- 786
+< -- 21
++ -- 307
+- -- 238
+* -- 1629
+:= -- 3086
+add.period$ -- 75
+call.type$ -- 69
+change.case$ -- 69
+chr.to.int$ -- 6
+cite$ -- 72
+duplicate$ -- 787
+empty$ -- 2686
+format.name$ -- 302
+if$ -- 6205
+int.to.chr$ -- 0
+int.to.str$ -- 69
+missing$ -- 63
+newline$ -- 222
+num.names$ -- 68
+pop$ -- 490
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 1594
+stack$ -- 0
+substring$ -- 1645
+swap$ -- 243
+text.length$ -- 19
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 3
+while$ -- 194
+width$ -- 71
+write$ -- 588
+(There were 3 warnings)

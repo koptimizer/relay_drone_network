@@ -1,0 +1,60 @@
+[2026-11-23 12:57:30] === 1단계: 연속 공간 탐색 (방문 순서 3x400, 작업열 3x1000) ===
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1204, 'vo_init': 183, 'vorder': 84, 'vorder_evals': 1204, 'vorder_sec': 87.1, 'taskseq': 84, 'taskseq_evals': 3012, 'taskseq_sec': 225.3, 'taskseq_relays': 0, 'vorder_med10': 84.0, 'taskseq_med10': 84.0}
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1203, 'vo_init': 232, 'vorder': 171, 'vorder_evals': 1222, 'vorder_sec': 184.0, 'taskseq': 158, 'taskseq_evals': 3022, 'taskseq_sec': 442.5, 'taskseq_relays': 5, 'vorder_med10': 193.5, 'taskseq_med10': 159.0}
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1202, 'vo_init': 245, 'vorder': 156, 'vorder_evals': 1219, 'vorder_sec': 220.4, 'taskseq': 148, 'taskseq_evals': 3008, 'taskseq_sec': 479.3, 'taskseq_relays': 3, 'vorder_med10': 156.0, 'taskseq_med10': 148.0}
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1205, 'vo_init': 209, 'vorder': 165, 'vorder_evals': 1215, 'vorder_sec': 226.8, 'taskseq': 165, 'taskseq_evals': 3006, 'taskseq_sec': 500.5, 'taskseq_relays': 0, 'vorder_med10': 165.0, 'taskseq_med10': 165.0}
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1201, 'vo_init': 771, 'vorder': 226, 'vorder_evals': 1213, 'vorder_sec': 369.7, 'taskseq': 226, 'taskseq_evals': 3016, 'taskseq_sec': 795.8, 'taskseq_relays': 0, 'vorder_med10': 225.0, 'taskseq_med10': 225.0}
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 10, 'seed': 1201, 'vo_init': 826, 'vorder': 270, 'vorder_evals': 1219, 'vorder_sec': 378.7, 'taskseq': 259, 'taskseq_evals': 3017, 'taskseq_sec': 798.6, 'taskseq_relays': 1, 'vorder_med10': 270.0, 'taskseq_med10': 259.0}
+{'dests': 10, 'seed': 1202, 'vo_init': 1128, 'vorder': 173, 'vorder_evals': 1200, 'vorder_sec': 209.3, 'taskseq': 161, 'taskseq_evals': 3014, 'taskseq_sec': 660.3, 'taskseq_relays': 2, 'vorder_med10': 173.0, 'taskseq_med10': 161.0}
+{'dests': 10, 'seed': 1204, 'vo_init': 256, 'vorder': 143, 'vorder_evals': 1219, 'vorder_sec': 143.8, 'taskseq': 129, 'taskseq_evals': 3012, 'taskseq_sec': 358.1, 'taskseq_relays': 1, 'vorder_med10': 143.0, 'taskseq_med10': 129.0}
+{'dests': 10, 'seed': 1203, 'vo_init': 493, 'vorder': 211, 'vorder_evals': 1216, 'vorder_sec': 235.0, 'taskseq': 200, 'taskseq_evals': 3015, 'taskseq_sec': 554.7, 'taskseq_relays': 1, 'vorder_med10': 211.0, 'taskseq_med10': 200.0}
+{'dests': 10, 'seed': 1205, 'vo_init': 274, 'vorder': 202, 'vorder_evals': 1207, 'vorder_sec': 285.7, 'taskseq': 193, 'taskseq_evals': 3013, 'taskseq_sec': 518.8, 'taskseq_relays': 0, 'vorder_med10': 202.0, 'taskseq_med10': 193.0}
+{'dests': 11, 'seed': 1204, 'vo_init': 242, 'vorder': 170, 'vorder_evals': 1200, 'vorder_sec': 163.8, 'taskseq': 153, 'taskseq_evals': 3025, 'taskseq_sec': 403.8, 'taskseq_relays': 0, 'vorder_med10': 170.0, 'taskseq_med10': 153.0}
+{'dests': 11, 'seed': 1202, 'vo_init': 398, 'vorder': 206, 'vorder_evals': 1218, 'vorder_sec': 205.9, 'taskseq': 195, 'taskseq_evals': 3014, 'taskseq_sec': 534.9, 'taskseq_relays': 3, 'vorder_med10': 206.0, 'taskseq_med10': 197.0}
+{'dests': 11, 'seed': 1203, 'vo_init': 330, 'vorder': 226, 'vorder_evals': 1221, 'vorder_sec': 247.2, 'taskseq': 225, 'taskseq_evals': 3004, 'taskseq_sec': 628.9, 'taskseq_relays': 0, 'vorder_med10': 222.0, 'taskseq_med10': 223.5}
+{'dests': 11, 'seed': 1205, 'vo_init': 294, 'vorder': 211, 'vorder_evals': 1204, 'vorder_sec': 261.1, 'taskseq': 208, 'taskseq_evals': 3010, 'taskseq_sec': 608.6, 'taskseq_relays': 1, 'vorder_med10': 211.0, 'taskseq_med10': 208.0}
+{'dests': 11, 'seed': 1201, 'vo_init': 655, 'vorder': 289, 'vorder_evals': 1219, 'vorder_sec': 345.4, 'taskseq': 275, 'taskseq_evals': 3011, 'taskseq_sec': 1007.9, 'taskseq_relays': 4, 'vorder_med10': 289.0, 'taskseq_med10': 279.5}
+{'dests': 12, 'seed': 1202, 'vo_init': 457, 'vorder': 248, 'vorder_evals': 1215, 'vorder_sec': 288.2, 'taskseq': 242, 'taskseq_evals': 3010, 'taskseq_sec': 649.8, 'taskseq_relays': 0, 'vorder_med10': 248.0, 'taskseq_med10': 242.0}
+{'dests': 12, 'seed': 1204, 'vo_init': 251, 'vorder': 185, 'vorder_evals': 1214, 'vorder_sec': 204.0, 'taskseq': 168, 'taskseq_evals': 3009, 'taskseq_sec': 461.9, 'taskseq_relays': 2, 'vorder_med10': 185.0, 'taskseq_med10': 168.0}
+{'dests': 12, 'seed': 1203, 'vo_init': 370, 'vorder': 270, 'vorder_evals': 1211, 'vorder_sec': 296.0, 'taskseq': 240, 'taskseq_evals': 3010, 'taskseq_sec': 653.3, 'taskseq_relays': 0, 'vorder_med10': 270.0, 'taskseq_med10': 240.5}
+{'dests': 12, 'seed': 1201, 'vo_init': 485, 'vorder': 318, 'vorder_evals': 1203, 'vorder_sec': 435.4, 'taskseq': 292, 'taskseq_evals': 3021, 'taskseq_sec': 984.9, 'taskseq_relays': 2, 'vorder_med10': 325.5, 'taskseq_med10': 293.0}
+{'dests': 12, 'seed': 1205, 'vo_init': 389, 'vorder': 238, 'vorder_evals': 1212, 'vorder_sec': 318.1, 'taskseq': 232, 'taskseq_evals': 3003, 'taskseq_sec': 657.7, 'taskseq_relays': 3, 'vorder_med10': 238.0, 'taskseq_med10': 232.0}
+저장: /home/kopt/drone/figures/cont_search_v5_26_11_23_12.csv
+[2026-11-23 13:52:05] === 2단계: 논문 표 재생성 ===
+같은 분포 정책: v5_26_11_23_08_SQb (홀드아웃 최고 점수 128.1)
+| κ | M | 증명 | UB | LB | 규칙 | 선견 | 방문순서 | 작업열 | 학습(전이 SWa) | 학습(같은 분포) | 증류 DA2 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10 | 9 | 4/5 | 130 | 118 | 199 (+54/+68) | 172 (+33/+44) | 165 (+26/+37) | 156 (+20/+31) | 235 (+83/+99) | --- | 205 (+59/+73) |
+| 10 | 10 | 2/5 | 154 | 118 | 269 (+78/+126) | 195 (+30/+64) | 200 (+32/+68) | 188 (+24/+59) | 268 (+75/+125) | --- | 259 (+72/+118) |
+| 10 | 11 | 0/5 | 166 | 122 | 261 (+55/+111) | 220 (+32/+78) | 220 (+34/+79) | 212 (+29/+73) | 279 (+67/+127) | --- | 262 (+59/+114) |
+| 10 | 12 | 0/5 | 210 | 118 | 285 (+34/+139) | 242 (+15/+104) | 253 (+21/+113) | 235 (+12/+98) | 306 (+45/+158) | --- | 297 (+41/+150) |
+| 5 | 9 | 1/5 | 124 | 84 | 199 (+62/+134) | 172 (+39/+102) | 165 (+32/+94) | 156 (+26/+83) | 235 (+92/+176) | --- | 205 (+67/+141) |
+| 5 | 10 | 0/5 | 154 | 84 | 269 (+78/+218) | 195 (+30/+130) | 200 (+32/+135) | 188 (+24/+122) | 268 (+75/+215) | --- | 259 (+72/+206) |
+| 5 | 11 | 0/5 | 165 | 85 | 261 (+56/+203) | 220 (+32/+155) | 220 (+35/+157) | 212 (+30/+148) | 279 (+68/+225) | --- | 262 (+60/+206) |
+| 5 | 12 | 0/5 | 208 | 86 | 285 (+35/+228) | 242 (+16/+180) | 253 (+22/+194) | 235 (+14/+173) | 306 (+47/+254) | --- | 297 (+43/+245) |
+저장: /home/kopt/drone/docs/tex/tab_cont_v5_en_26_11_23_08.tex 및 ko
+[2026-11-23 13:52:05] === 완료 ===

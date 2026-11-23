@@ -1,0 +1,2 @@
+drones,dests,seed,capacity,opt,rule,lookahead,decisions,rollouts,sec
+3,3,901,5,110,150,130,9,132,7.1

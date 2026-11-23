@@ -1,7 +1,7 @@
-"""연속 모형 비교 인스턴스(드론 3, 용량 3, M=9–12, 거점 고정)에서 제어기들을 연속 공간으로 잰다 (사이클 34).
+"""연속 모형 비교 인스턴스(드론 3, 용량 3, M=9–12, 거점 고정)에서 제어기들을 연속 공간으로 잰다 (사이클 34·35).
 
-규칙(+복구), 선견 규칙(100스텝마다, 후보 3, 토글 없음), 학습 정책 SWa 와 증류 DA2 (각 30회 표본 중앙값).
-결과는 연속 모형의 목적값(하한)과 같은 단위(스텝)로 비교한다.
+규칙(+복구), 선견 규칙(100스텝마다, 후보 3, 토글 없음), 그리고 --weights 로 준 학습 정책들(각 30회 표본 중앙값).
+결과는 연속 모형의 목적값(상한·하한)과 같은 단위(스텝)로 비교한다. 기본 가중치는 SWa(전이)와 DA2(증류).
 """
 
 import argparse
@@ -14,6 +14,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DEFAULT_W = "swa=weights/v5_26_09_23_18_SWa/best_manager.pth,da2=weights/v5_26_11_09_17_DA2/best_manager.pth"
 
 
 def run(env, setter, hl=20, max_steps=3000):
@@ -30,7 +31,7 @@ def run(env, setter, hl=20, max_steps=3000):
 
 
 def job(args):
-	M, seed, Q, reps = args
+	M, seed, Q, reps, weights, no_rule = args
 	import torch
 	torch.set_num_threads(1)
 	from env.disaster_relay_env_v5_26_09_15_22 import DisasterRelayDroneEnv
@@ -48,10 +49,16 @@ def job(args):
 		return e
 	out = dict(dests=M, seed=seed)
 	np.random.seed(seed); torch.manual_seed(seed)
-	out["rule"] = run(fresh(), rule_setter(chain_escape_manager(), False))
-	out["look"] = run(fresh(), lookahead_cont(20, 3000, k_cand=3, la_every=100, toggles=False))
-	for name, w in (("swa", "weights/v5_26_09_23_18_SWa/best_manager.pth"), ("da2", "weights/v5_26_11_09_17_DA2/best_manager.pth")):
-		lf = learned(w, torch.device("cpu"), True)
+	if not no_rule:
+		import time
+		t0 = time.time()
+		out["rule"] = run(fresh(), rule_setter(chain_escape_manager(), False))
+		out["rule_sec"] = round(time.time() - t0, 2)
+		t0 = time.time()
+		out["look"] = run(fresh(), lookahead_cont(20, 3000, k_cand=3, la_every=100, toggles=False))
+		out["look_sec"] = round(time.time() - t0, 1)
+	for name, w in weights:
+		lf = learned(os.path.join(ROOT, w) if not os.path.isabs(w) else w, torch.device("cpu"), True)
 		vals = [run(fresh(), rule_setter(lf, False)) for _ in range(reps)]
 		ok = [x for x in vals if x]
 		out[name] = int(np.median(ok)) if ok else None
@@ -66,12 +73,15 @@ def main():
 	p.add_argument("--capacity", type=int, default=3)
 	p.add_argument("--reps", type=int, default=30)
 	p.add_argument("--workers", type=int, default=10)
+	p.add_argument("--weights", default=DEFAULT_W, help="이름=가중치경로,... (빈 문자열이면 학습 정책 없음)")
+	p.add_argument("--no-rule", action="store_true", help="규칙·선견 규칙 측정 생략 (이미 잰 값이 있을 때)")
 	p.add_argument("--out", default="cont_ctrl_v5_26_11_19_14")
 	A = p.parse_args()
+	weights = [tuple(x.split("=", 1)) for x in A.weights.split(",") if x]
 	jobs = []
 	for part in A.spec.split(";"):
 		M, seeds = part.split(":")
-		jobs += [(int(M), int(s), A.capacity, A.reps) for s in seeds.split(",")]
+		jobs += [(int(M), int(s), A.capacity, A.reps, weights, A.no_rule) for s in seeds.split(",")]
 	with mp.get_context("spawn").Pool(A.workers) as pool:
 		rows = pool.map(job, jobs)
 	out = os.path.join(ROOT, "figures", f"{A.out}.csv")

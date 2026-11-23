@@ -1,0 +1,20 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M=7 Q=2 s901: 최적 240 | B30000 240 (139.1s, 7/7 ms238 loss0)
+M=7 Q=2 s902: 최적 160 | B30000 160 (84.0s, 6/7 msNone loss0)
+M=7 Q=2 s903: 최적 160 | B30000 170 (72.7s, 6/7 msNone loss0)
+M=7 Q=2 s904: 최적 240 | B30000 250 (121.1s, 6/7 msNone loss0)
+M=7 Q=2 s905: 최적 180 | B30000 180 (103.0s, 6/7 msNone loss0)
+M=7 Q=2 s906: 최적 170 | B30000 180 (140.1s, 7/7 ms177 loss0)
+M=7 Q=2 s907: 최적 210 | B30000 220 (130.3s, 6/7 msNone loss0)
+M=7 Q=2 s908: 최적 140 | B30000 150 (60.1s, 6/7 msNone loss0)
+M=7 Q=2 s909: 최적 170 | B30000 180 (109.4s, 6/7 msNone loss0)
+M=7 Q=2 s910: 최적 170 | B30000 170 (91.3s, 6/7 msNone loss0)
+M=8 Q=2 s901: 최적 250 | B30000 270 (178.6s, 8/8 ms262 loss0)
+M=8 Q=2 s902: 최적 190 | B30000 190 (126.6s, 6/8 msNone loss0)
+M=8 Q=2 s903: 최적 190 | B30000 190 (110.2s, 8/8 ms182 loss0)
+M=8 Q=2 s904: 최적 280 | B30000 280 (185.6s, 6/8 msNone loss0)
+M=8 Q=2 s905: 최적 260 | B30000 260 (193.0s, 6/8 msNone loss0)
+저장: /home/kopt/drone/figures/beam_m78q2_e1b30k_v5_26_10_26_20.csv

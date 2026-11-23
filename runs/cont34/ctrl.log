@@ -1,0 +1,53 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1201, 'rule': 280, 'look': 236, 'swa': 332, 'swa_min': 233, 'swa_complete': '30/30', 'da2': 296, 'da2_min': 262, 'da2_complete': '29/30'}
+{'dests': 9, 'seed': 1202, 'rule': 172, 'look': 156, 'swa': 248, 'swa_min': 189, 'swa_complete': '30/30', 'da2': 192, 'da2_min': 150, 'da2_complete': '30/30'}
+{'dests': 9, 'seed': 1203, 'rule': 194, 'look': 166, 'swa': 215, 'swa_min': 154, 'swa_complete': '30/30', 'da2': 191, 'da2_min': 168, 'da2_complete': '30/30'}
+{'dests': 9, 'seed': 1204, 'rule': 121, 'look': 97, 'swa': 141, 'swa_min': 119, 'swa_complete': '30/30', 'da2': 124, 'da2_min': 104, 'da2_complete': '30/30'}
+{'dests': 9, 'seed': 1205, 'rule': 229, 'look': 205, 'swa': 241, 'swa_min': 183, 'swa_complete': '30/30', 'da2': 223, 'da2_min': 163, 'da2_complete': '28/30'}
+{'dests': 10, 'seed': 1201, 'rule': 399, 'look': 245, 'swa': 383, 'swa_min': 266, 'swa_complete': '30/30', 'da2': 348, 'da2_min': 283, 'da2_complete': '29/30'}
+{'dests': 10, 'seed': 1202, 'rule': 208, 'look': 184, 'swa': 225, 'swa_min': 196, 'swa_complete': '30/30', 'da2': 226, 'da2_min': 180, 'da2_complete': '30/30'}
+{'dests': 10, 'seed': 1203, 'rule': 220, 'look': 193, 'swa': 231, 'swa_min': 184, 'swa_complete': '30/30', 'da2': 214, 'da2_min': 189, 'da2_complete': '30/30'}
+{'dests': 10, 'seed': 1204, 'rule': 259, 'look': 131, 'swa': 182, 'swa_min': 139, 'swa_complete': '30/30', 'da2': 213, 'da2_min': 153, 'da2_complete': '30/30'}
+{'dests': 10, 'seed': 1205, 'rule': 258, 'look': 223, 'swa': 319, 'swa_min': 211, 'swa_complete': '29/30', 'da2': 292, 'da2_min': 213, 'da2_complete': '30/30'}
+{'dests': 11, 'seed': 1201, 'rule': 430, 'look': 329, 'swa': 406, 'swa_min': 304, 'swa_complete': '30/30', 'da2': 347, 'da2_min': 310, 'da2_complete': '29/30'}
+{'dests': 11, 'seed': 1202, 'rule': 232, 'look': 199, 'swa': 237, 'swa_min': 204, 'swa_complete': '30/30', 'da2': 243, 'da2_min': 198, 'da2_complete': '30/30'}
+{'dests': 11, 'seed': 1203, 'rule': 219, 'look': 200, 'swa': 272, 'swa_min': 228, 'swa_complete': '30/30', 'da2': 260, 'da2_min': 236, 'da2_complete': '30/30'}
+{'dests': 11, 'seed': 1204, 'rule': 173, 'look': 147, 'swa': 183, 'swa_min': 157, 'swa_complete': '30/30', 'da2': 181, 'da2_min': 160, 'da2_complete': '30/30'}
+{'dests': 11, 'seed': 1205, 'rule': 253, 'look': 223, 'swa': 298, 'swa_min': 217, 'swa_complete': '30/30', 'da2': 279, 'da2_min': 226, 'da2_complete': '30/30'}
+{'dests': 12, 'seed': 1201, 'rule': 431, 'look': 321, 'swa': 413, 'swa_min': 328, 'swa_complete': '30/30', 'da2': 385, 'da2_min': 328, 'da2_complete': '30/30'}
+{'dests': 12, 'seed': 1202, 'rule': 265, 'look': 235, 'swa': 302, 'swa_min': 242, 'swa_complete': '30/30', 'da2': 298, 'da2_min': 238, 'da2_complete': '29/30'}
+{'dests': 12, 'seed': 1203, 'rule': 267, 'look': 232, 'swa': 278, 'swa_min': 244, 'swa_complete': '30/30', 'da2': 305, 'da2_min': 249, 'da2_complete': '29/30'}
+{'dests': 12, 'seed': 1204, 'rule': 197, 'look': 177, 'swa': 205, 'swa_min': 174, 'swa_complete': '30/30', 'da2': 198, 'da2_min': 191, 'da2_complete': '30/30'}
+{'dests': 12, 'seed': 1205, 'rule': 265, 'look': 243, 'swa': 331, 'swa_min': 242, 'swa_complete': '30/30', 'da2': 300, 'da2_min': 242, 'da2_complete': '29/30'}
+저장: /home/kopt/drone/figures/cont_ctrl_v5_26_11_19_14.csv

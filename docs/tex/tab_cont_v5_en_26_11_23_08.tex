@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\caption{Continuous-position, time-discretised reference model (period $\kappa$ steps, three drones, capacity 3, five instances per row) against the controllers run in the continuous space. UB and LB are the mean incumbent and bound after the two solver passes (one hour cold, two hours warm-started with a tightened horizon); ``proven'' counts instances solved to optimality. Controller cells give the mean makespan over the five instances and, in parentheses, the mean gap in percent to the model's UB and, when a row is not fully proven, to its LB (the true gap lies between the two). Learned policies are medians of 30 sampled runs per instance: ``transfer'' is the policy trained on 20--80 demand points with capacity 5, ``in-dist.'' the policy trained on the same distribution as these instances (8--16 demand points, capacity 3), ``distilled'' the policy distilled from the lookahead rule (an analysis variant, not a proposed controller). The two offline searches of Section~\ref{sec:search} are scored by the median over ten tie-breaking seeds of the projection of their best plan. Every model plan replays in the continuous environment with full delivery, no disconnection and 0.0\,m tracking error.}
+\label{tab:cont}
+\scriptsize\setlength{\tabcolsep}{1.9pt}
+\begin{tabular}{rrrrrlllllll}
+\toprule
+ & & & & & \multicolumn{2}{c}{Online, learning-free} & \multicolumn{2}{c}{Offline search} & \multicolumn{2}{c}{Learned (proposed)} & Analysis \\
+\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}\cmidrule(lr){12-12}
+$\kappa$ & $M$ & proven & UB & LB & Rule & Lookahead & Visit order & Task seq. & Transfer & In-dist. & Distilled \\
+\midrule
+10 & 9 & 4/5 & 130 & 118 & 199 (+54/+68) & 172 (+33/+44) & 165 (+26/+37) & 156 (+20/+31) & 235 (+83/+99) & 234 (+80/+96) & 205 (+59/+73) \\
+10 & 10 & 2/5 & 154 & 118 & 269 (+78/+126) & 195 (+30/+64) & 200 (+32/+68) & 188 (+24/+59) & 268 (+75/+125) & 258 (+69/+117) & 259 (+72/+118) \\
+10 & 11 & 0/5 & 166 & 122 & 261 (+55/+111) & 220 (+32/+78) & 220 (+34/+79) & 212 (+29/+73) & 279 (+67/+127) & 288 (+74/+135) & 262 (+59/+114) \\
+10 & 12 & 0/5 & 210 & 118 & 285 (+34/+139) & 242 (+15/+104) & 253 (+21/+113) & 235 (+12/+98) & 306 (+45/+158) & 315 (+49/+165) & 297 (+41/+150) \\
+\midrule
+5 & 9 & 1/5 & 124 & 84 & 199 (+62/+134) & 172 (+39/+102) & 165 (+32/+94) & 156 (+26/+83) & 235 (+92/+176) & 234 (+89/+175) & 205 (+67/+141) \\
+5 & 10 & 0/5 & 154 & 84 & 269 (+78/+218) & 195 (+30/+130) & 200 (+32/+135) & 188 (+24/+122) & 268 (+75/+215) & 258 (+69/+204) & 259 (+72/+206) \\
+5 & 11 & 0/5 & 165 & 85 & 261 (+56/+203) & 220 (+32/+155) & 220 (+35/+157) & 212 (+30/+148) & 279 (+68/+225) & 288 (+75/+236) & 262 (+60/+206) \\
+5 & 12 & 0/5 & 208 & 86 & 285 (+35/+228) & 242 (+16/+180) & 253 (+22/+194) & 235 (+14/+173) & 306 (+47/+254) & 315 (+51/+265) & 297 (+43/+245) \\
+\bottomrule
+\end{tabular}
+\end{table*}

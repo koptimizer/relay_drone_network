@@ -1,0 +1,15 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  지평 단축: incumbent 140.0 → T=17 기간 (여유 2; 실행 불가능하면 T=26 으로 복귀)
+[연속 모형] N=3 M=9 Q=3 κ=10 σ=1 | 규칙 makespan 194 → 지평 T=17 기간 (170스텝) | 원거리 수요지 >R 7, >2·0.9R 4 | 노름 poly64
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Academic license 2561211 - for non-commercial use only - registered to ko___@korea.ac.kr
+Set parameter OutputFlag to value 1
+Set parameter LogToConsole to value 0
+  시작해 복구: cont34_m9s1203_k10.json (옛 목적 140.0, κ 10 → 10) → 새 모형 목적 140 (2초)
+  변수 1030 (이진 612) 제약 49915 2차제약 0 | 생성 3초 | T=17
+[결과] optimal | 목적 140 하한 140 격차 0.00% (3659초) | 재생: 배송 9/9 makespan 140 단절 0 추종오차 0.0m 불량서비스 0 | 규칙 194

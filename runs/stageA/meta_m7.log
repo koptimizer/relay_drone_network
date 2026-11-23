@@ -1,0 +1,10 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M= 7 s901: 최적 240 | 탐색 310 (1209회 평가, 3534초)
+M= 7 s902: 최적 160 | 탐색 220 (1211회 평가, 154초)
+M= 7 s903: 최적 160 | 탐색 210 (1208회 평가, 149초)
+M= 7 s904: 최적 240 | 탐색 300 (1205회 평가, 360초)
+M= 7 s905: 최적 180 | 탐색 240 (1209회 평가, 2063초)
+저장: /home/kopt/drone/figures/meta_m7q2_v5_26_10_21_17.csv

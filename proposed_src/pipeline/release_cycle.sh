@@ -70,7 +70,7 @@ if [ "$DRY" = "--dry-run" ]; then
 fi
 
 echo "=== 4. 커밋 ==="
-git -c commit.gpgsign=false commit -q -m "$(printf '%s: %s\n\n연구 사이클 완료 시점의 코드·지표·문서 스냅샷.\n상세 이력은 docs/VERSIONS.md 참조.\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>' "$VER" "$MSG")"
+git -c commit.gpgsign=false commit -q -m "$(printf '%s: %s\n\n연구 사이클 완료 시점의 코드·지표·문서 스냅샷.\n상세 이력은 docs/VERSIONS.md 참조.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>' "$VER" "$MSG")"
 git log --oneline -1
 
 echo "=== 5. 태그 ==="

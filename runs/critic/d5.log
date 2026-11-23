@@ -1,0 +1,45 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+5/50 s701: critic 2663 | critic+복구 1825
+5/50 s702: critic 881 | critic+복구 1003
+5/50 s703: critic 1209 | critic+복구 1023
+5/50 s704: critic 1237 | critic+복구 1433
+5/50 s705: critic 817 | critic+복구 794
+5/50 s706: critic 3394 | critic+복구 6451
+5/50 s707: critic 1019 | critic+복구 1101
+5/50 s708: critic 1267 | critic+복구 2205
+5/50 s709: critic 853 | critic+복구 946
+5/50 s710: critic 876 | critic+복구 1289
+5/50 s711: critic 2299 | critic+복구 787
+5/50 s712: critic 929 | critic+복구 1450
+5/50 s713: critic 4932 | critic+복구 1341
+5/50 s714: critic 3581 | critic+복구 2051
+5/50 s715: critic 909 | critic+복구 971
+5/50 s716: critic 1366 | critic+복구 1368
+5/50 s717: critic 1092 | critic+복구 736
+5/50 s718: critic 1776 | critic+복구 1012
+5/50 s719: critic 1798 | critic+복구 789
+5/50 s720: critic 1057 | critic+복구 1274
+5/50 s721: critic 900 | critic+복구 1676
+5/50 s722: critic 954 | critic+복구 1137
+5/50 s723: critic 1626 | critic+복구 1269
+5/50 s724: critic 1348 | critic+복구 6594
+5/50 s725: critic 1255 | critic+복구 1900
+5/50 s726: critic 949 | critic+복구 1228
+5/50 s727: critic 3523 | critic+복구 3621
+5/50 s728: critic 1745 | critic+복구 1498
+5/50 s729: critic 1756 | critic+복구 1651
+5/50 s730: critic 1176 | critic+복구 2424
+5/50 s731: critic 2128 | critic+복구 1361
+5/50 s732: critic 2533 | critic+복구 1370
+5/50 s733: critic 1556 | critic+복구 3593
+5/50 s734: critic 1947 | critic+복구 1963
+5/50 s735: critic 2762 | critic+복구 1030
+5/50 s736: critic 1667 | critic+복구 726
+5/50 s737: critic 977 | critic+복구 987
+5/50 s738: critic 2368 | critic+복구 1524
+5/50 s739: critic 874 | critic+복구 1213
+5/50 s740: critic 1268 | critic+복구 975
+저장: /home/kopt/drone/figures/critic_cont_d5_v5_26_10_27_00.csv

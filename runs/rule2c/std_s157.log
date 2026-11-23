@@ -1,0 +1,9 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+4/50 s157: rule 931 (0.9s) | la 713 (388.2s)
+4/50 s158: rule 942 (0.9s) | la 657 (343.3s)
+4/50 s159: rule 811 (0.4s) | la 750 (419.7s)
+4/50 s160: rule 946 (0.8s) | la 666 (257.9s)
+저장: /home/kopt/drone/figures/rule2_cont_std_s157_v5_26_10_26_20.csv

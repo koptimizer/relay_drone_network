@@ -1,0 +1,45 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M=3 s901: 최적 110 | critic 810 | critic+복구 810
+M=3 s902: 최적 80 | critic 120 | critic+복구 120
+M=3 s903: 최적 90 | critic 310 | critic+복구 310
+M=3 s904: 최적 120 | critic 360 | critic+복구 360
+M=3 s905: 최적 120 | critic 200 | critic+복구 200
+M=3 s906: 최적 120 | critic 230 | critic+복구 230
+M=3 s907: 최적 50 | critic 90 | critic+복구 90
+M=3 s908: 최적 60 | critic 90 | critic+복구 90
+M=3 s909: 최적 90 | critic 160 | critic+복구 160
+M=3 s910: 최적 70 | critic 100 | critic+복구 100
+M=4 s901: 최적 130 | critic 160 | critic+복구 160
+M=4 s902: 최적 100 | critic 240 | critic+복구 240
+M=4 s903: 최적 120 | critic 370 | critic+복구 370
+M=4 s904: 최적 160 | critic 540 | critic+복구 540
+M=4 s905: 최적 120 | critic 2840 | critic+복구 2840
+M=4 s906: 최적 120 | critic 240 | critic+복구 240
+M=4 s907: 최적 110 | critic 170 | critic+복구 170
+M=4 s908: 최적 100 | critic 310 | critic+복구 310
+M=4 s909: 최적 100 | critic 190 | critic+복구 190
+M=4 s910: 최적 90 | critic 140 | critic+복구 140
+M=5 s901: 최적 160 | critic 930 | critic+복구 930
+M=5 s902: 최적 110 | critic 200 | critic+복구 200
+M=5 s903: 최적 120 | critic 410 | critic+복구 410
+M=5 s904: 최적 170 | critic 2300 | critic+복구 2300
+M=5 s905: 최적 130 | critic 530 | critic+복구 530
+M=5 s906: 최적 120 | critic 380 | critic+복구 380
+M=5 s907: 최적 110 | critic 350 | critic+복구 350
+M=5 s908: 최적 110 | critic 260 | critic+복구 260
+M=5 s909: 최적 120 | critic 250 | critic+복구 250
+M=5 s910: 최적 90 | critic 150 | critic+복구 150
+M=6 s901: 최적 170 | critic 380 | critic+복구 380
+M=6 s902: 최적 120 | critic 300 | critic+복구 300
+M=6 s903: 최적 130 | critic 350 | critic+복구 350
+M=6 s904: 최적 180 | critic 760 | critic+복구 760
+M=6 s905: 최적 140 | critic 1880 | critic+복구 1880
+M=6 s906: 최적 150 | critic 350 | critic+복구 350
+M=6 s907: 최적 130 | critic 310 | critic+복구 310
+M=6 s908: 최적 110 | critic 360 | critic+복구 360
+M=6 s909: 최적 140 | critic 430 | critic+복구 430
+M=6 s910: 최적 120 | critic 280 | critic+복구 280
+저장: /home/kopt/drone/figures/critic_lat_m36_v5_26_10_27_00.csv

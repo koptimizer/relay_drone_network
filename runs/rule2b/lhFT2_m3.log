@@ -1,0 +1,15 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M=3 s901: 최적 110 | 규칙 150 | 선견 규칙 120 (27결정, 456롤아웃, 45초)
+M=3 s902: 최적 80 | 규칙 110 | 선견 규칙 90 (22결정, 308롤아웃, 24초)
+M=3 s903: 최적 90 | 규칙 150 | 선견 규칙 110 (25결정, 384롤아웃, 31초)
+M=3 s904: 최적 120 | 규칙 170 | 선견 규칙 140 (30결정, 480롤아웃, 51초)
+M=3 s905: 최적 120 | 규칙 160 | 선견 규칙 130 (27결정, 448롤아웃, 46초)
+M=3 s906: 최적 120 | 규칙 160 | 선견 규칙 130 (30결정, 446롤아웃, 60초)
+M=3 s907: 최적 50 | 규칙 90 | 선견 규칙 60 (18결정, 312롤아웃, 14초)
+M=3 s908: 최적 60 | 규칙 90 | 선견 규칙 70 (18결정, 260롤아웃, 16초)
+M=3 s909: 최적 90 | 규칙 120 | 선견 규칙 100 (24결정, 352롤아웃, 24초)
+M=3 s910: 최적 70 | 규칙 80 | 선견 규칙 80 (21결정, 348롤아웃, 16초)
+저장: /home/kopt/drone/figures/rule2_lhFT2_m3_v5_26_10_26_20.csv

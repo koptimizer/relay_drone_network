@@ -1,0 +1,39 @@
+[2026-11-23 13:53:00] === 선견 규칙 시간 측정 ===
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+{'dests': 9, 'seed': 1201, 'rule': 278, 'rule_sec': 0.14, 'look': 236, 'look_sec': 4.3}
+{'dests': 9, 'seed': 1202, 'rule': 172, 'rule_sec': 0.07, 'look': 155, 'look_sec': 2.9}
+{'dests': 9, 'seed': 1203, 'rule': 194, 'rule_sec': 0.09, 'look': 166, 'look_sec': 3.4}
+{'dests': 9, 'seed': 1204, 'rule': 121, 'rule_sec': 0.05, 'look': 97, 'look_sec': 1.2}
+{'dests': 9, 'seed': 1205, 'rule': 231, 'rule_sec': 0.12, 'look': 202, 'look_sec': 4.9}
+{'dests': 10, 'seed': 1201, 'rule': 398, 'rule_sec': 0.19, 'look': 245, 'look_sec': 5.7}
+{'dests': 10, 'seed': 1202, 'rule': 251, 'rule_sec': 0.12, 'look': 205, 'look_sec': 4.7}
+{'dests': 10, 'seed': 1203, 'rule': 221, 'rule_sec': 0.13, 'look': 189, 'look_sec': 4.3}
+{'dests': 10, 'seed': 1204, 'rule': 259, 'rule_sec': 0.1, 'look': 156, 'look_sec': 3.2}
+{'dests': 10, 'seed': 1205, 'rule': 255, 'rule_sec': 0.15, 'look': 225, 'look_sec': 5.7}
+{'dests': 11, 'seed': 1201, 'rule': 428, 'rule_sec': 0.19, 'look': 331, 'look_sec': 8.8}
+{'dests': 11, 'seed': 1202, 'rule': 233, 'rule_sec': 0.11, 'look': 199, 'look_sec': 3.9}
+{'dests': 11, 'seed': 1203, 'rule': 220, 'rule_sec': 0.1, 'look': 200, 'look_sec': 4.2}
+{'dests': 11, 'seed': 1204, 'rule': 173, 'rule_sec': 0.09, 'look': 147, 'look_sec': 2.9}
+{'dests': 11, 'seed': 1205, 'rule': 253, 'rule_sec': 0.13, 'look': 222, 'look_sec': 4.5}
+{'dests': 12, 'seed': 1201, 'rule': 429, 'rule_sec': 0.19, 'look': 322, 'look_sec': 8.6}
+{'dests': 12, 'seed': 1202, 'rule': 265, 'rule_sec': 0.12, 'look': 235, 'look_sec': 5.1}
+{'dests': 12, 'seed': 1203, 'rule': 272, 'rule_sec': 0.15, 'look': 232, 'look_sec': 5.0}
+{'dests': 12, 'seed': 1204, 'rule': 197, 'rule_sec': 0.07, 'look': 175, 'look_sec': 4.0}
+{'dests': 12, 'seed': 1205, 'rule': 264, 'rule_sec': 0.11, 'look': 244, 'look_sec': 5.7}
+저장: /home/kopt/drone/figures/cont_ctrl_time_v5_26_11_23_13.csv
+[2026-11-23 13:53:29] === 완료 ===

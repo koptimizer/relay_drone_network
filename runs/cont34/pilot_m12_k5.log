@@ -1,0 +1,19 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[연속 모형] N=3 M=12 Q=3 κ=5 σ=2 | 규칙 makespan 436 → 지평 T=111 기간 (555스텝) | 원거리 수요지 >R 12, >2·0.9R 8 | 노름 soc
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2561211
+Traceback (most recent call last):
+  File "/home/kopt/drone/proposed_src/pipeline/cont_milp_v5_26_11_19_14.py", line 254, in <module>
+    main()
+  File "/home/kopt/drone/proposed_src/pipeline/cont_milp_v5_26_11_19_14.py", line 222, in main
+    m, V = build(cc, dests, N, Q, R, kappa, T, v, norm=A.norm, ngon=A.ngon)
+  File "/home/kopt/drone/proposed_src/pipeline/cont_milp_v5_26_11_19_14.py", line 68, in build
+    m = gp.Model("cont_relay")
+  File "src/gurobipy/_model.pyx", line 152, in gurobipy._model.Model.__init__
+  File "src/gurobipy/gurobi.pxi", line 40, in gurobipy._core.gurobi._getdefaultenv
+  File "src/gurobipy/env.pxi", line 112, in gurobipy._core.Env.__init__
+gurobipy._exception.GurobiError: License 2561211 has expired

@@ -1,0 +1,26 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[  9] N=4 M=39 Q=5: 규칙 675 → 교사 545 (191초)
+[ 23] N=4 M=17 Q=5: 규칙 557 → 교사 471 (278초)
+[ 37] N=3 M=40 Q=5: 규칙 1711 → 교사 579 (75초)
+[ 51] N=3 M=14 Q=5: 규칙 333 → 교사 294 (36초)
+[ 65] N=3 M=54 Q=5: 규칙 929 → 교사 932 (92초)
+[ 79] N=4 M=33 Q=5: 규칙 1215 → 교사 653 (193초)
+[ 93] N=4 M=14 Q=5: 규칙 266 → 교사 202 (43초)
+[107] N=3 M=36 Q=5: 규칙 567 → 교사 594 (82초)
+[121] N=4 M=20 Q=5: 규칙 457 → 교사 284 (85초)
+[135] N=3 M=34 Q=5: 규칙 669 → 교사 667 (90초)
+[149] N=3 M= 7 Q=2: 규칙 331 → 교사 152 (32초)
+[163] N=4 M=47 Q=5: 규칙 1560 → 교사 891 (315초)
+[177] N=4 M=10 Q=2: 규칙 292 → 교사 133 (31초)
+[191] N=3 M=36 Q=5: 규칙 760 → 교사 716 (78초)
+[205] N=3 M=37 Q=5: 규칙 693 → 교사 593 (80초)
+[219] N=3 M=47 Q=5: 규칙 1062 → 교사 920 (127초)
+[233] N=3 M=42 Q=5: 규칙 684 → 교사 601 (83초)
+[247] N=3 M=48 Q=5: 규칙 988 → 교사 879 (95초)
+[261] N=4 M=12 Q=2: 규칙 370 → 교사 234 (44초)
+[275] N=3 M=37 Q=5: 규칙 718 → 교사 657 (77초)
+[289] N=4 M=34 Q=5: 규칙 515 → 교사 554 (164초)
+저장: /home/kopt/drone/figures/teacher_pool_v5_26_10_21_17_shard9.json

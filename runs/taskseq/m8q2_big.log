@@ -1,0 +1,10 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+M= 8 s901: 최적 250 | 초기(규칙 열) 1000000 → 작업열 탐색 330 (9007회, 9552초)
+M= 8 s902: 최적 190 | 초기(규칙 열) 1000000 → 작업열 탐색 210 (9018회, 6273초)
+M= 8 s903: 최적 190 | 초기(규칙 열) 260 → 작업열 탐색 200 (9010회, 1502초)
+M= 8 s904: 최적 280 | 초기(규칙 열) 370 → 작업열 탐색 290 (9011회, 2276초)
+M= 8 s905: 최적 260 | 초기(규칙 열) 610 → 작업열 탐색 290 (9019회, 3868초)
+저장: /home/kopt/drone/figures/taskseq_m8q2_big_v5_26_10_22_16.csv

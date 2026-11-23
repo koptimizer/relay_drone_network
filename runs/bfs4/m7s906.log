@@ -1,0 +1,24 @@
+/home/kopt/enter/envs/wsl_neuroMCTS/lib/python3.10/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.10.19)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[격자] 노드 57 간격 98.2 | 용량 2x3=6 < 수요지 7 → 재적재 필요
+  기간 1: 새 상태 34 (0초)
+  기간 2: 새 상태 645 (0초)
+  기간 3: 새 상태 2202 (0초)
+  기간 4: 새 상태 14838 (0초)
+  기간 5: 새 상태 60843 (3초)
+  기간 6: 새 상태 167453 (13초)
+  기간 7: 새 상태 338403 (32초)
+  기간 8: 새 상태 579617 (70초)
+  기간 9: 새 상태 664384 (136초)
+  기간 10: 새 상태 779114 (208초)
+  기간 11: 새 상태 1116973 (288초)
+  기간 12: 새 상태 1674165 (410초)
+  기간 13: 새 상태 1799566 (583초)
+  기간 14: 새 상태 1812425 (757초)
+  기간 15: 새 상태 1710472 (926초)
+  기간 16: 새 상태 1656495 (1092초)
+  기간 17: 새 상태 1489518 (1241초)
+  기간 18: 새 상태 1393426 (1373초)
+[결과] 최적 17기간 = 170스텝 (1373초)
