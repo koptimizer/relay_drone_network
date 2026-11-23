@@ -350,23 +350,44 @@ $C$ & $\ge 0$ & 스텝 단위 makespan \\
 \end{table*}
 
 \paragraph{모형}
-이 기호로 모형은 다음과 같다.
+이 기호로 쓴 모형은 두 단에 걸쳐 놓은 \eqref{eq:c-obj}--\eqref{eq:c-mk}이다.
+\begin{figure*}[!t]
+\noindent\rule{\textwidth}{0.4pt}\vspace{-6pt}
 \begin{align}
-\min\ & C \label{eq:c-obj}\\
-\text{s.t.}\ & p_i(0) = c,\quad q_i(0) = Q, \label{eq:c-init}\\
-& \|p_i(t+1) - p_i(t)\| \le L\,(1 - w_i(t)), \label{eq:c-move}\\
-& \|p_a(\tau) - p_b(\tau)\| \le R + M_{\mathrm{b}}\,(1 - y_{ab}(t)), \label{eq:c-link}\\
-& \textstyle\sum_b f_{ib}(t) - \sum_b f_{bi}(t) = 1,\quad f_{ab}(t) \le N\,y_{ab}(t), \label{eq:c-flow}\\
-& \|p_i(t) - d_j\| \le \rho + M_{\mathrm{b}}\,(1 - s_{ijt}), \label{eq:c-serve}\\
-& \|p_i(t) - c\| \le \rho + M_{\mathrm{b}}\,(1 - r_{it}), \label{eq:c-reload}\\
-& \textstyle w_i(t) = \sum_j \sum_{\tau = t-\sigma+1}^{t} s_{ij\tau} + \sum_{\tau = t-\sigma+1}^{t} r_{i\tau} \le 1,
-  \label{eq:c-window}\\
-& \textstyle\sum_{i,t} s_{ijt} = 1,\quad \sum_j s_{ijt} \le q_i(t), \label{eq:c-once}\\
-& \textstyle q_i(t+1) = q_i(t) - \sum_j s_{ijt} + g_{it},\quad g_{it} \le Q\,r_{it}, \label{eq:c-cargo}\\
-& C \ge \kappa\,t\,s_{ijt},\qquad x_i(1) \le x_{i+1}(1), \label{eq:c-mk}
+\min\quad & C \label{eq:c-obj}\\[3pt]
+\text{s.t.}\quad & p_i(0) = c,\qquad q_i(0) = Q,
+	&& \forall\, i \in K, \label{eq:c-init}\\[3pt]
+& \bigl\|p_i(t+1) - p_i(t)\bigr\| \;\le\; L\,\bigl(1 - w_i(t)\bigr),
+	&& \forall\, i \in K,\ t, \label{eq:c-move}\\[3pt]
+& \bigl\|p_a(\tau) - p_b(\tau)\bigr\| \;\le\; R + M_{\mathrm{b}}\,\bigl(1 - y_{ab}(t)\bigr),
+	&& \forall\, a \ne b \in V,\ t,\ \tau \in \{t,\, t+1\}, \label{eq:c-link}\\[3pt]
+& \sum_{b \in V \setminus \{i\}} f_{ib}(t) \;-\; \sum_{b \in V \setminus \{i\}} f_{bi}(t) \;=\; 1,
+	&& \forall\, i \in K,\ t, \label{eq:c-cons}\\[3pt]
+& f_{ab}(t) \;\le\; N\,y_{ab}(t),
+	&& \forall\, a \ne b \in V,\ t, \label{eq:c-flow}\\[3pt]
+& \bigl\|p_i(t) - d_j\bigr\| \;\le\; \rho + M_{\mathrm{b}}\,\bigl(1 - s_{ijt}\bigr),
+	&& \forall\, i \in K,\ j \in J,\ t, \label{eq:c-serve}\\[3pt]
+& \bigl\|p_i(t) - c\bigr\| \;\le\; \rho + M_{\mathrm{b}}\,\bigl(1 - r_{it}\bigr),
+	&& \forall\, i \in K,\ t, \label{eq:c-reload}\\[3pt]
+& w_i(t) \;=\; \sum_{j \in J}\ \sum_{\tau = t-\sigma+1}^{t} s_{ij\tau} \;+ \sum_{\tau = t-\sigma+1}^{t} r_{i\tau} \;\le\; 1,
+	&& \forall\, i \in K,\ t, \label{eq:c-window}\\[3pt]
+& \sum_{i \in K}\ \sum_{t = 0}^{T} s_{ijt} \;=\; 1,
+	&& \forall\, j \in J, \label{eq:c-once}\\[3pt]
+& \sum_{j \in J} s_{ijt} \;\le\; q_i(t),
+	&& \forall\, i \in K,\ t, \label{eq:c-cap}\\[3pt]
+& q_i(t+1) \;=\; q_i(t) - \sum_{j \in J} s_{ijt} + g_{it},
+	&& \forall\, i \in K,\ t, \label{eq:c-cargo}\\[3pt]
+& g_{it} \;\le\; Q\,r_{it},
+	&& \forall\, i \in K,\ t, \label{eq:c-gcap}\\[3pt]
+& C \;\ge\; \kappa\,t\,s_{ijt},
+	&& \forall\, i \in K,\ j \in J,\ t, \label{eq:c-mspan}\\[3pt]
+& x_i(1) \;\le\; x_{i+1}(1),
+	&& \forall\, i \in K,\ i < N. \label{eq:c-mk}
 \end{align}
-모든 드론 $i$, 노드 쌍 $a \ne b$, 수요지 $j$, 기간 $t$에 대해서이고, \eqref{eq:c-link}는 기간 $t$의 두
-매듭 $\tau \in \{t, t+1\}$ 모두에서다.
+\noindent\rule{\textwidth}{0.4pt}
+\end{figure*}
+여기서 $t$는 기간(매듭에서 정의된 양에 대해서는 매듭) 전체를 돌고, $x_i(t)$는 $p_i(t)$의 첫째
+좌표이며, \eqref{eq:c-link}는 기간 $t$의 두 매듭 모두에 부과된다.
 
 \paragraph{모형 읽기}
 \emph{이동과 서비스}, \eqref{eq:c-init}--\eqref{eq:c-move}와 \eqref{eq:c-serve}--\eqref{eq:c-window}.
@@ -375,12 +396,12 @@ $j$의 서비스는 그 매듭에서 드론이 $d_j$로부터 $\rho$ 안에 있�
 창 행~\eqref{eq:c-window}은 연속한 $\sigma$기간 안에 서비스나 재적재를 많아야 하나 시작하게 하고,
 \eqref{eq:c-move}를 통해 그 기간 동안 드론을 세워 둔다. 이것이 \ref{sec:problem}절의 서비스 시간 $S$다.
 
-\emph{다중 홉 연결성}, \eqref{eq:c-link}--\eqref{eq:c-flow}. 이 두 족이 본 모형을 드론 경로 모형과
+\emph{다중 홉 연결성}, \eqref{eq:c-link}--\eqref{eq:c-flow}. 이 세 행이 본 모형을 드론 경로 모형과
 구별한다. 링크는 기간 양 끝 매듭에서 두 끝 노드가 $R$ 안에 있을 때에만 열 수 있다. 매 기간 모든
 드론이 단위 흐름 하나를 내보내고, 거점만이 흡수점이며, 흐름은 열린 링크로만 흐른다. 이 체계는 모든
 드론이 열린 링크의 경로로 거점에 이어질 때, 즉 시뮬레이터의 다중 홉 연결성 판정이 기간 내내
 성공할 때에만 실행 가능하다. 증명은 짧다. 그런 경로가 있으면 각 드론의 단위 흐름을 그 경로로 보내면
-두 족이 모두 성립한다. 거꾸로 흐름은 열린 링크로만 흐르고, 보존 행이 없는 노드는 거점뿐이므로 흐름
+세 행이 모두 성립한다. 거꾸로 흐름은 열린 링크로만 흐르고, 보존 행이 없는 노드는 거점뿐이므로 흐름
 분해로 필요한 경로를 얻는다. 이 제약이 문제에 하는 일을 보자. 배송할 것이 없는 드론도 동료가 홉으로
 필요로 하면 거점에서 기다릴 수 없고, 다른 모든 노드에서 $R$보다 멀어지게 하는 수요지로는 날아갈 수
 없다. 따라서 중계는 별도의 임무가 아니라 편대가 어디 있느냐의 결과다.

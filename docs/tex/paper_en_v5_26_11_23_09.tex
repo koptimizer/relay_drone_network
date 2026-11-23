@@ -408,23 +408,44 @@ $C$ & $\ge 0$ & makespan in steps \\
 \end{table*}
 
 \paragraph{Model}
-With this notation the model is
+With this notation the model is \eqref{eq:c-obj}--\eqref{eq:c-mk}, set across both columns.
+\begin{figure*}[!t]
+\noindent\rule{\textwidth}{0.4pt}\vspace{-6pt}
 \begin{align}
-\min\ & C \label{eq:c-obj}\\
-\text{s.t.}\ & p_i(0) = c,\quad q_i(0) = Q, \label{eq:c-init}\\
-& \|p_i(t+1) - p_i(t)\| \le L\,(1 - w_i(t)), \label{eq:c-move}\\
-& \|p_a(\tau) - p_b(\tau)\| \le R + M_{\mathrm{b}}\,(1 - y_{ab}(t)), \label{eq:c-link}\\
-& \textstyle\sum_b f_{ib}(t) - \sum_b f_{bi}(t) = 1,\quad f_{ab}(t) \le N\,y_{ab}(t), \label{eq:c-flow}\\
-& \|p_i(t) - d_j\| \le \rho + M_{\mathrm{b}}\,(1 - s_{ijt}), \label{eq:c-serve}\\
-& \|p_i(t) - c\| \le \rho + M_{\mathrm{b}}\,(1 - r_{it}), \label{eq:c-reload}\\
-& \textstyle w_i(t) = \sum_j \sum_{\tau = t-\sigma+1}^{t} s_{ij\tau} + \sum_{\tau = t-\sigma+1}^{t} r_{i\tau} \le 1,
-  \label{eq:c-window}\\
-& \textstyle\sum_{i,t} s_{ijt} = 1,\quad \sum_j s_{ijt} \le q_i(t), \label{eq:c-once}\\
-& \textstyle q_i(t+1) = q_i(t) - \sum_j s_{ijt} + g_{it},\quad g_{it} \le Q\,r_{it}, \label{eq:c-cargo}\\
-& C \ge \kappa\,t\,s_{ijt},\qquad x_i(1) \le x_{i+1}(1), \label{eq:c-mk}
+\min\quad & C \label{eq:c-obj}\\[3pt]
+\text{s.t.}\quad & p_i(0) = c,\qquad q_i(0) = Q,
+	&& \forall\, i \in K, \label{eq:c-init}\\[3pt]
+& \bigl\|p_i(t+1) - p_i(t)\bigr\| \;\le\; L\,\bigl(1 - w_i(t)\bigr),
+	&& \forall\, i \in K,\ t, \label{eq:c-move}\\[3pt]
+& \bigl\|p_a(\tau) - p_b(\tau)\bigr\| \;\le\; R + M_{\mathrm{b}}\,\bigl(1 - y_{ab}(t)\bigr),
+	&& \forall\, a \ne b \in V,\ t,\ \tau \in \{t,\, t+1\}, \label{eq:c-link}\\[3pt]
+& \sum_{b \in V \setminus \{i\}} f_{ib}(t) \;-\; \sum_{b \in V \setminus \{i\}} f_{bi}(t) \;=\; 1,
+	&& \forall\, i \in K,\ t, \label{eq:c-cons}\\[3pt]
+& f_{ab}(t) \;\le\; N\,y_{ab}(t),
+	&& \forall\, a \ne b \in V,\ t, \label{eq:c-flow}\\[3pt]
+& \bigl\|p_i(t) - d_j\bigr\| \;\le\; \rho + M_{\mathrm{b}}\,\bigl(1 - s_{ijt}\bigr),
+	&& \forall\, i \in K,\ j \in J,\ t, \label{eq:c-serve}\\[3pt]
+& \bigl\|p_i(t) - c\bigr\| \;\le\; \rho + M_{\mathrm{b}}\,\bigl(1 - r_{it}\bigr),
+	&& \forall\, i \in K,\ t, \label{eq:c-reload}\\[3pt]
+& w_i(t) \;=\; \sum_{j \in J}\ \sum_{\tau = t-\sigma+1}^{t} s_{ij\tau} \;+ \sum_{\tau = t-\sigma+1}^{t} r_{i\tau} \;\le\; 1,
+	&& \forall\, i \in K,\ t, \label{eq:c-window}\\[3pt]
+& \sum_{i \in K}\ \sum_{t = 0}^{T} s_{ijt} \;=\; 1,
+	&& \forall\, j \in J, \label{eq:c-once}\\[3pt]
+& \sum_{j \in J} s_{ijt} \;\le\; q_i(t),
+	&& \forall\, i \in K,\ t, \label{eq:c-cap}\\[3pt]
+& q_i(t+1) \;=\; q_i(t) - \sum_{j \in J} s_{ijt} + g_{it},
+	&& \forall\, i \in K,\ t, \label{eq:c-cargo}\\[3pt]
+& g_{it} \;\le\; Q\,r_{it},
+	&& \forall\, i \in K,\ t, \label{eq:c-gcap}\\[3pt]
+& C \;\ge\; \kappa\,t\,s_{ijt},
+	&& \forall\, i \in K,\ j \in J,\ t, \label{eq:c-mspan}\\[3pt]
+& x_i(1) \;\le\; x_{i+1}(1),
+	&& \forall\, i \in K,\ i < N. \label{eq:c-mk}
 \end{align}
-for all drones $i$, node pairs $a \ne b$, demand points $j$ and periods $t$, and in~\eqref{eq:c-link} for
-both knots $\tau \in \{t, t+1\}$ of period $t$.
+\noindent\rule{\textwidth}{0.4pt}
+\end{figure*}
+Here $t$ runs over the periods, or over the knots for quantities defined at knots, and
+$x_i(t)$ is the first coordinate of $p_i(t)$; \eqref{eq:c-link} is imposed at both knots of period $t$.
 
 \paragraph{Reading the model}
 \emph{Movement and services}, \eqref{eq:c-init}--\eqref{eq:c-move} and
@@ -435,13 +456,13 @@ row~\eqref{eq:c-window} lets a drone start at most one service or reload in any 
 consecutive periods and, through~\eqref{eq:c-move}, holds it stationary for those periods, which is
 the service time $S$ of Section~\ref{sec:problem}.
 
-\emph{Multi-hop connectivity}, \eqref{eq:c-link}--\eqref{eq:c-flow}. These two families are the
+\emph{Multi-hop connectivity}, \eqref{eq:c-link}--\eqref{eq:c-flow}. These three rows are the
 part that distinguishes the model from drone-routing models. A link may be opened only if its two
 end nodes are within $R$ at both knots of the period. In every period every drone ships one unit
 of flow, the depot is the only sink, and flow may travel only on open links. The system is feasible
 if and only if every drone is joined to the depot by a path of open links, that is, if and only if
 the simulator's multi-hop connectivity test succeeds throughout the period. If such paths exist,
-routing each drone's unit along its path satisfies both families; conversely, flow travels only on
+routing each drone's unit along its path satisfies all three; conversely, flow travels only on
 open links and, since the depot is the only node without a conservation row, a flow decomposition
 yields the required paths. Note what the constraint does to the problem: a drone that has nothing
 to deliver cannot simply wait at the depot if a teammate needs it as a hop, and a drone cannot fly
@@ -609,7 +630,7 @@ option of every drone except the lead to return.
 
 \paragraph{Deadlock recovery}
 Because the rule is deterministic, a geometry that stalls the fleet makes it re-issue the same
-assignment at every decision point and the stall persists; without an recovery mechanism the rule
+assignment at every decision point and the stall persists; without a recovery mechanism the rule
 completes 62\% of standard instances. The recovery mechanism is a timed override. It \emph{starts}
 at the first decision point at which the fleet has been in partial deadlock for at least
 $k_{\mathrm{stall}}$ consecutive steps and no recovery is in progress. It \emph{lasts} for
@@ -769,7 +790,7 @@ form $\mathbb{E}_{a \sim \pi}[\alpha \log \pi(a) - Q(a)]$ per drone, with teache
 the autoregressive order. Three elements of the training configuration matter and are ablated in
 Section~\ref{sec:rq5}. (i) The entropy target is annealed linearly from $0.6 \log
 n_{\mathrm{valid}}$ to $0.25 \log n_{\mathrm{valid}}$ over the first 400 episodes: a high
-target keeps the policy random enough to recovery deadlocks early in training, a low one lets it
+target keeps the policy random enough to recover from deadlocks early in training, a low one lets it
 hold a multi-step formation later. (ii) A cross-entropy term with weight 2.0 pulls the policy
 towards the option the rule's assignment rule (Procedure~1, steps 2--5, without recovery)
 would take, wherever that option is valid. (iii) Every training episode samples $N \in
@@ -1132,7 +1153,7 @@ information needed to make the rule's choice is present in the learned policy's 
 a two-layer classifier predicts the rule's relay assignment from the 41 observed features with
 85\% accuracy, and behaviour cloning of the full rule reaches 95\% on relay decisions. When drones
 are plentiful the opposite happens: the rule keeps stationing a chain that the geometry no
-longer needs, while the learned policy exploits the slack and, with its sampled inference, recoveries
+longer needs, while the learned policy exploits the slack and, with its sampled inference, recovers from
 the stalls that the deterministic rule repeats; this is also where the rule loses its few
 completions.
 
